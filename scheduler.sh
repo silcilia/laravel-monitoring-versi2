@@ -1,7 +1,7 @@
 #!/bin/bash
 # scheduler.sh - ESP Monitor untuk Laragon & Server
 
-cd /c/laragon/www/laravel_monitoring || exit
+cd /d/laragon/www/laravel_system || exit
 
 echo "=========================================="
 echo "  🔥 ESP MONITOR STARTED"

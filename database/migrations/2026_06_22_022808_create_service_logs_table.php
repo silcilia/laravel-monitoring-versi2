@@ -12,41 +12,36 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('service_logs', function (Blueprint $table) {
-
             $table->id();
 
             $table->foreignId('service_id')
-                  ->constrained()
-                  ->onDelete('cascade');
+                ->constrained()
+                ->onDelete('cascade');
 
             $table->string('status');
 
             $table->string('response_code')
-                  ->nullable();
+                ->nullable();
 
             $table->float('response_time')
-                  ->nullable();
+                ->nullable();
 
             $table->text('message')
-                  ->nullable();
+                ->nullable();
 
-            // ========== TAMBAHKAN INI ==========
-            // Kolom untuk menandai apakah ini log perubahan status
+            // Menandakan apakah log ini merupakan perubahan status
             $table->boolean('is_status_change')
-                  ->default(false)
-                  ->after('message')
-                  ->comment('Menandakan apakah ini adalah perubahan status');
+                ->default(false)
+                ->comment('Menandakan apakah ini adalah perubahan status');
 
-            // Kolom untuk menyimpan status sebelumnya
+            // Menyimpan status sebelumnya
             $table->string('previous_status')
-                  ->nullable()
-                  ->after('is_status_change')
-                  ->comment('Status sebelumnya sebelum perubahan');
+                ->nullable()
+                ->comment('Status sebelumnya sebelum perubahan');
 
-            // Tambahkan index untuk mempercepat query
+            // Index
             $table->index('is_status_change');
             $table->index(['service_id', 'is_status_change']);
-            // ========== SAMPAI SINI ==========
 
             $table->timestamps();
         });
