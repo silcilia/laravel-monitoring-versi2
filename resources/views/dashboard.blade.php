@@ -636,6 +636,70 @@
         color: var(--gray-400);
     }
 
+    /* ================= DONUT CHART RESPONSIVE ================= */
+    .chart-container .chart-empty {
+        padding: 20px;
+    }
+
+    .chart-container .chart-empty i {
+        font-size: 32px;
+        margin-bottom: 8px;
+    }
+
+    @media (max-width: 768px) {
+        .chart-container {
+            flex-direction: column !important;
+            gap: 16px !important;
+            align-items: center !important;
+        }
+        
+        .chart-container > div:first-child {
+            width: 160px !important;
+            height: 160px !important;
+        }
+        
+        .chart-container > div:first-child div {
+            font-size: 12px !important;
+        }
+        
+        .chart-container > div:first-child div div:first-child {
+            font-size: 20px !important;
+        }
+        
+        .chart-container > div:last-child {
+            min-width: 100% !important;
+            align-items: center !important;
+        }
+        
+        .chart-container > div:last-child > div {
+            width: 100%;
+            max-width: 250px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .chart-container > div:first-child {
+            width: 140px !important;
+            height: 140px !important;
+        }
+        
+        .chart-container > div:first-child div div:first-child {
+            font-size: 16px !important;
+        }
+        
+        .chart-container > div:first-child div div:last-child {
+            font-size: 20px !important;
+        }
+        
+        .chart-container > div:last-child > div {
+            font-size: 12px !important;
+        }
+        
+        .chart-container > div:last-child span {
+            font-size: 12px !important;
+        }
+    }
+
     /* ================= MODAL SERVICE ================= */
     .modal-overlay {
         display: none;
@@ -1042,6 +1106,12 @@
         $lastSmokeValue = $lastSmokeValue ?? 0;
         $lastSmokeStatus = $lastSmokeStatus ?? 'NORMAL';
         $lastSeenAt = $lastSeenAt ?? null;
+        
+        // Hitung persentase untuk donut
+        $upPercent = $total > 0 ? round(($up / $total) * 100, 1) : 0;
+        $downPercent = $total > 0 ? round(($down / $total) * 100, 1) : 0;
+        $warningPercent = $total > 0 ? round(($warning / $total) * 100, 1) : 0;
+        $hasData = $total > 0;
     @endphp
 
     <div class="stats-grid">
@@ -1093,7 +1163,7 @@
             </div>
         </div>
 
-        <!-- ================= 🔥 ESP STATUS - UBAH PPM MENJADI NILAI ASAP ================= -->
+        <!-- ================= 🔥 ESP STATUS ================= -->
         <div class="stat-card esp" id="espCard">
             <div class="stat-header">
                 <h3>ESP Status</h3>
@@ -1118,7 +1188,6 @@
                     ❌ Tidak ada data (offline)
                 @endif
             </div>
-            <!-- 🔥 UBAH INI: PPM → Nilai Asap (tanpa satuan) -->
             <div class="stat-label" style="margin-top: 4px; font-size: 11px; color: var(--gray-400);">
                 📊 Nilai Asap: <strong id="espSmokeValue">{{ $lastSmokeValue }}</strong>
                 | Status: <span id="espSmokeStatus" class="status-badge {{ strtolower($lastSmokeStatus) }}" style="font-size: 10px; padding: 2px 10px; border-radius: 12px; 
@@ -1135,7 +1204,6 @@
 
     <!-- ================= UPTIME CARD ================= -->
     @php
-        $hasData = $total > 0;
         $uptime = $hasData ? (($up) / $total) * 100 : 0;
         $uptimeClass = $hasData ? ($uptime >= 90 ? 'green' : ($uptime >= 70 ? 'yellow' : 'red')) : 'gray';
         $percentDisplay = $hasData ? number_format($uptime, 2) : '—';
@@ -1182,34 +1250,63 @@
         </div>
     </div>
 
-    <!-- ================= CHARTS GRID (7 HARI - PER HARI) ================= -->
+    <!-- ================= CHARTS GRID ================= -->
     <div class="charts-grid">
-        <!-- Chart Service - UPTIME 7 HARI -->
+        <!-- ================= CHART SERVICE - DONUT 7 HARI ================= -->
         <div class="chart-card">
             <div class="chart-header">
-                <h3><i class="fas fa-chart-area"></i> Uptime 7 Hari Terakhir</h3>
+                <h3><i class="fas fa-chart-pie"></i> Status Service 7 Hari</h3>
                 <span class="chart-badge"><i class="far fa-clock"></i> 7 Hari</span>
             </div>
-            <div class="chart-container">
-                @php
-                    $chartLabels = $chartLabels ?? [];
-                    $uptimeData = $uptimeData ?? [];
-                    $hasChartData = count($chartLabels) > 0 && count($uptimeData) > 0;
-                @endphp
-
-                @if($hasChartData)
-                    <canvas id="uptimeChart"></canvas>
+            <div class="chart-container" style="display: flex; align-items: center; justify-content: center; gap: 30px; flex-wrap: wrap; height: auto; min-height: 250px;">
+                @if($hasData)
+                    <div style="position: relative; width: 200px; height: 200px;">
+                        <canvas id="serviceDonutChart"></canvas>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                            <div style="font-size: 14px; font-weight: 600; color: var(--text-dashboard);">Total</div>
+                            <div style="font-size: 28px; font-weight: 800; color: var(--primary);">{{ $total }}</div>
+                            <div style="font-size: 10px; color: var(--gray-400);">Service</div>
+                        </div>
+                    </div>
+                    
+                    <!-- LEGEND -->
+                    <div style="display: flex; flex-direction: column; gap: 10px; min-width: 140px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: #10b981;"></span>
+                            <span style="font-size: 13px; color: var(--text-dashboard); font-weight: 500;">UP</span>
+                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #10b981;">{{ $upPercent }}%</span>
+                            <span style="font-size: 11px; color: var(--gray-400);">({{ $up }})</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: #f59e0b;"></span>
+                            <span style="font-size: 13px; color: var(--text-dashboard); font-weight: 500;">WARNING</span>
+                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #f59e0b;">{{ $warningPercent }}%</span>
+                            <span style="font-size: 11px; color: var(--gray-400);">({{ $warning }})</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: #ef4444;"></span>
+                            <span style="font-size: 13px; color: var(--text-dashboard); font-weight: 500;">DOWN</span>
+                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #ef4444;">{{ $downPercent }}%</span>
+                            <span style="font-size: 11px; color: var(--gray-400);">({{ $down }})</span>
+                        </div>
+                        
+                        <!-- TOTAL PERSENTASE -->
+                        <div style="margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border-dash); display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-400);">
+                            <span>Total: 100%</span>
+                            <span>{{ $total }} service</span>
+                        </div>
+                    </div>
                 @else
-                    <div class="chart-empty">
-                        <i class="fas fa-chart-line"></i>
-                        <h4>Belum Ada Data Uptime</h4>
+                    <div class="chart-empty" style="width: 100%;">
+                        <i class="fas fa-chart-pie"></i>
+                        <h4>Belum Ada Data Service</h4>
                         <p>Data akan muncul setelah ada service yang dimonitor</p>
                     </div>
                 @endif
             </div>
         </div>
 
-        <!-- Chart Smoke Detector -->
+        <!-- ================= CHART SMOKE DETECTOR ================= -->
         <div class="chart-card">
             <div class="chart-header">
                 <h3><i class="fas fa-fire-extinguisher"></i> Grafik Smoke Detector</h3>
@@ -1263,55 +1360,46 @@
 <!-- Font Awesome CDN -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-@if((isset($chartLabels) && isset($uptimeData) && count($chartLabels) > 0 && count($uptimeData) > 0) || 
-    (isset($smokeLabels) && isset($smokeData) && count($smokeLabels) > 0 && count($smokeData) > 0))
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ====================== UPTIME CHART (7 Hari) ======================
-        @if(isset($chartLabels) && isset($uptimeData) && count($chartLabels) > 0 && count($uptimeData) > 0)
+        // ====================== SERVICE DONUT CHART (7 Hari) ======================
+        @if($hasData)
         {
-            const ctx1 = document.getElementById('uptimeChart');
-            if (ctx1) {
-                const isMobile = window.innerWidth < 576;
+            const ctxDonut = document.getElementById('serviceDonutChart');
+            if (ctxDonut) {
                 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
                 const textColor = isDark ? '#94a3b8' : '#64748b';
-                const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
                 
-                const gradient = ctx1.getContext('2d').createLinearGradient(0, 0, 0, 200);
-                gradient.addColorStop(0, isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.2)');
-                gradient.addColorStop(1, isDark ? 'rgba(99, 102, 241, 0.01)' : 'rgba(99, 102, 241, 0.01)');
-
-                new Chart(ctx1, {
-                    type: 'line',
+                // Ambil data dari PHP
+                const up = {{ $upPercent }};
+                const warning = {{ $warningPercent }};
+                const down = {{ $downPercent }};
+                
+                new Chart(ctxDonut, {
+                    type: 'doughnut',
                     data: {
-                        labels: @json($chartLabels),
+                        labels: ['UP', 'WARNING', 'DOWN'],
                         datasets: [{
-                            label: 'Uptime %',
-                            data: @json($uptimeData),
-                            borderColor: '#4f46e5',
-                            backgroundColor: gradient,
-                            borderWidth: 2.5,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: function(context) {
-                                const value = context.dataset.data[context.dataIndex];
-                                if (value >= 95) return '#10b981';
-                                if (value >= 70) return '#f59e0b';
-                                return '#ef4444';
-                            },
-                            pointBorderColor: isDark ? '#1e293b' : '#fff',
-                            pointBorderWidth: 2,
-                            pointRadius: isMobile ? 4 : 6,
-                            pointHoverRadius: isMobile ? 7 : 9,
-                            pointHoverBorderWidth: 2,
+                            data: [up, warning, down],
+                            backgroundColor: [
+                                '#10b981',  // UP - Hijau
+                                '#f59e0b',  // WARNING - Kuning
+                                '#ef4444'   // DOWN - Merah
+                            ],
+                            borderColor: isDark ? '#1e293b' : '#ffffff',
+                            borderWidth: 3,
+                            hoverOffset: 8,
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        cutout: '65%',
                         plugins: {
-                            legend: { display: false },
+                            legend: {
+                                display: false,
+                            },
                             tooltip: {
                                 backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(15, 23, 42, 0.92)',
                                 titleFont: { size: 12, weight: '600' },
@@ -1320,50 +1408,18 @@
                                 cornerRadius: 8,
                                 callbacks: {
                                     label: function(context) {
-                                        const value = context.parsed.y;
-                                        let status = '✅ UP';
-                                        if (value < 70) status = '❌ DOWN';
-                                        else if (value < 95) status = '⚠️ WARNING';
-                                        return '📊 ' + value.toFixed(1) + '% ' + status;
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? (value / total) * 100 : 0;
+                                        return context.label + ': ' + percentage.toFixed(1) + '%';
                                     }
                                 }
                             }
                         },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                title: {
-                                    display: true,
-                                    text: isMobile ? 'Uptime %' : 'Uptime (%)',
-                                    font: { size: isMobile ? 9 : 11, weight: '500' },
-                                    color: textColor
-                                },
-                                grid: {
-                                    color: gridColor,
-                                    drawBorder: false,
-                                    drawTicks: false,
-                                },
-                                ticks: {
-                                    font: { size: isMobile ? 8 : 10 },
-                                    color: textColor,
-                                    maxTicksLimit: isMobile ? 5 : 8,
-                                    callback: function(value) {
-                                        return value + '%';
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: {
-                                    font: { size: isMobile ? 8 : 10 },
-                                    color: textColor,
-                                    maxTicksLimit: 7,
-                                }
-                            }
-                        },
-                        interaction: { intersect: false, mode: 'index' },
-                        elements: { line: { borderJoinStyle: 'round' } }
+                        animation: {
+                            animateRotate: true,
+                            duration: 1000,
+                        }
                     }
                 });
             }
@@ -1385,7 +1441,6 @@
                     data: {
                         labels: @json($smokeLabels),
                         datasets: [{
-                            // 🔥 UBAH LABEL
                             label: 'Nilai Asap',
                             data: @json($smokeData),
                             backgroundColor: isDark ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.6)',
@@ -1408,7 +1463,6 @@
                                 cornerRadius: 8,
                                 callbacks: {
                                     label: function(context) {
-                                        // 🔥 UBAH TOOLTIP
                                         return '🔥 ' + context.parsed.y;
                                     }
                                 }
@@ -1419,7 +1473,6 @@
                                 beginAtZero: true,
                                 title: {
                                     display: true,
-                                    // 🔥 UBAH LABEL Y AXIS
                                     text: isMobile ? 'Nilai' : 'Nilai Asap',
                                     font: { size: isMobile ? 9 : 11, weight: '500' },
                                     color: textColor
@@ -1473,7 +1526,6 @@
         });
     });
 </script>
-@endif
 
 <script>
     // ====================== DATA SERVICES ======================
@@ -1592,7 +1644,7 @@
         }
     }
 
-    // ====================== 🔥 FETCH ESP STATUS REAL-TIME (UBAH PPM JADI NILAI ASAP) ======================
+    // ====================== 🔥 FETCH ESP STATUS REAL-TIME ======================
     function fetchEspStatus() {
         fetch('/api/smoke/status')
             .then(response => response.json())
@@ -1624,10 +1676,9 @@
                         }
                     }
                     
-                    // 🔥 UPDATE NILAI ASAP (tanpa satuan)
+                    // Update nilai asap
                     const smokeValue = document.getElementById('espSmokeValue');
                     if (smokeValue) {
-                        // Gunakan adc atau smoke_value atau ppm dari response
                         const value = esp.adc || esp.smoke_value || esp.ppm || 0;
                         smokeValue.textContent = value;
                     }
@@ -1662,7 +1713,7 @@
         // Fetch ESP status pertama kali
         setTimeout(fetchEspStatus, 1000);
         
-        // Fetch ESP status setiap 5 detik (lebih ringan dari 3 detik)
+        // Fetch ESP status setiap 5 detik
         setInterval(fetchEspStatus, 5000);
     });
 </script>

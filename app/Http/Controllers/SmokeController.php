@@ -26,6 +26,7 @@ class SmokeController extends Controller
     /**
      * ============================================================
      *  📊 DISPLAY SMOKE MONITORING (WEB)
+     *  ✅ DITAMBAHKAN: SORTING ASC/DESC
      * ============================================================
      */
     public function index(Request $request)
@@ -80,13 +81,27 @@ class SmokeController extends Controller
             ->reverse()
             ->values();
 
-        // ==================== LOGS UNTUK TABEL ====================
+        // ============================================================
+        // 🔥 SORTING PARAMETERS (DITAMBAHKAN)
+        // ============================================================
+        $sort = $request->input('sort', 'id');
+        $direction = $request->input('direction', 'desc');
         $perPage = $request->input('perPage', 10);
         $page = $request->input('page', 1);
         
+        // ✅ Validasi kolom yang boleh di-sort
+        $allowedSorts = ['id', 'smoke_value', 'status', 'created_at', 'updated_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'id';
+        }
+        
+        // ✅ Validasi direction
+        $direction = in_array(strtolower($direction), ['asc', 'desc']) ? strtolower($direction) : 'desc';
+
+        // ==================== LOGS UNTUK TABEL DENGAN SORTING ====================
         $allLogs = SmokeLog::with('device')
             ->whereIn('status', ['NORMAL', 'WARNING', 'DANGER'])
-            ->orderBy('created_at', 'desc')
+            ->orderBy($sort, $direction)  // 🔥 SORTING
             ->get();
         
         $filteredLogs = [];
@@ -125,7 +140,9 @@ class SmokeController extends Controller
             'onlineCount',
             'chartLogs',
             'smokeLogs',
-            'perPage'
+            'perPage',
+            'sort',        // 🔥 DITAMBAHKAN
+            'direction'    // 🔥 DITAMBAHKAN
         ));
     }
 

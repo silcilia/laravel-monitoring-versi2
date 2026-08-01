@@ -14,21 +14,23 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         \App\Console\Commands\CheckSmokeDevices::class,
+        \App\Console\Commands\MonitorServices::class, // Pastikan command ini ada
     ];
 
     protected function schedule(Schedule $schedule): void
     {
-        // ==================== SMOKE/ESP MONITOR ====================
-        $schedule->command(\App\Console\Commands\CheckSmokeDevices::class)
-            ->everyMinute()
-            ->withoutOverlapping();
+        // ============================================================
+        // 🔥 SEMUA SCHEDULING SUDAH DIPINDAHKAN KE routes/console.php
+        // ============================================================
+        // KOSONGKAN ATAU KOMENTAR SEMUA SCHEDULING DI SINI
+        // 
+        // Contoh:
+        // $schedule->command('monitor:services')->everyMinute();  // ← HAPUS!
+        // $schedule->command(CheckSmokeDevices::class)->everyMinute(); // ← HAPUS!
         
-        // ==================== SERVICE MONITOR ====================
-        // 🔥 KEMBALI KE everyFiveMinutes() UNTUK STABILITAS
-        $schedule->command('monitor:services')
-            ->everyFiveMinutes()  // ← DIKEMBALIKAN!
-            ->withoutOverlapping()
-            ->runInBackground();
+        // ============================================================
+        // ✅ TIDAK ADA SCHEDULING DI SINI - SEMUA DI console.php
+        // ============================================================
     }
 
     protected function commands(): void

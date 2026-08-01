@@ -131,6 +131,7 @@ class DashboardController extends Controller
         // ==================== ESP STATUS ====================
         $smokeDevices = SmokeDevice::all();
         
+        // Cek apakah ada device yang online (last_seen < 2 menit)
         $onlineCount = 0;
         $lastSmokeValue = 0;
         $lastSmokeStatus = 'NORMAL';
@@ -138,19 +139,41 @@ class DashboardController extends Controller
         $deviceName = 'ESP32-Smoke';
         
         foreach ($smokeDevices as $device) {
-            if ($device->last_seen_at && Carbon::parse($device->last_seen_at)->diffInMinutes(now()) < 2) {
+            // Cek online status (last_seen dalam 2 menit)
+            $isOnline = false;
+            if ($device->last_seen_at) {
+                $lastSeen = Carbon::parse($device->last_seen_at);
+                $isOnline = $lastSeen->diffInMinutes(now()) < 2;
+            }
+            
+            if ($isOnline) {
                 $onlineCount++;
             }
             
-            $lastSmokeValue = $device->smoke_value ?? 0;
-            $lastSmokeStatus = $device->status ?? 'NORMAL';
-            $lastSeenAt = $device->last_seen_at;
-            $deviceName = $device->name ?? 'ESP32-Smoke';
+            // Ambil data dari device terakhir (atau yang online)
+            if ($isOnline || $device->id == $smokeDevices->last()?->id) {
+                $lastSmokeValue = $device->smoke_value ?? 0;
+                $lastSmokeStatus = $device->status ?? 'NORMAL';
+                $lastSeenAt = $device->last_seen_at;
+                $deviceName = $device->name ?? 'ESP32-Smoke';
+            }
         }
 
+        // Jika tidak ada device sama sekali, set default
+        if ($smokeDevices->isEmpty()) {
+            $onlineCount = 0;
+            $lastSmokeValue = 0;
+            $lastSmokeStatus = 'NORMAL';
+            $lastSeenAt = null;
+        }
+
+        // Status ESP (untuk ditampilkan)
         $espStatus = $onlineCount > 0 ? 'ONLINE' : 'OFFLINE';
         $espStatusClass = $onlineCount > 0 ? 'online' : 'offline';
         $espStatusLabel = $onlineCount > 0 ? '🟢 ONLINE' : '🔴 OFFLINE';
+
+        // ==================== TAMBAHKAN VARIABLE UNTUK DONUT ====================
+        $hasData = $total > 0; // Untuk donut chart
 
         return view(
             'dashboard',
@@ -173,7 +196,8 @@ class DashboardController extends Controller
                 'lastSmokeValue',
                 'lastSmokeStatus',
                 'lastSeenAt',
-                'deviceName'
+                'deviceName',
+                'hasData' 
             )
         );
     }

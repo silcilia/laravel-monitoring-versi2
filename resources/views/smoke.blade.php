@@ -49,6 +49,8 @@
         --bar-fill-danger: linear-gradient(90deg, #f87171, #dc2626);
         
         --date-picker-filter: none;
+        --sort-active-color: #6366f1;
+        --sort-inactive-color: #94a3b8;
     }
 
     [data-theme="dark"] {
@@ -89,6 +91,82 @@
         --bar-fill-danger: linear-gradient(90deg, #991b1b, #dc2626);
         
         --date-picker-filter: invert(1);
+        --sort-active-color: #818cf8;
+        --sort-inactive-color: #475569;
+    }
+
+    /* ========== SORTING CSS ========== */
+    .sortable-header {
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+        position: relative;
+        padding-right: 28px !important;
+        white-space: nowrap;
+    }
+
+    .sortable-header:hover {
+        color: var(--sort-active-color);
+    }
+
+    .sortable-header .sort-icon {
+        position: absolute;
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        color: var(--sort-inactive-color);
+        transition: color 0.2s ease;
+        display: inline-flex;
+        flex-direction: column;
+        line-height: 1;
+        letter-spacing: 0;
+        font-weight: 300;
+        opacity: 0.5;
+    }
+
+    .sortable-header:hover .sort-icon {
+        opacity: 1;
+    }
+
+    .sortable-header .sort-icon .arrow-up {
+        margin-bottom: -1px;
+        font-size: 8px;
+    }
+
+    .sortable-header .sort-icon .arrow-down {
+        margin-top: -1px;
+        font-size: 8px;
+    }
+
+    /* Active ASC - panah atas biru */
+    .sortable-header.active-asc .sort-icon .arrow-up {
+        color: var(--sort-active-color) !important;
+        opacity: 1 !important;
+        font-weight: 700;
+    }
+
+    .sortable-header.active-asc .sort-icon .arrow-down {
+        color: var(--sort-inactive-color) !important;
+        opacity: 0.3 !important;
+    }
+
+    /* Active DESC - panah bawah biru */
+    .sortable-header.active-desc .sort-icon .arrow-down {
+        color: var(--sort-active-color) !important;
+        opacity: 1 !important;
+        font-weight: 700;
+    }
+
+    .sortable-header.active-desc .sort-icon .arrow-up {
+        color: var(--sort-inactive-color) !important;
+        opacity: 0.3 !important;
+    }
+
+    /* Text color */
+    .sortable-header.active-asc,
+    .sortable-header.active-desc {
+        color: var(--sort-active-color) !important;
     }
 
     .smoke-container {
@@ -989,6 +1067,7 @@
         display: inline-block;
     }
 
+    /* ========== RESPONSIVE ========== */
     @media (max-width: 1024px) {
         .smoke-status-right {
             max-width: 100%;
@@ -1000,6 +1079,18 @@
         }
         .smoke-status-right .smoke-bar-container {
             min-width: 100px;
+        }
+        .sortable-header {
+            padding-right: 20px !important;
+            font-size: 11px !important;
+        }
+        .sortable-header .sort-icon {
+            font-size: 8px;
+            right: 2px;
+        }
+        .sortable-header .sort-icon .arrow-up,
+        .sortable-header .sort-icon .arrow-down {
+            font-size: 7px;
         }
     }
 
@@ -1131,6 +1222,18 @@
             padding: 4px 10px;
             font-size: 12px;
         }
+        .sortable-header {
+            padding-right: 16px !important;
+            font-size: 10px !important;
+        }
+        .sortable-header .sort-icon {
+            font-size: 7px;
+            right: 1px;
+        }
+        .sortable-header .sort-icon .arrow-up,
+        .sortable-header .sort-icon .arrow-down {
+            font-size: 6px;
+        }
     }
 
     @media (max-width: 480px) {
@@ -1259,6 +1362,18 @@
         .empty-state p {
             font-size: 12px;
         }
+        .sortable-header {
+            padding-right: 14px !important;
+            font-size: 9px !important;
+        }
+        .sortable-header .sort-icon {
+            font-size: 6px;
+            right: 1px;
+        }
+        .sortable-header .sort-icon .arrow-up,
+        .sortable-header .sort-icon .arrow-down {
+            font-size: 5px;
+        }
     }
 </style>
 
@@ -1318,7 +1433,6 @@
         </div>
         <div class="smoke-status-right">
             <div class="smoke-value-wrapper">
-                <!-- 🔥 UBAH: Nilai Asap tanpa "ADC" -->
                 <div class="smoke-value {{ $statusClass }}" id="smokeValue">
                     {{ number_format($smokeValue, 0) }}
                 </div>
@@ -1365,11 +1479,34 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 40px;">No</th>
-                        <th style="width: 180px;">🕐 Waktu</th>
-                        <!-- 🔥 UBAH: Nilai Asap (tanpa ADC) -->
-                        <th style="width: 120px;">📊 Nilai Asap</th>
-                        <th style="width: 140px;">📌 Status</th>
+                        <th style="width: 40px;" class="sortable-header {{ request('sort', 'id') == 'id' ? (request('direction', 'desc') == 'asc' ? 'active-asc' : 'active-desc') : '' }}" data-sort="id" onclick="sortTable('id')">
+                            No
+                            <span class="sort-icon">
+                                <span class="arrow-up">▲</span>
+                                <span class="arrow-down">▼</span>
+                            </span>
+                        </th>
+                        <th style="width: 180px;" class="sortable-header {{ request('sort', 'id') == 'created_at' ? (request('direction', 'desc') == 'asc' ? 'active-asc' : 'active-desc') : '' }}" data-sort="created_at" onclick="sortTable('created_at')">
+                            🕐 Waktu
+                            <span class="sort-icon">
+                                <span class="arrow-up">▲</span>
+                                <span class="arrow-down">▼</span>
+                            </span>
+                        </th>
+                        <th style="width: 120px;" class="sortable-header {{ request('sort', 'id') == 'smoke_value' ? (request('direction', 'desc') == 'asc' ? 'active-asc' : 'active-desc') : '' }}" data-sort="smoke_value" onclick="sortTable('smoke_value')">
+                            📊 Nilai Asap
+                            <span class="sort-icon">
+                                <span class="arrow-up">▲</span>
+                                <span class="arrow-down">▼</span>
+                            </span>
+                        </th>
+                        <th style="width: 140px;" class="sortable-header {{ request('sort', 'id') == 'status' ? (request('direction', 'desc') == 'asc' ? 'active-asc' : 'active-desc') : '' }}" data-sort="status" onclick="sortTable('status')">
+                            📌 Status
+                            <span class="sort-icon">
+                                <span class="arrow-up">▲</span>
+                                <span class="arrow-down">▼</span>
+                            </span>
+                        </th>
                         <th>📝 Keterangan</th>
                     </tr>
                 </thead>
@@ -1393,7 +1530,6 @@
                                 </span>
                             </td>
                             <td>
-                                <!-- 🔥 UBAH: Nilai Asap tanpa "ADC" -->
                                 <span class="value-cell {{ $valueClass }}">
                                     {{ $log->smoke_value ?? 0 }}
                                 </span>
@@ -1519,6 +1655,23 @@
 
 <!-- ========== SCRIPT ========== -->
 <script>
+    // ========== SORTING FUNCTION ==========
+    function sortTable(column) {
+        let currentSort = '{{ request('sort', 'id') }}';
+        let currentDirection = '{{ request('direction', 'desc') }}';
+        
+        let newDirection = 'asc';
+        if (currentSort === column) {
+            newDirection = currentDirection === 'asc' ? 'desc' : 'asc';
+        }
+        
+        let url = new URL(window.location.href);
+        url.searchParams.set('sort', column);
+        url.searchParams.set('direction', newDirection);
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    }
+
     // ========== KONFIGURASI ==========
     const REFRESH_INTERVAL = 5;
     let countdownSeconds = REFRESH_INTERVAL;
@@ -1615,7 +1768,7 @@
                 // UPDATE TAMPILAN SMOKE
                 updateSmokeDisplay(esp);
                 
-                // 🔥 LOGIKA DETEKSI PERUBAHAN
+                // LOGIKA DETEKSI PERUBAHAN
                 const oldStatus = currentStatus;
                 const oldAdc = currentAdc;
                 
@@ -1690,7 +1843,6 @@
                 <span class="row-number">${rowNumber}</span>
             </td>
             <td><span class="time-cell" data-updated-at="${createdAt}">${currentTime}</span></td>
-            <!-- 🔥 UBAH: Nilai Asap tanpa "ADC" -->
             <td><span class="value-cell ${statusClass}">${numberFormat(adc)}</span></td>
             <td><span class="status-badge ${statusClass}">${statusIcon} ${status}</span></td>
             <td><div class="message-cell" title="${logMessage}">${logMessage}</div></td>

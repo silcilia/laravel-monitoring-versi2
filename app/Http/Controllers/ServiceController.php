@@ -15,6 +15,7 @@ class ServiceController extends Controller
 {
     /**
      * Display a listing of the services.
+     * ✅ DITAMBAHKAN: Sorting ASC/DESC untuk semua kolom
      */
     public function index(Request $request)
     {
@@ -29,18 +30,72 @@ class ServiceController extends Controller
             Log::info("📝 WA Interval updated to {$waInterval} minutes for all services");
         }
 
+        // ============================================================
+        // 🔥 SORTING PARAMETERS
+        // ============================================================
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
         $perPage = $request->input('perPage', 10);
         
+        // ✅ Validasi kolom yang boleh di-sort
+        $allowedSorts = ['no', 'name', 'target', 'status', 'uptime', 'last_check', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+        
+        // ✅ Validasi direction
+        $direction = in_array(strtolower($direction), ['asc', 'desc']) ? strtolower($direction) : 'asc';
+        
+        // ============================================================
+        // 📊 STATISTICS
+        // ============================================================
         $totalServices = Service::count();
         $totalUp = Service::where('last_status', 'UP')->count();
         $totalWarning = Service::where('last_status', 'WARNING')->count();
         $totalDown = Service::where('last_status', 'DOWN')->count();
         
-        $services = Service::orderBy('created_at', 'desc')
+        // ============================================================
+        // 🔍 QUERY WITH SORTING
+        // ============================================================
+        $services = Service::query()
+            ->when($sort === 'name', function($query) use ($direction) {
+                return $query->orderBy('name', $direction);
+            })
+            ->when($sort === 'target', function($query) use ($direction) {
+                return $query->orderBy('target', $direction);
+            })
+            ->when($sort === 'status', function($query) use ($direction) {
+                // Sort by status with priority: UP > WARNING > DOWN > UNKNOWN
+                return $query->orderByRaw("
+                    CASE last_status
+                        WHEN 'UP' THEN 1
+                        WHEN 'WARNING' THEN 2
+                        WHEN 'DOWN' THEN 3
+                        ELSE 4
+                    END " . $direction
+                );
+            })
+            ->when($sort === 'uptime', function($query) use ($direction) {
+                return $query->orderBy('uptime', $direction);
+            })
+            ->when($sort === 'last_check', function($query) use ($direction) {
+                return $query->orderBy('last_check_at', $direction);
+            })
+            ->when($sort === 'created_at' || $sort === 'no', function($query) use ($direction) {
+                return $query->orderBy('id', $direction);
+            })
+            ->when($sort === 'name' && !in_array($sort, ['name', 'target', 'status', 'uptime', 'last_check', 'created_at', 'no']), function($query) use ($direction) {
+                return $query->orderBy('name', $direction);
+            })
             ->paginate($perPage)
-            ->appends(['perPage' => $perPage]);
+            ->appends([
+                'perPage' => $perPage,
+                'sort' => $sort,
+                'direction' => $direction,
+                'wa_interval' => $waInterval
+            ]);
         
-        // Hitung uptime untuk setiap service
+        // 🔥 Hitung uptime untuk setiap service
         foreach ($services as $service) {
             $service->uptime = $this->calculateUptime($service->id, 30);
         }
@@ -52,7 +107,9 @@ class ServiceController extends Controller
             'totalWarning', 
             'totalDown',
             'perPage',
-            'waInterval'
+            'waInterval',
+            'sort',
+            'direction'
         ));
     }
 
@@ -1080,6 +1137,46 @@ class ServiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal mengambil data perubahan status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ============================================================
+     *  📡 GET ALL SERVICES STATUS (AJAX POLLING)
+     *  ============================================================
+     *  🔗 URL: GET /api/services/status
+     *  🔑 Butuh Auth: Session (web)
+     *  📦 Response: JSON
+     * ============================================================
+     */
+    public function getStatus(Request $request)
+    {
+        try {
+            $services = Service::select('id', 'last_status', 'last_check_at')
+                ->orderBy('name', 'asc')
+                ->get()
+                ->map(function($service) {
+                    return [
+                        'id' => $service->id,
+                        'last_status' => $service->last_status ?? 'UNKNOWN',
+                        'last_check_at' => $service->last_check_at 
+                            ? \Carbon\Carbon::parse($service->last_check_at)
+                                ->setTimezone('Asia/Jakarta')
+                                ->format('H:i:s') 
+                            : '-'
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'services' => $services
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil status: ' . $e->getMessage()
             ], 500);
         }
     }
