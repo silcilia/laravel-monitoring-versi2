@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class Service extends Model
 {
@@ -22,13 +23,13 @@ class Service extends Model
         'last_check_at',
         'last_wa_sent_at',
         'last_wa_status',
-        // 🔥 DIPAKAI UNTUK INTERVAL (MANUAL & SCHEDULE)
         'wa_interval_minutes',
-        // 🔥 FIELD UNTUK TRACKING INTERVAL
         'last_interval_checked_at',
         'last_interval_status',
         'last_interval_value',
         'interval_wa_sent_in_this_cycle',
+        'is_archived',
+        'archived_at',
     ];
 
     /**
@@ -40,12 +41,26 @@ class Service extends Model
         'last_check_at' => 'datetime',
         'last_wa_sent_at' => 'datetime',
         'last_response_time' => 'float',
-        // 🔥 DIPAKAI UNTUK INTERVAL
         'wa_interval_minutes' => 'integer',
         'last_interval_checked_at' => 'datetime',
         'last_interval_status' => 'string',
         'last_interval_value' => 'integer',
         'interval_wa_sent_in_this_cycle' => 'boolean',
+        'is_archived' => 'boolean',
+        'archived_at' => 'datetime',
+    ];
+
+    /**
+     * 🔥 DEFAULT VALUES - PERBAIKAN UNTUK MENCEGAH NULL
+     */
+    protected $attributes = [
+        'is_archived' => 0,
+        'wa_interval_minutes' => 0,
+        'interval_wa_sent_in_this_cycle' => false,
+        'last_status' => 'UNKNOWN',
+        'last_response_time' => 0,
+        'last_message' => '-',
+        'type' => 'http',
     ];
 
     /**
@@ -57,7 +72,59 @@ class Service extends Model
     }
 
     // ================================================================
-    // 🔥 LOGIKA INTERVAL (DIPERTAHANKAN UNTUK KOMPATIBILITAS)
+    // 🔥 SCOPES UNTUK ARSIP
+    // ================================================================
+
+    /**
+     * Scope untuk service yang aktif (tidak diarsip)
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_archived', 0);
+    }
+
+    /**
+     * Scope untuk service yang diarsip
+     */
+    public function scopeArchived($query)
+    {
+        return $query->where('is_archived', 1);
+    }
+
+    /**
+     * Scope untuk service yang bisa di-check (aktif + tidak diarsip)
+     */
+    public function scopeCheckable($query)
+    {
+        return $query->where('is_archived', 0);
+    }
+
+    // ================================================================
+    // 🔥 SCOPES UNTUK LOG PERUBAHAN STATUS
+    // ================================================================
+
+    /**
+     * Scope untuk service yang memiliki perubahan status
+     */
+    public function scopeStatusChanges($query)
+    {
+        return $query->whereHas('logs', function($q) {
+            $q->where('is_status_change', true);
+        });
+    }
+
+    /**
+     * Scope untuk service yang TIDAK memiliki perubahan status
+     */
+    public function scopeNoStatusChanges($query)
+    {
+        return $query->whereHas('logs', function($q) {
+            $q->where('is_status_change', false);
+        });
+    }
+
+    // ================================================================
+    // 🔥 LOGIKA INTERVAL
     // ================================================================
 
     /**
@@ -88,7 +155,7 @@ class Service extends Model
         $this->update([
             'last_interval_checked_at' => now(),
             'last_interval_status' => $currentStatus,
-            'last_interval_value' => $this->wa_interval_minutes,
+            'last_interval_value' => $this->wa_interval_minutes ?? 0,
             'interval_wa_sent_in_this_cycle' => false,
         ]);
     }
@@ -146,6 +213,168 @@ class Service extends Model
             'last_wa_sent_at' => now(),
             'last_wa_status' => $status,
         ]);
+    }
+
+    // ================================================================
+    // 🔥 METHOD UNTUK ARSIP
+    // ================================================================
+
+    /**
+     * 🔥 CEK APAKAH SERVICE DIARSIP
+     */
+    public function isArchived(): bool
+    {
+        return (bool) ($this->is_archived ?? 0);
+    }
+
+    /**
+     * 🔥 ARSIPKAN SERVICE
+     */
+    public function archive(): bool
+    {
+        if ($this->is_archived) {
+            return false;
+        }
+
+        return $this->update([
+            'is_archived' => 1,
+            'archived_at' => now(),
+        ]);
+    }
+
+    /**
+     * 🔥 PULIHKAN SERVICE DARI ARSIP
+     */
+    public function restore(): bool
+    {
+        if (!$this->is_archived) {
+            return false;
+        }
+
+        return $this->update([
+            'is_archived' => 0,
+            'archived_at' => null,
+        ]);
+    }
+
+    /**
+     * 🔥 HAPUS PERMANEN SERVICE (TERMASUK LOGS)
+     */
+    public function deletePermanently(): bool
+    {
+        if (!$this->is_archived) {
+            return false;
+        }
+
+        // Hapus semua log terkait
+        $this->logs()->delete();
+        
+        // Hapus service
+        return $this->delete();
+    }
+
+    // ================================================================
+    // 🔥 METHOD UNTUK LOG PERUBAHAN STATUS
+    // ================================================================
+
+    /**
+     * 🔥 CEK APAKAH STATUS BERUBAH
+     */
+    public function hasStatusChanged(string $newStatus): bool
+    {
+        return ($this->last_status ?? 'UNKNOWN') !== $newStatus;
+    }
+
+    /**
+     * 🔥 DAPATKAN STATUS SEBELUMNYA
+     */
+    public function getPreviousStatus(): string
+    {
+        return $this->last_status ?? 'UNKNOWN';
+    }
+
+    /**
+     * 🔥 CATAT PERUBAHAN STATUS KE LOG
+     */
+    public function logStatusChange(string $newStatus, array $data = []): ServiceLog
+    {
+        $oldStatus = $this->getPreviousStatus();
+        
+        return ServiceLog::create([
+            'service_id' => $this->id,
+            'status' => $newStatus,
+            'response_code' => $data['response_code'] ?? null,
+            'response_time' => $data['response_time'] ?? 0,
+            'message' => $data['message'] ?? 'Status berubah dari ' . $oldStatus . ' ke ' . $newStatus,
+            'is_status_change' => true,
+            'previous_status' => $oldStatus,
+            'checked_at' => now(),
+        ]);
+    }
+
+    /**
+     * 🔥 UPDATE LOG TERAKHIR (TANPA BUAT LOG BARU)
+     */
+    public function updateLastLog(array $data = []): bool
+    {
+        $lastLog = $this->logs()->latest()->first();
+        
+        if (!$lastLog) {
+            return false;
+        }
+        
+        return $lastLog->update([
+            'response_time' => $data['response_time'] ?? $lastLog->response_time,
+            'response_code' => $data['response_code'] ?? $lastLog->response_code,
+            'message' => $data['message'] ?? $lastLog->message,
+            'checked_at' => now(),
+        ]);
+    }
+
+    /**
+     * 🔥 UPDATE SERVICE SETELAH CHECK (DENGAN LOGIKA PERUBAHAN)
+     */
+    public function updateAfterCheck(string $newStatus, array $data = []): array
+    {
+        $oldStatus = $this->getPreviousStatus();
+        $isChanged = $this->hasStatusChanged($newStatus);
+        
+        // Data untuk update service
+        $updateData = [
+            'last_status' => $newStatus,
+            'last_code' => $data['response_code'] ?? null,
+            'last_response_time' => $data['response_time'] ?? 0,
+            'last_message' => $data['message'] ?? '-',
+            'last_check_at' => now(),
+        ];
+        
+        // Update service
+        $this->update($updateData);
+        
+        // LOGIKA LOG
+        $logCreated = false;
+        $logData = null;
+        
+        if ($isChanged) {
+            // 🔥 STATUS BERUBAH → BUAT LOG BARU
+            $logData = $this->logStatusChange($newStatus, $data);
+            $logCreated = true;
+            
+            Log::info("📝 Log baru: Service {$this->name} status berubah {$oldStatus} → {$newStatus}");
+        } else {
+            // 🔥 STATUS TETAP → UPDATE LOG TERAKHIR
+            $this->updateLastLog($data);
+            
+            Log::info("🔄 Status tetap: Service {$this->name} masih {$newStatus} (update waktu check)");
+        }
+        
+        return [
+            'is_changed' => $isChanged,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'log_created' => $logCreated,
+            'log' => $logData,
+        ];
     }
 
     // ================================================================
@@ -272,7 +501,7 @@ class Service extends Model
     }
 
     // ================================================================
-    // 🔥 SCOPES
+    // 🔥 SCOPES EXISTING
     // ================================================================
 
     public function scopeStatus($query, $status)
@@ -329,6 +558,33 @@ class Service extends Model
             'warning' => $warning,
             'unknown' => $unknown,
             'uptime_percentage' => $total > 0 ? round(($up / $total) * 100, 2) : 0,
+        ];
+    }
+
+    /**
+     * 🔥 STATISTIK DENGAN FILTER ARSIP
+     */
+    public static function getStatisticsWithArchive()
+    {
+        $all = self::all();
+        $total = $all->count();
+        $archived = $all->where('is_archived', 1)->count();
+        $active = $total - $archived;
+        
+        $up = self::where('last_status', 'UP')->where('is_archived', 0)->count();
+        $down = self::where('last_status', 'DOWN')->where('is_archived', 0)->count();
+        $warning = self::where('last_status', 'WARNING')->where('is_archived', 0)->count();
+        $unknown = $active - ($up + $down + $warning);
+
+        return [
+            'total' => $total,
+            'active' => $active,
+            'archived' => $archived,
+            'up' => $up,
+            'down' => $down,
+            'warning' => $warning,
+            'unknown' => $unknown,
+            'uptime_percentage' => $active > 0 ? round(($up / $active) * 100, 2) : 0,
         ];
     }
 }

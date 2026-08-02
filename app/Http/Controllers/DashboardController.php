@@ -15,23 +15,36 @@ class DashboardController extends Controller
     {
         $perPage = $request->input('perPage', 10);
 
-        // ==================== STATISTIK SERVICE ====================
-        $total = Service::count();
-        $up = Service::where('last_status', 'UP')->count();
-        $warning = Service::where('last_status', 'WARNING')->count();
-        $down = Service::where('last_status', 'DOWN')->count();
+        // ============================================================
+        // 🔥 STATISTIK SERVICE - HANYA YANG TIDAK DIARSIP
+        // ============================================================
+        $total = Service::where('is_archived', 0)->count();
+        $up = Service::where('last_status', 'UP')->where('is_archived', 0)->count();
+        $warning = Service::where('last_status', 'WARNING')->where('is_archived', 0)->count();
+        $down = Service::where('last_status', 'DOWN')->where('is_archived', 0)->count();
 
-        // ==================== DATA SERVICE ====================
-        $services = Service::orderBy('id', 'desc')->get();
-        $latestServices = Service::orderBy('id', 'desc')
+        // ============================================================
+        // 🔥 DATA SERVICE - HANYA YANG TIDAK DIARSIP
+        // ============================================================
+        $services = Service::where('is_archived', 0)->orderBy('id', 'desc')->get();
+        
+        $latestServices = Service::where('is_archived', 0)
+            ->orderBy('id', 'desc')
             ->paginate($perPage)
             ->appends(['perPage' => $perPage]);
 
-        // ==================== GRAFIK UPTIME 7 HARI ====================
+        // ============================================================
+        // 🔥 GRAFIK UPTIME 7 HARI - HANYA LOG DARI SERVICE AKTIF
+        // ============================================================
         $startDate = Carbon::now()->subDays(6)->startOfDay();
         $endDate = Carbon::now()->endOfDay();
         
-        $logs = ServiceLog::where('created_at', '>=', $startDate)
+        // Ambil ID service yang aktif (tidak diarsip)
+        $activeServiceIds = Service::where('is_archived', 0)->pluck('id')->toArray();
+        
+        // HANYA ambil log dari service yang aktif
+        $logs = ServiceLog::whereIn('service_id', $activeServiceIds)
+            ->where('created_at', '>=', $startDate)
             ->where('created_at', '<=', $endDate)
             ->orderBy('created_at', 'asc')
             ->get();
@@ -75,8 +88,10 @@ class DashboardController extends Controller
             $current->addDay();
         }
 
-        // ==================== UPTIME RATE KESELURUHAN ====================
-        $allLogs = ServiceLog::all();
+        // ============================================================
+        // 🔥 UPTIME RATE KESELURUHAN - HANYA DARI SERVICE AKTIF
+        // ============================================================
+        $allLogs = ServiceLog::whereIn('service_id', $activeServiceIds)->get();
         $totalAllLogs = $allLogs->count();
         
         if ($totalAllLogs > 0) {
@@ -95,7 +110,9 @@ class DashboardController extends Controller
             $uptimeOverall = 0;
         }
 
-        // ==================== GRAFIK SMOKE (7 HARI) ====================
+        // ============================================================
+        // 🔥 GRAFIK SMOKE (7 HARI) - TIDAK BERUBAH
+        // ============================================================
         $smokeStartDate = Carbon::now()->subDays(6)->startOfDay();
         $smokeEndDate = Carbon::now()->endOfDay();
         
@@ -128,10 +145,11 @@ class DashboardController extends Controller
             $currentSmoke->addDay();
         }
 
-        // ==================== ESP STATUS ====================
+        // ============================================================
+        // 🔥 ESP STATUS - TIDAK BERUBAH
+        // ============================================================
         $smokeDevices = SmokeDevice::all();
         
-        // Cek apakah ada device yang online (last_seen < 2 menit)
         $onlineCount = 0;
         $lastSmokeValue = 0;
         $lastSmokeStatus = 'NORMAL';
@@ -139,7 +157,6 @@ class DashboardController extends Controller
         $deviceName = 'ESP32-Smoke';
         
         foreach ($smokeDevices as $device) {
-            // Cek online status (last_seen dalam 2 menit)
             $isOnline = false;
             if ($device->last_seen_at) {
                 $lastSeen = Carbon::parse($device->last_seen_at);
@@ -150,7 +167,6 @@ class DashboardController extends Controller
                 $onlineCount++;
             }
             
-            // Ambil data dari device terakhir (atau yang online)
             if ($isOnline || $device->id == $smokeDevices->last()?->id) {
                 $lastSmokeValue = $device->smoke_value ?? 0;
                 $lastSmokeStatus = $device->status ?? 'NORMAL';
@@ -159,7 +175,6 @@ class DashboardController extends Controller
             }
         }
 
-        // Jika tidak ada device sama sekali, set default
         if ($smokeDevices->isEmpty()) {
             $onlineCount = 0;
             $lastSmokeValue = 0;
@@ -167,13 +182,19 @@ class DashboardController extends Controller
             $lastSeenAt = null;
         }
 
-        // Status ESP (untuk ditampilkan)
         $espStatus = $onlineCount > 0 ? 'ONLINE' : 'OFFLINE';
         $espStatusClass = $onlineCount > 0 ? 'online' : 'offline';
         $espStatusLabel = $onlineCount > 0 ? '🟢 ONLINE' : '🔴 OFFLINE';
 
-        // ==================== TAMBAHKAN VARIABLE UNTUK DONUT ====================
-        $hasData = $total > 0; // Untuk donut chart
+        // ============================================================
+        // 🔥 TAMBAHKAN TOTAL ARSIP UNTUK REFERENSI
+        // ============================================================
+        $totalArchived = Service::where('is_archived', 1)->count();
+
+        // ============================================================
+        // 🔥 DONUT CHART - HANYA SERVICE AKTIF
+        // ============================================================
+        $hasData = $total > 0;
 
         return view(
             'dashboard',
@@ -182,6 +203,7 @@ class DashboardController extends Controller
                 'up',
                 'warning',
                 'down',
+                'totalArchived',
                 'services',
                 'latestServices',
                 'chartLabels',
@@ -197,7 +219,7 @@ class DashboardController extends Controller
                 'lastSmokeStatus',
                 'lastSeenAt',
                 'deviceName',
-                'hasData' 
+                'hasData'
             )
         );
     }

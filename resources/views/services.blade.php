@@ -172,7 +172,6 @@
         z-index: 1;
     }
 
-    /* 🔥 STYLE UNTUK WA INTERVAL DROPDOWN */
     .wa-interval-wrapper {
         display: flex;
         align-items: center;
@@ -257,7 +256,127 @@
         height: 18px;
     }
 
-    /* ================= AUTO REFRESH TIMER (POJOK) ================= */
+    .btn-archive {
+        background: #6b7280;
+        color: white;
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-archive:hover {
+        background: #4b5563;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-restore {
+        background: #8b5cf6;
+        color: white;
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-restore:hover {
+        background: #7c3aed;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-delete-permanent {
+        background: #ef4444;
+        color: white;
+        padding: 6px 14px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    .btn-delete-permanent:hover {
+        background: #dc2626;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    .status-badge.archived {
+        background: #f3f4f6;
+        color: #6b7280;
+        border-color: #d1d5db;
+    }
+    .status-badge.archived .status-dot {
+        background: #9ca3af;
+    }
+
+    [data-theme="dark"] .status-badge.archived {
+        background: #374151;
+        color: #9ca3af;
+        border-color: #4b5563;
+    }
+    [data-theme="dark"] .status-badge.archived .status-dot {
+        background: #6b7280;
+    }
+
+    .btn-toggle-archive {
+        background: var(--bg-card-service);
+        color: var(--text-service);
+        padding: 8px 16px;
+        border: 1px solid var(--border-service);
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-family: inherit;
+    }
+    .btn-toggle-archive:hover {
+        background: var(--bg-hover-service);
+        border-color: var(--text-muted-service);
+    }
+    .btn-toggle-archive.active {
+        background: #8b5cf6;
+        color: white;
+        border-color: #8b5cf6;
+    }
+    .btn-toggle-archive.active:hover {
+        background: #7c3aed;
+    }
+
+    .archive-count {
+        background: #8b5cf6;
+        color: white;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 1px 8px;
+        border-radius: 10px;
+        margin-left: 4px;
+    }
+
+    .btn-toggle-archive.active .archive-count {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* ================= AUTO REFRESH TIMER ================= */
     .auto-refresh-timer {
         position: fixed;
         bottom: 20px;
@@ -366,7 +485,7 @@
     /* ================= STATS ================= */
     .stats-bar {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         gap: 16px;
         margin-bottom: 24px;
     }
@@ -397,6 +516,7 @@
     .stat-item:nth-child(2)::before { background: #059669; }
     .stat-item:nth-child(3)::before { background: #d97706; }
     .stat-item:nth-child(4)::before { background: #dc2626; }
+    .stat-item:nth-child(5)::before { background: #8b5cf6; }
 
     .stat-item:hover {
         transform: translateY(-3px);
@@ -416,6 +536,7 @@
     .stat-item .stat-number.green { color: #059669; }
     .stat-item .stat-number.yellow { color: #d97706; }
     .stat-item .stat-number.red { color: #dc2626; }
+    .stat-item .stat-number.archive { color: #8b5cf6; }
 
     .stat-item .stat-label {
         font-size: 12px;
@@ -647,7 +768,6 @@
     }
     .table-header .table-info strong { color: var(--text-service); }
 
-    /* ===== PAGINATION & PERPAGE ===== */
     .table-header-right {
         display: flex;
         align-items: center;
@@ -764,7 +884,6 @@
         font-size: 8px;
     }
 
-    /* Active ASC - panah atas biru */
     .sortable-header.active-asc .sort-icon .arrow-up {
         color: #4f46e5 !important;
         opacity: 1 !important;
@@ -776,7 +895,6 @@
         opacity: 0.3 !important;
     }
 
-    /* Active DESC - panah bawah biru */
     .sortable-header.active-desc .sort-icon .arrow-down {
         color: #4f46e5 !important;
         opacity: 1 !important;
@@ -788,13 +906,11 @@
         opacity: 0.3 !important;
     }
 
-    /* Text color */
     .sortable-header.active-asc,
     .sortable-header.active-desc {
         color: #4f46e5 !important;
     }
 
-    /* Dark mode */
     [data-theme="dark"] .sortable-header:hover {
         color: #818cf8;
     }
@@ -821,7 +937,6 @@
         color: #475569 !important;
     }
 
-    /* Responsive sorting */
     @media (max-width: 768px) {
         .sortable-header {
             padding-right: 18px !important;
@@ -1154,6 +1269,16 @@
         color: #2563eb;
     }
 
+    .custom-modal-header .modal-icon.archive {
+        background: #ede9fe;
+        color: #7c3aed;
+    }
+
+    .custom-modal-header .modal-icon.restore {
+        background: #d1fae5;
+        color: #059669;
+    }
+
     .custom-modal-header h3 {
         font-size: 20px;
         font-weight: 700;
@@ -1181,6 +1306,18 @@
         padding: 2px 10px;
         border-radius: 4px;
         transition: all 0.3s ease;
+    }
+
+    .custom-modal-body .info-text {
+        font-size: 13px;
+        color: var(--text-secondary-service);
+        margin-top: 8px;
+        line-height: 1.8;
+        text-align: left;
+    }
+
+    .custom-modal-body .info-text .icon {
+        margin-right: 6px;
     }
 
     .custom-modal-footer {
@@ -1231,6 +1368,28 @@
     .custom-modal-footer .btn-confirm:hover {
         background: #b91c1c;
         box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
+    }
+
+    .custom-modal-footer .btn-confirm-archive {
+        background: #8b5cf6;
+        color: white;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+    }
+
+    .custom-modal-footer .btn-confirm-archive:hover {
+        background: #7c3aed;
+        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.35);
+    }
+
+    .custom-modal-footer .btn-confirm-restore {
+        background: #059669;
+        color: white;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+    }
+
+    .custom-modal-footer .btn-confirm-restore:hover {
+        background: #047857;
+        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
     }
 
     .btn-modal:disabled {
@@ -1478,60 +1637,6 @@
         background: var(--bg-detail-alt-service);
     }
 
-    .detail-action {
-        background: var(--bg-info-box-service);
-        border: 1px solid var(--border-info-box-service);
-        border-radius: 10px;
-        padding: 14px 18px;
-        grid-column: 1 / -1;
-        transition: all 0.3s ease;
-    }
-
-    .detail-action .detail-label {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--text-info-box-service);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: color 0.3s ease;
-    }
-
-    .detail-action .detail-value {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--text-service);
-        word-break: break-word;
-        transition: color 0.3s ease;
-    }
-
-    .detail-action .action-badge {
-        display: inline-block;
-        background: #3b82f6;
-        color: white;
-        padding: 4px 14px;
-        border-radius: 6px;
-        font-size: 13px;
-        font-weight: 500;
-    }
-    .detail-action .action-badge.no-action {
-        background: var(--bg-hover-service);
-        color: var(--text-muted-service);
-    }
-    .detail-action .action-badge.empty-action {
-        background: #f59e0b;
-        color: white;
-    }
-
-    .detail-message::-webkit-scrollbar { width: 4px; }
-    .detail-message::-webkit-scrollbar-thumb {
-        background: var(--text-muted-service);
-        border-radius: 10px;
-    }
-
     /* ================= DOWNLOAD MODAL ================= */
     .download-service-info {
         background: var(--bg-detail-service);
@@ -1590,6 +1695,18 @@
         color: #6ee7b7;
     }
 
+    /* 🔥 STYLE UNTUK PERIODE DISABLED */
+    .period-btn.disabled {
+        opacity: 0.4 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+        position: relative;
+    }
+    .period-btn.disabled::after {
+        content: ' 🔒';
+        font-size: 10px;
+    }
+
     .download-date-range {
         display: flex;
         gap: 12px;
@@ -1627,6 +1744,28 @@
     }
     [data-theme="dark"] .download-date-range .date-group input {
         --date-picker-filter: invert(1);
+    }
+
+    /* 🔥 STYLE UNTUK VALIDASI DATE */
+    .download-date-range .date-group input.error {
+        border-color: #dc2626 !important;
+        background: #fef2f2 !important;
+    }
+
+    .download-date-range .date-group input.valid {
+        border-color: #10b981 !important;
+    }
+
+    .date-error-message {
+        color: #dc2626;
+        font-size: 12px;
+        margin-top: 4px;
+        animation: fadeIn 0.3s ease;
+    }
+
+    [data-theme="dark"] .download-date-range .date-group input.error {
+        background: #7f1d1d !important;
+        border-color: #f87171 !important;
     }
 
     /* ================= FORM DALAM MODAL ================= */
@@ -1853,6 +1992,7 @@
     .stat-item:nth-child(2) { animation-delay: 0.10s; }
     .stat-item:nth-child(3) { animation-delay: 0.15s; }
     .stat-item:nth-child(4) { animation-delay: 0.20s; }
+    .stat-item:nth-child(5) { animation-delay: 0.25s; }
 
     /* ================= SEARCH HIGHLIGHT ================= */
     mark {
@@ -1869,7 +2009,7 @@
 
     /* ================= RESPONSIVE ================= */
     @media (max-width: 1024px) {
-        .stats-bar { grid-template-columns: repeat(2, 1fr); }
+        .stats-bar { grid-template-columns: repeat(3, 1fr); }
         .detail-grid { grid-template-columns: 1fr; }
         .search-wrapper { max-width: 100%; }
     }
@@ -1947,6 +2087,10 @@
             font-size: 11px;
             padding: 4px 24px 4px 8px;
         }
+        .btn-toggle-archive {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
     }
 
     @media (max-width: 480px) {
@@ -1962,6 +2106,7 @@
         .status-badge .status-dot { width: 6px; height: 6px; }
         .btn-action { font-size: 10px; padding: 4px 8px; }
         .btn-check { font-size: 10px; padding: 4px 8px; }
+        .btn-archive, .btn-restore, .btn-delete-permanent { font-size: 10px; padding: 4px 8px; }
         .detail-item .detail-value { font-size: 13px; }
         .uptime-value { font-size: 12px; }
         .perpage-selector {
@@ -1989,21 +2134,26 @@
             font-size: 13px;
             left: 10px;
         }
+        .btn-toggle-archive {
+            font-size: 11px;
+            padding: 5px 10px;
+        }
     }
 </style>
 
 <!-- ================= DATA SERVICE UNTUK INSTANT EDIT ================= -->
 <script>
-    // 🔥 SIMPAN DATA SEMUA SERVICE DALAM JAVASCRIPT (INSTANT ACCESS)
-    const servicesMap = {};
+    var servicesMap = {};
     @foreach($services as $service)
-        servicesMap[{{ $service->id }}] = {
-            id: {{ $service->id }},
-            name: '{{ addslashes($service->name) }}',
-            target: '{{ addslashes($service->target) }}',
-            type: '{{ $service->type ?? 'http' }}'
-        };
+        servicesMap[{{ $service->id }}] = {!! json_encode([
+            'id' => $service->id,
+            'name' => $service->name,
+            'target' => $service->target,
+            'type' => $service->type ?? 'http',
+            'is_archived' => (bool) $service->is_archived
+        ]) !!};
     @endforeach
+    
 </script>
 
 <div class="service-container">
@@ -2020,10 +2170,11 @@
             </div>
             <div class="custom-modal-body">
                 <p id="confirmDetail" style="font-size: 14px; color: var(--text-secondary-service); text-align: center;"></p>
+                <div id="confirmInfo" style="display: none;" class="info-text"></div>
             </div>
             <div class="custom-modal-footer">
                 <button class="btn-modal btn-cancel" onclick="closeConfirmModal()">✕ Batal</button>
-                <button class="btn-modal btn-confirm" id="confirmBtn" onclick="executeConfirm()">✔ Ya, Hapus</button>
+                <button class="btn-modal" id="confirmBtn" onclick="executeConfirm()">✔ Ya</button>
             </div>
         </div>
     </div>
@@ -2038,14 +2189,14 @@
             </div>
         </div>
         <div class="header-actions">
-            <!-- 🔥 WA INTERVAL DROPDOWN (GLOBAL) -->
+            <!-- 🔥 WA INTERVAL DROPDOWN -->
             <div class="wa-interval-wrapper">
                 <span class="wa-label">
                     <span class="wa-icon">📱</span> WA Interval:
                 </span>
                 <select id="waInterval" onchange="changeWaInterval(this.value)">
                     <option value="0" {{ ($waInterval ?? 5) == 0 ? 'selected' : '' }}>🚨 Kirim Langsung</option>
-                    <option value="5" {{ ($waInterval ?? 5) == 5 ? 'selected' : '' }}>⏱️ 5 Menit </option>
+                    <option value="5" {{ ($waInterval ?? 5) == 5 ? 'selected' : '' }}>⏱️ 5 Menit</option>
                     <option value="10" {{ ($waInterval ?? 5) == 10 ? 'selected' : '' }}>⏱️ 10 Menit</option>
                     <option value="15" {{ ($waInterval ?? 5) == 15 ? 'selected' : '' }}>⏱️ 15 Menit</option>
                     <option value="20" {{ ($waInterval ?? 5) == 20 ? 'selected' : '' }}>⏱️ 20 Menit</option>
@@ -2085,13 +2236,32 @@
             <span class="stat-number red">{{ $totalDown ?? 0 }}</span>
             <span class="stat-label">Nonaktif (DOWN)</span>
         </div>
+        <div class="stat-item">
+            <span class="stat-number archive">{{ $totalArchived ?? 0 }}</span>
+            <span class="stat-label">📦 Arsip</span>
+        </div>
     </div>
 
     <!-- ================= TABLE ================= -->
     <div class="table-container">
         <div class="table-header">
             <div class="header-left">
-                <h2>📋 Daftar Service</h2>
+                <h2>
+                    @if($showArchived ?? false)
+                        📦 Daftar Arsip
+                    @else
+                        📋 Daftar Service
+                    @endif
+                </h2>
+                <!-- 🔥 Toggle Archive Button -->
+                <button class="btn-toggle-archive {{ ($showArchived ?? false) ? 'active' : '' }}" 
+                        onclick="toggleArchive()">
+                    @if($showArchived ?? false)
+                        🏠 Kembali ke Aktif
+                    @else
+                        📦 Arsip <span class="archive-count">{{ $totalArchived ?? 0 }}</span>
+                    @endif
+                </button>
             </div>
             
             <!-- ================= SEARCH BOX ================= -->
@@ -2179,7 +2349,7 @@
                                 <span class="arrow-down">▼</span>
                             </span>
                         </th>
-                        <th style="width: 280px;">Aksi</th>
+                        <th style="width: 320px;">Aksi</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -2193,8 +2363,9 @@
                             $lastChecked = $service->last_check_at ?? $service->updated_at;
                             $uptime = $service->uptime ?? 0;
                             $uptimeColor = $uptime >= 70 ? 'green' : ($uptime >= 50 ? 'yellow' : 'red');
+                            $isArchived = $service->is_archived ?? 0;
                         @endphp
-                        <tr data-service-id="{{ $service->id }}">
+                        <tr data-service-id="{{ $service->id }}" data-archived="{{ $isArchived }}">
                             <td><span class="service-no">{{ $no }}</span></td>
                             <td>
                                 <div class="service-info">
@@ -2207,7 +2378,11 @@
                             </td>
                             <td><span class="service-target">{{ $service->target }}</span></td>
                             <td>
-                                @if($statusLabel == 'UP')
+                                @if($isArchived)
+                                    <span class="status-badge archived" id="status-{{ $service->id }}">
+                                        <span class="status-dot"></span> 📦 ARSIP
+                                    </span>
+                                @elseif($statusLabel == 'UP')
                                     <span class="status-badge up" id="status-{{ $service->id }}">
                                         <span class="status-dot"></span> UP
                                     </span>
@@ -2226,10 +2401,15 @@
                                 @endif
                             </td>
                             <td>
-                                <div class="uptime-value {{ $uptimeColor }}">{{ number_format($uptime, 2) }}%</div>
-                                <div class="uptime-bar">
-                                    <div class="uptime-fill {{ $uptimeColor }}" style="width: {{ $uptime }}%;"></div>
-                                </div>
+                                @if($isArchived)
+                                    <div class="uptime-value" style="color: var(--text-muted-service);">-</div>
+                                    <div class="uptime-bar"><div class="uptime-fill" style="width: 0%; background: var(--text-muted-service);"></div></div>
+                                @else
+                                    <div class="uptime-value {{ $uptimeColor }}">{{ number_format($uptime, 2) }}%</div>
+                                    <div class="uptime-bar">
+                                        <div class="uptime-fill {{ $uptimeColor }}" style="width: {{ $uptime }}%;"></div>
+                                    </div>
+                                @endif
                             </td>
                             <td>
                                 <div style="font-size: 13px; color: var(--text-secondary-service); font-family: 'Courier New', monospace; font-weight: 600;" id="time-{{ $service->id }}">
@@ -2238,11 +2418,19 @@
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <button onclick="openDetailModal({{ $service->id }})" class="btn-action btn-detail" title="Detail">👁️</button>
-                                    <button onclick="openDownloadModal({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-action btn-download" title="Download PDF">📥</button>
-                                    <button onclick="openEditModal({{ $service->id }})" class="btn-action btn-edit" title="Edit">✏️</button>
-                                    <button onclick="confirmDelete({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-action btn-delete" title="Hapus">🗑️</button>
-                                    <button onclick="checkService({{ $service->id }})" class="btn-check" title="Check Now" id="checkBtn{{ $service->id }}">🔄</button>
+                                    @if($isArchived)
+                                        <!-- 🔥 TOMBOL UNTUK SERVICE ARSIP -->
+                                        <button onclick="confirmRestore({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-restore" title="Pulihkan">🔄 Pulihkan</button>
+                                        <button onclick="confirmDeletePermanent({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-delete-permanent" title="Hapus Permanen">🗑️ Hapus</button>
+                                    @else
+                                        <!-- 🔥 TOMBOL UNTUK SERVICE AKTIF -->
+                                        <button onclick="openDetailModal({{ $service->id }})" class="btn-action btn-detail" title="Detail">👁️</button>
+                                        <button onclick="openDownloadModal({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-action btn-download" title="Download PDF">📥</button>
+                                        <button onclick="confirmArchive({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-archive" title="Arsipkan">📦 Arsip</button>
+                                        <button onclick="openEditModal({{ $service->id }})" class="btn-action btn-edit" title="Edit">✏️</button>
+                                        <button onclick="confirmDelete({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-action btn-delete" title="Hapus">🗑️</button>
+                                        <button onclick="checkService({{ $service->id }})" class="btn-check" title="Check Now" id="checkBtn{{ $service->id }}">🔄</button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -2251,9 +2439,23 @@
                             <td colspan="7">
                                 <div class="empty-state">
                                     <span class="empty-icon">📭</span>
-                                    <h3>Belum Ada Service</h3>
-                                    <p>Mulai dengan menambahkan service pertama Anda</p>
-                                    <button onclick="openCreateModal()" class="btn-empty-primary">+ Tambah Service</button>
+                                    <h3>
+                                        @if($showArchived ?? false)
+                                            Tidak Ada Service Diarsip
+                                        @else
+                                            Belum Ada Service
+                                        @endif
+                                    </h3>
+                                    <p>
+                                        @if($showArchived ?? false)
+                                            Belum ada service yang diarsipkan
+                                        @else
+                                            Mulai dengan menambahkan service pertama Anda
+                                        @endif
+                                    </p>
+                                    @if(!($showArchived ?? false))
+                                        <button onclick="openCreateModal()" class="btn-empty-primary">+ Tambah Service</button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -2353,7 +2555,7 @@
     </div>
 </div>
 
-<!-- ================= MODAL DOWNLOAD ================= -->
+<!-- ================= MODAL DOWNLOAD (DIPERBAIKI) ================= -->
 <div class="modal-overlay" id="downloadModal" onclick="if(event.target === this) closeDownloadModal()">
     <div class="modal-content">
         <div class="modal-header">
@@ -2372,31 +2574,63 @@
                 </div>
             </div>
 
+            <!-- 🔥 NOTICE INFO SERVICE -->
+            <div id="downloadNotice" style="background: var(--bg-info-box-service); border: 1px solid var(--border-info-box-service); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: var(--text-info-box-service);">
+                📌 <strong>Info:</strong> Memuat informasi service...
+            </div>
+
             <div class="form-group">
                 <label>Periode Laporan</label>
                 <div class="download-period" id="periodSelector">
-                    <button class="period-btn active" data-period="7" onclick="selectPeriod(this, 7)">7 Hari</button>
+                    <button class="period-btn" data-period="7" onclick="selectPeriod(this, 7)">7 Hari</button>
                     <button class="period-btn" data-period="14" onclick="selectPeriod(this, 14)">14 Hari</button>
                     <button class="period-btn" data-period="30" onclick="selectPeriod(this, 30)">30 Hari</button>
                     <button class="period-btn" data-period="60" onclick="selectPeriod(this, 60)">60 Hari</button>
                     <button class="period-btn" data-period="90" onclick="selectPeriod(this, 90)">90 Hari</button>
                 </div>
-                <div class="helper-text">Pilih rentang waktu laporan</div>
+                <div class="helper-text">Pilih rentang waktu laporan (periode yang tidak tersedia akan otomatis dinonaktifkan)</div>
             </div>
 
             <div class="form-group">
                 <label>Tanggal Kustom</label>
+                
+                <!-- 🔥 INFO UMUR SERVICE -->
+                <div id="serviceAgeInfo" style="background: var(--bg-info-box-service); border: 1px solid var(--border-info-box-service); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: var(--text-info-box-service); display: none;">
+                    <span id="serviceAgeText">Memuat informasi service...</span>
+                </div>
+                
                 <div class="download-date-range">
                     <div class="date-group">
-                        <label>Dari</label>
-                        <input type="date" id="dateFrom">
+                        <label>Dari Tanggal <span class="required" style="color: #dc2626;">*</span></label>
+                        <input 
+                            type="date" 
+                            id="dateFrom" 
+                            class="date-input"
+                            min="" 
+                            max=""
+                            required
+                        >
+                        <div class="date-error-message" style="display: none; color: #dc2626; font-size: 12px; margin-top: 4px;"></div>
                     </div>
                     <div class="date-group">
-                        <label>Sampai</label>
-                        <input type="date" id="dateTo">
+                        <label>Sampai Tanggal <span class="required" style="color: #dc2626;">*</span></label>
+                        <input 
+                            type="date" 
+                            id="dateTo" 
+                            class="date-input"
+                            min="" 
+                            max=""
+                            required
+                        >
+                        <div class="date-error-message" style="display: none; color: #dc2626; font-size: 12px; margin-top: 4px;"></div>
                     </div>
                 </div>
-                <div class="helper-text">Atau pilih tanggal secara manual</div>
+                <div class="helper-text">
+                    📅 Pilih rentang tanggal sesuai kebutuhan. 
+                    <span style="color: var(--text-secondary-service);">
+                        <strong>Catatan:</strong> Tanggal otomatis dibatasi sesuai umur service (tidak bisa sebelum service dibuat).
+                    </span>
+                </div>
             </div>
 
             <div id="downloadLoading" style="display: none; text-align: center; padding: 20px;">
@@ -2485,7 +2719,6 @@
     let currentSortDirection = 'asc';
 
     function sortTable(column) {
-        // Toggle direction jika kolom sama
         if (currentSort === column) {
             currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
         } else {
@@ -2493,23 +2726,17 @@
             currentSortDirection = 'asc';
         }
         
-        // Update visual indicator
         updateSortIndicators(column, currentSortDirection);
         
-        // Ambil semua baris
         const tbody = document.getElementById('tableBody');
         const rows = Array.from(tbody.querySelectorAll('tr'));
-        
-        // Filter row yang punya data (bukan empty state)
         const dataRows = rows.filter(row => row.dataset.serviceId);
         
-        // Jika tidak ada data, reload page
         if (dataRows.length === 0) {
             reloadWithSort();
             return;
         }
         
-        // Urutkan baris
         const sortedRows = dataRows.sort((a, b) => {
             let aVal, bVal;
             let aNum, bNum;
@@ -2535,8 +2762,7 @@
                         : bVal.localeCompare(aVal);
                     
                 case 'status':
-                    // Urutkan berdasarkan priority: UP > WARNING > DOWN > UNKNOWN
-                    const statusPriority = { 'UP': 1, 'WARNING': 2, 'DOWN': 3, 'UNKNOWN': 4 };
+                    const statusPriority = { 'UP': 1, 'WARNING': 2, 'DOWN': 3, 'UNKNOWN': 4, 'ARSIP': 5 };
                     const aStatus = a.querySelector('.status-badge')?.textContent?.trim()?.toUpperCase() || 'UNKNOWN';
                     const bStatus = b.querySelector('.status-badge')?.textContent?.trim()?.toUpperCase() || 'UNKNOWN';
                     aNum = statusPriority[aStatus] || 4;
@@ -2560,17 +2786,13 @@
             }
         });
         
-        // Susun ulang baris di tabel
         dataRows.forEach(row => row.remove());
         sortedRows.forEach(row => tbody.appendChild(row));
-        
-        // Update nomor urut
         updateRowNumbers();
     }
 
     function updateSortIndicators(column, direction) {
         const headers = document.querySelectorAll('.sortable-header');
-        
         headers.forEach(th => {
             th.classList.remove('active-asc', 'active-desc');
             if (th.dataset.sort === column) {
@@ -2597,33 +2819,37 @@
         window.location.href = url.toString();
     }
 
+    // ================= TOGGLE ARCHIVE =================
+    function toggleArchive() {
+        let url = new URL(window.location.href);
+        let showArchived = url.searchParams.get('show_archived');
+        
+        if (showArchived === '1') {
+            url.searchParams.delete('show_archived');
+        } else {
+            url.searchParams.set('show_archived', '1');
+        }
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    }
+
     // ================= CONFIRM MODAL =================
     let confirmCallback = null;
     let confirmData = null;
 
-    function confirmDelete(id, name) {
-        confirmData = { id: id, name: name };
-        document.getElementById('confirmIcon').className = 'modal-icon danger';
-        document.getElementById('confirmIcon').textContent = '🗑️';
-        document.getElementById('confirmTitle').textContent = 'Hapus Service';
-        document.getElementById('confirmMessage').textContent = 'Apakah Anda yakin ingin menghapus service ini?';
-        document.getElementById('confirmDetail').innerHTML = 'Service <span class="highlight-name">' + name + '</span> akan dihapus secara permanen.';
-        document.getElementById('confirmBtn').textContent = '🗑️ Ya, Hapus';
-        document.getElementById('confirmBtn').className = 'btn-modal btn-confirm';
+    function showConfirmModal(icon, title, message, detail, btnText, btnClass, callback) {
+        document.getElementById('confirmIcon').className = 'modal-icon ' + icon;
+        document.getElementById('confirmIcon').textContent = icon === 'danger' ? '🗑️' : 
+                                                           icon === 'archive' ? '📦' : 
+                                                           icon === 'restore' ? '🔄' : '⚠️';
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmDetail').innerHTML = detail;
+        document.getElementById('confirmBtn').textContent = btnText;
+        document.getElementById('confirmBtn').className = 'btn-modal ' + btnClass;
         document.getElementById('customConfirmModal').classList.add('active');
         document.body.style.overflow = 'hidden';
-        
-        confirmCallback = function() {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/services/' + id;
-            form.innerHTML = `
-                <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="_method" value="DELETE">
-            `;
-            document.body.appendChild(form);
-            form.submit();
-        };
+        confirmCallback = callback;
     }
 
     function closeConfirmModal() {
@@ -2640,7 +2866,118 @@
         closeConfirmModal();
     }
 
-    // ================= 🔥 WA INTERVAL (GLOBAL) =================
+    // ================= CONFIRM DELETE =================
+    function confirmDelete(id, name) {
+        showConfirmModal(
+            'danger',
+            'Hapus Service',
+            'Apakah Anda yakin ingin menghapus service ini?',
+            'Service <span class="highlight-name">' + name + '</span> akan dihapus secara permanen.',
+            '🗑️ Ya, Hapus',
+            'btn-confirm',
+            function() {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/services/' + id;
+                form.innerHTML = `
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="_method" value="DELETE">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        );
+    }
+
+    // ================= CONFIRM ARCHIVE =================
+    function confirmArchive(id, name) {
+        showConfirmModal(
+            'archive',
+            'Arsip Service',
+            'Apakah Anda yakin ingin mengarsipkan service ini?',
+            'Service <span class="highlight-name">' + name + '</span> akan diarsipkan.<br><br>' +
+            '<div class="info-text">' +
+            '📌 Service yang diarsipkan akan:<br>' +
+            '❌ Tidak tampil di daftar service utama<br>' +
+            '❌ Tidak dipantau (check service dihentikan)<br>' +
+            '❌ Tidak terhitung di statistik (UP/DOWN)<br><br>' +
+            '✅ Data log tetap tersimpan<br>' +
+            '✅ Bisa dipulihkan kapan saja' +
+            '</div>',
+            '📦 Ya, Arsip',
+            'btn-confirm-archive',
+            function() {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/services/' + id + '/archive';
+                form.innerHTML = `
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        );
+    }
+
+    // ================= CONFIRM RESTORE =================
+    function confirmRestore(id, name) {
+        showConfirmModal(
+            'restore',
+            'Pulihkan Service',
+            'Apakah Anda yakin ingin memulihkan service ini?',
+            'Service <span class="highlight-name">' + name + '</span> akan dipulihkan.<br><br>' +
+            '<div class="info-text">' +
+            '✅ Service akan tampil kembali di daftar service utama<br>' +
+            '✅ Akan dipantau kembali (check service aktif)<br>' +
+            '✅ Terhitung di statistik (UP/DOWN)<br><br>' +
+            '📌 Semua data log tetap tersimpan' +
+            '</div>',
+            '🔄 Ya, Pulihkan',
+            'btn-confirm-restore',
+            function() {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/services/' + id + '/restore';
+                form.innerHTML = `
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        );
+    }
+
+    // ================= CONFIRM DELETE PERMANENT =================
+    function confirmDeletePermanent(id, name) {
+        showConfirmModal(
+            'danger',
+            'Hapus Permanen',
+            'Apakah Anda yakin ingin menghapus permanen service ini?',
+            'Service <span class="highlight-name">' + name + '</span> akan dihapus <strong>permanen</strong>.<br><br>' +
+            '<div class="info-text" style="color: #dc2626;">' +
+            '⚠️ PERINGATAN: TINDAKAN INI TIDAK DAPAT DIURUNGKAN!<br><br>' +
+            '📌 Yang akan dihapus:<br>' +
+            '❌ Data service akan hilang selamanya<br>' +
+            '❌ Semua log / history akan hilang<br>' +
+            '❌ Tidak bisa dipulihkan kembali' +
+            '</div>',
+            '🗑️ Hapus Permanen',
+            'btn-confirm',
+            function() {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/services/' + id + '/permanent';
+                form.innerHTML = `
+                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="_method" value="DELETE">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        );
+    }
+
+    // ================= WA INTERVAL =================
     function changeWaInterval(value) {
         let url = new URL(window.location.href);
         url.searchParams.set('wa_interval', value);
@@ -2720,7 +3057,7 @@
         });
     })();
 
-    // ================= 🔥 AJAX POLLING =================
+    // ================= AJAX POLLING =================
     (function() {
         'use strict';
         
@@ -2823,8 +3160,9 @@
     let selectedPeriod = 7;
     let searchTimeout = null;
     let isSearching = false;
+    let downloadServiceData = null;
 
-    // ================= SEARCH SERVICES (AJAX) =================
+    // ================= SEARCH SERVICES =================
     function searchServices() {
         const query = document.getElementById('searchService').value.trim();
         
@@ -2925,6 +3263,7 @@
             const uptime = service.uptime || 0;
             const uptimeColor = uptime >= 70 ? 'green' : (uptime >= 50 ? 'yellow' : 'red');
             const no = index + 1;
+            const isArchived = service.is_archived || 0;
             
             let displayName = service.name;
             let displayTarget = service.target;
@@ -2936,7 +3275,7 @@
             }
             
             html += `
-                <tr data-service-id="${service.id}">
+                <tr data-service-id="${service.id}" data-archived="${isArchived}">
                     <td><span class="service-no">${no}</span></td>
                     <td>
                         <div class="service-info">
@@ -2949,16 +3288,19 @@
                     </td>
                     <td><span class="service-target">${displayTarget}</span></td>
                     <td>
-                        ${statusLabel == 'UP' ? `<span class="status-badge up" id="status-${service.id}"><span class="status-dot"></span> UP</span>` : 
-                          statusLabel == 'DOWN' ? `<span class="status-badge down" id="status-${service.id}"><span class="status-dot"></span> DOWN</span>` :
-                          statusLabel == 'WARNING' ? `<span class="status-badge warning" id="status-${service.id}"><span class="status-dot"></span> WARNING</span>` :
-                          `<span class="status-badge unknown" id="status-${service.id}"><span class="status-dot"></span> UNKNOWN</span>`}
+                        ${isArchived ? `<span class="status-badge archived" id="status-${service.id}"><span class="status-dot"></span> 📦 ARSIP</span>` :
+                        statusLabel == 'UP' ? `<span class="status-badge up" id="status-${service.id}"><span class="status-dot"></span> UP</span>` : 
+                        statusLabel == 'DOWN' ? `<span class="status-badge down" id="status-${service.id}"><span class="status-dot"></span> DOWN</span>` :
+                        statusLabel == 'WARNING' ? `<span class="status-badge warning" id="status-${service.id}"><span class="status-dot"></span> WARNING</span>` :
+                        `<span class="status-badge unknown" id="status-${service.id}"><span class="status-dot"></span> UNKNOWN</span>`}
                     </td>
                     <td>
-                        <div class="uptime-value ${uptimeColor}">${Number(uptime).toFixed(2)}%</div>
-                        <div class="uptime-bar">
-                            <div class="uptime-fill ${uptimeColor}" style="width: ${uptime}%;"></div>
-                        </div>
+                        ${isArchived ? 
+                            `<div class="uptime-value" style="color: var(--text-muted-service);">-</div>
+                             <div class="uptime-bar"><div class="uptime-fill" style="width: 0%; background: var(--text-muted-service);"></div></div>` :
+                            `<div class="uptime-value ${uptimeColor}">${Number(uptime).toFixed(2)}%</div>
+                             <div class="uptime-bar"><div class="uptime-fill ${uptimeColor}" style="width: ${uptime}%;"></div></div>`
+                        }
                     </td>
                     <td>
                         <div style="font-size: 13px; color: var(--text-secondary-service); font-family: 'Courier New', monospace; font-weight: 600;" id="time-${service.id}">
@@ -2969,9 +3311,14 @@
                         <div class="action-buttons">
                             <button onclick="openDetailModal(${service.id})" class="btn-action btn-detail" title="Detail">👁️</button>
                             <button onclick="openDownloadModal(${service.id}, '${service.name.replace(/'/g, "\\'")}')" class="btn-action btn-download" title="Download PDF">📥</button>
-                            <button onclick="openEditModal(${service.id})" class="btn-action btn-edit" title="Edit">✏️</button>
-                            <button onclick="confirmDelete(${service.id}, '${service.name.replace(/'/g, "\\'")}')" class="btn-action btn-delete" title="Hapus">🗑️</button>
-                            <button onclick="checkService(${service.id})" class="btn-check" title="Check Now" id="checkBtn${service.id}">🔄</button>
+                            ${isArchived ? 
+                                `<button onclick="confirmRestore(${service.id}, '${service.name.replace(/'/g, "\\'")}')" class="btn-restore" title="Pulihkan">🔄 Pulihkan</button>
+                                 <button onclick="confirmDeletePermanent(${service.id}, '${service.name.replace(/'/g, "\\'")}')" class="btn-delete-permanent" title="Hapus Permanen">🗑️ Hapus</button>` :
+                                `<button onclick="confirmArchive(${service.id}, '${service.name.replace(/'/g, "\\'")}')" class="btn-archive" title="Arsipkan">📦 Arsip</button>
+                                 <button onclick="openEditModal(${service.id})" class="btn-action btn-edit" title="Edit">✏️</button>
+                                 <button onclick="confirmDelete(${service.id}, '${service.name.replace(/'/g, "\\'")}')" class="btn-action btn-delete" title="Hapus">🗑️</button>
+                                 <button onclick="checkService(${service.id})" class="btn-check" title="Check Now" id="checkBtn${service.id}">🔄</button>`
+                            }
                         </div>
                     </td>
                 </tr>
@@ -3017,12 +3364,6 @@
         @if(session('info'))
             showToast('info', 'Info', '{{ session('info') }}');
         @endif
-
-        const today = new Date();
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        document.getElementById('dateFrom').value = weekAgo.toISOString().split('T')[0];
-        document.getElementById('dateTo').value = today.toISOString().split('T')[0];
 
         const typeSelect = document.getElementById('modal_type');
         if (typeSelect) {
@@ -3072,6 +3413,13 @@
                 e.preventDefault();
                 document.getElementById('searchService').focus();
                 document.getElementById('searchService').select();
+            }
+            if (e.key === 'Escape') {
+                closeModal();
+                closeDetailModal();
+                closeDownloadModal();
+                closeConfirmModal();
+                hideSearchStatus();
             }
         });
     });
@@ -3238,16 +3586,9 @@
         const timeClass = responseTime < 1 ? 'fast' : (responseTime < 3 ? 'medium' : 'slow');
         const codeClass = responseCode < 400 ? 'success' : (responseCode < 500 ? 'warning' : 'error');
         
-        const action = service.last_action || '-';
         const message = service.last_message || '-';
-        
-        const isNoAction = action === '-';
-        const isEmptyAction = action.includes('kosong') || action.includes('EMPTY');
         const isEmptyPage = message.includes('konten kosong') || message.includes('EMPTY_RESPONSE');
-
         const messageClass = isEmptyPage ? 'empty-message' : '';
-        const actionClass = isEmptyAction ? 'empty-action' : (isNoAction ? 'no-action' : '');
-        const actionBadgeText = isEmptyAction ? '📄 ' + action : action;
 
         body.innerHTML = `
             <div class="detail-grid">
@@ -3285,41 +3626,165 @@
         document.dispatchEvent(new Event('modalClosed'));
     }
 
-    // ================= DOWNLOAD MODAL =================
+    // ================= FORMAT TANGGAL =================
+    function formatDateLocal(date) {
+        var year = date.getFullYear();
+        var month = String(date.getMonth() + 1).padStart(2, '0');
+        var day = String(date.getDate()).padStart(2, '0');
+        return year + '-' + month + '-' + day;
+    }
+
+    function parseDateLocal(dateStr) {
+        var parts = dateStr.split('-');
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+
+    // ================= DOWNLOAD MODAL (DIPERBAIKI) =================
     function openDownloadModal(id, name) {
         currentDownloadId = id;
-        const modal = document.getElementById('downloadModal');
+        var modal = document.getElementById('downloadModal');
         document.getElementById('downloadModalTitle').textContent = '📥 Download Laporan PDF';
         document.getElementById('downloadServiceName').textContent = name;
+        document.getElementById('downloadServiceTarget').textContent = '🎯 Memuat...';
+        document.getElementById('downloadServiceType').textContent = '📌 Memuat...';
         
-        fetch(`/services/${id}/detail?_=${Date.now()}`, {
+        var ageInfo = document.getElementById('serviceAgeInfo');
+        var ageText = document.getElementById('serviceAgeText');
+        ageInfo.style.display = 'block';
+        ageText.innerHTML = '⏳ Memuat informasi service...';
+        
+        var notice = document.getElementById('downloadNotice');
+        notice.innerHTML = '⏳ Memuat informasi service...';
+        
+        fetch('/services/' + id + '/detail?_=' + Date.now(), {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json',
                 'Cache-Control': 'no-cache'
             }
         })
-        .then(response => response.json())
-        .then(data => {
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
             if (data.success) {
-                document.getElementById('downloadServiceTarget').textContent = `🎯 ${data.data.target}`;
-                document.getElementById('downloadServiceType').textContent = `📌 ${data.data.type?.toUpperCase() || 'HTTP'}`;
+                document.getElementById('downloadServiceTarget').textContent = '🎯 ' + data.data.target;
+                document.getElementById('downloadServiceType').textContent = '📌 ' + (data.data.type?.toUpperCase() || 'HTTP');
+                
+                var createdAt = new Date(data.data.created_at);
+                var today = new Date();
+
+                function getDateDiffInDays(date1, date2) {
+                    var d1 = new Date(date1);
+                    d1.setHours(0, 0, 0, 0);
+                    var d2 = new Date(date2);
+                    d2.setHours(0, 0, 0, 0);
+                    var diffTime = d2.getTime() - d1.getTime();
+                    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                }
+
+                var ageInDays = getDateDiffInDays(createdAt, today);
+                var availableDays = ageInDays + 1;
+                var maxDays = Math.min(availableDays, 90);
+                
+                var ageTextDisplay = '';
+                if (ageInDays < 1) {
+                    ageTextDisplay = '🆕 Baru ditambahkan <strong>hari ini</strong>';
+                } else if (ageInDays === 1) {
+                    ageTextDisplay = '📆 Berusia <strong>1 hari</strong> (dibuat kemarin)';
+                } else {
+                    ageTextDisplay = '📆 Berusia <strong>' + ageInDays + ' hari</strong>';
+                }
+                
+                var ageInfo = document.getElementById('serviceAgeInfo');
+                var ageTextEl = document.getElementById('serviceAgeText');
+                ageTextEl.innerHTML = '📌 <strong>Info Service:</strong> ' + ageTextDisplay + 
+                    ' | Dibuat: <strong>' + data.data.created_at + '</strong>' +
+                    ' | Data tersedia: <strong>' + availableDays + ' hari</strong>';
+                ageInfo.style.display = 'block';
+                
+                var dateFromInput = document.getElementById('dateFrom');
+                var dateToInput = document.getElementById('dateTo');
+                
+                var minDate = formatDateLocal(createdAt);
+                var maxDate = formatDateLocal(today);
+                
+                dateFromInput.setAttribute('min', minDate);
+                dateFromInput.setAttribute('max', maxDate);
+                dateToInput.setAttribute('min', minDate);
+                dateToInput.setAttribute('max', maxDate);
+                
+                var defaultDays = Math.min(7, Math.max(1, maxDays));
+                var periodStart = new Date(today);
+                periodStart.setDate(periodStart.getDate() - defaultDays);
+                
+                periodStart.setHours(0, 0, 0, 0);
+                var createdAtDate = new Date(createdAt);
+                createdAtDate.setHours(0, 0, 0, 0);
+                
+                if (periodStart < createdAtDate) {
+                    periodStart = new Date(createdAtDate);
+                }
+                
+                dateFromInput.value = formatDateLocal(periodStart);
+                dateToInput.value = maxDate;
+                
+                var periodBtns = document.querySelectorAll('.period-btn');
+                var availablePeriods = [];
+                
+                periodBtns.forEach(function(btn) {
+                    var days = parseInt(btn.getAttribute('data-period'));
+                    var isAvailable = days <= availableDays;
+                    
+                    if (isAvailable) {
+                        availablePeriods.push(days);
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                        btn.style.pointerEvents = 'auto';
+                        btn.classList.remove('disabled');
+                        btn.title = days + ' hari terakhir (✅ tersedia)';
+                    } else {
+                        btn.style.opacity = '0.4';
+                        btn.style.cursor = 'not-allowed';
+                        btn.style.pointerEvents = 'none';
+                        btn.classList.add('disabled');
+                        btn.title = '❌ Periode ' + days + ' hari belum tersedia (hanya ' + availableDays + ' hari data tersedia)';
+                    }
+                    
+                    if (days === defaultDays) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+                
+                var availableText = availablePeriods.length > 0 ? availablePeriods.join(', ') + ' hari' : 'Belum ada periode yang tersedia';
+                notice.innerHTML = '📌 <strong>Info:</strong> Service ini memiliki data dari <strong>' + 
+                    minDate + '</strong> sampai <strong>' + maxDate + '</strong>.<br>' +
+                    '📊 Total <strong>' + availableDays + ' hari</strong> data tersedia.<br>' +
+                    '✅ Periode tersedia: <strong>' + availableText + '</strong>';
+                
+                downloadServiceData = {
+                    createdAt: createdAt,
+                    ageInDays: ageInDays,
+                    availableDays: availableDays,
+                    maxDays: maxDays,
+                    minDate: minDate,
+                    maxDate: maxDate,
+                    serviceName: name,
+                    minDateObj: createdAtDate,
+                    maxDateObj: today
+                };
+                
+                setTimeout(validateDateRange, 100);
             }
         })
-        .catch(() => {
+        .catch(function(error) {
             document.getElementById('downloadServiceTarget').textContent = '🎯 -';
             document.getElementById('downloadServiceType').textContent = '📌 -';
+            notice.innerHTML = '❌ Gagal memuat informasi service: ' + error.message;
+            var ageInfo = document.getElementById('serviceAgeInfo');
+            var ageTextEl = document.getElementById('serviceAgeText');
+            ageTextEl.innerHTML = '❌ Gagal memuat informasi service';
         });
-        
-        document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelector('.period-btn[data-period="7"]').classList.add('active');
-        selectedPeriod = 7;
-        
-        const today = new Date();
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        document.getElementById('dateFrom').value = weekAgo.toISOString().split('T')[0];
-        document.getElementById('dateTo').value = today.toISOString().split('T')[0];
         
         document.getElementById('downloadLoading').style.display = 'none';
         modal.classList.add('active');
@@ -3327,53 +3792,223 @@
         document.dispatchEvent(new Event('modalOpened'));
     }
 
+    // ================= VALIDASI TANGGAL =================
+    function validateDateRange() {
+        var dateFrom = document.getElementById('dateFrom');
+        var dateTo = document.getElementById('dateTo');
+        var btnDownload = document.getElementById('btnDownloadNow');
+        
+        if (!downloadServiceData || !dateFrom.value || !dateTo.value) {
+            if (btnDownload) {
+                btnDownload.disabled = true;
+                btnDownload.title = '❌ Isi tanggal terlebih dahulu';
+            }
+            return;
+        }
+        
+        var fromDateStr = dateFrom.value;
+        var toDateStr = dateTo.value;
+        var minDateStr = downloadServiceData.minDate;
+        var maxDateStr = downloadServiceData.maxDate;
+        
+        var hasError = false;
+        var errorMessages = [];
+        
+        if (fromDateStr < minDateStr) {
+            dateFrom.style.borderColor = '#dc2626';
+            dateFrom.style.background = '#fef2f2';
+            showDateError(dateFrom, '⚠️ Minimal tanggal: ' + minDateStr + ' (tanggal service dibuat)');
+            hasError = true;
+            errorMessages.push('Tanggal awal tidak boleh sebelum ' + minDateStr);
+        } else if (fromDateStr > maxDateStr) {
+            dateFrom.style.borderColor = '#dc2626';
+            dateFrom.style.background = '#fef2f2';
+            showDateError(dateFrom, '⚠️ Maksimal tanggal: ' + maxDateStr + ' (hari ini)');
+            hasError = true;
+            errorMessages.push('Tanggal awal tidak boleh melebihi ' + maxDateStr);
+        } else {
+            dateFrom.style.borderColor = '#10b981';
+            dateFrom.style.background = '';
+            removeDateError(dateFrom);
+        }
+        
+        if (toDateStr < minDateStr) {
+            dateTo.style.borderColor = '#dc2626';
+            dateTo.style.background = '#fef2f2';
+            showDateError(dateTo, '⚠️ Minimal tanggal: ' + minDateStr + ' (tanggal service dibuat)');
+            hasError = true;
+            errorMessages.push('Tanggal akhir tidak boleh sebelum ' + minDateStr);
+        } else if (toDateStr > maxDateStr) {
+            dateTo.style.borderColor = '#dc2626';
+            dateTo.style.background = '#fef2f2';
+            showDateError(dateTo, '⚠️ Maksimal tanggal: ' + maxDateStr + ' (hari ini)');
+            hasError = true;
+            errorMessages.push('Tanggal akhir tidak boleh melebihi ' + maxDateStr);
+        } else if (toDateStr < fromDateStr) {
+            dateTo.style.borderColor = '#dc2626';
+            dateTo.style.background = '#fef2f2';
+            showDateError(dateTo, '⚠️ Tidak boleh kurang dari tanggal awal');
+            hasError = true;
+            errorMessages.push('Tanggal akhir harus >= tanggal awal');
+        } else {
+            dateTo.style.borderColor = '#10b981';
+            dateTo.style.background = '';
+            removeDateError(dateTo);
+        }
+        
+        if (btnDownload) {
+            btnDownload.disabled = hasError;
+            if (hasError) {
+                btnDownload.title = '❌ ' + errorMessages.join('; ');
+            } else {
+                btnDownload.disabled = false;
+                btnDownload.title = '📥 Download PDF';
+                btnDownload.style.opacity = '1';
+                btnDownload.style.cursor = 'pointer';
+            }
+        }
+        
+        if (!hasError && toDateStr >= fromDateStr) {
+            var fromParts = fromDateStr.split('-');
+            var toParts = toDateStr.split('-');
+            var fromDateObj = new Date(fromParts[0], fromParts[1] - 1, fromParts[2]);
+            var toDateObj = new Date(toParts[0], toParts[1] - 1, toParts[2]);
+            var diffDays = Math.floor((toDateObj.getTime() - fromDateObj.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            
+            var notice = document.getElementById('downloadNotice');
+            if (notice) {
+                notice.innerHTML = '✅ <strong>Periode valid:</strong> ' + 
+                    fromDateStr + ' sampai ' + toDateStr + 
+                    ' (' + diffDays + ' hari)' +
+                    ' | Service berusia ' + downloadServiceData.ageInDays + ' hari';
+            }
+        }
+    }
+
+    function showDateError(input, message) {
+        var parent = input.parentElement;
+        var errorDiv = parent.querySelector('.date-error-message');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'date-error-message';
+            errorDiv.style.cssText = 'color: #dc2626; font-size: 12px; margin-top: 4px;';
+            parent.appendChild(errorDiv);
+        }
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    }
+
+    function removeDateError(input) {
+        var parent = input.parentElement;
+        var errorDiv = parent.querySelector('.date-error-message');
+        if (errorDiv) {
+            errorDiv.style.display = 'none';
+        }
+    }
+
+    // ================= SELECT PERIODE =================
     function selectPeriod(element, days) {
-        document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+        if (element.classList.contains('disabled') || element.style.pointerEvents === 'none') {
+            var msg = '❌ Periode ' + days + ' hari belum tersedia.';
+            if (downloadServiceData) {
+                msg += ' Service ini baru memiliki ' + downloadServiceData.availableDays + ' hari data.';
+            }
+            showToast('warning', 'Periode Tidak Tersedia', msg);
+            return;
+        }
+        
+        var periodBtns = document.querySelectorAll('.period-btn');
+        for (var i = 0; i < periodBtns.length; i++) {
+            periodBtns[i].classList.remove('active');
+        }
         element.classList.add('active');
         selectedPeriod = days;
         
-        const today = new Date();
-        const pastDate = new Date();
+        var today = new Date();
+        var pastDate = new Date(today);
         pastDate.setDate(pastDate.getDate() - days);
-        document.getElementById('dateFrom').value = pastDate.toISOString().split('T')[0];
-        document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+        
+        if (downloadServiceData && pastDate < downloadServiceData.createdAt) {
+            pastDate = new Date(downloadServiceData.createdAt);
+            showToast('info', 'Info', '📅 Tanggal awal disesuaikan dengan tanggal service dibuat (' + 
+                formatDateLocal(pastDate) + ')');
+        }
+        
+        document.getElementById('dateFrom').value = formatDateLocal(pastDate);
+        document.getElementById('dateTo').value = formatDateLocal(today);
+        
+        validateDateRange();
     }
 
+    // ================= DOWNLOAD REPORT =================
     function downloadReport() {
-        const dateFrom = document.getElementById('dateFrom').value;
-        const dateTo = document.getElementById('dateTo').value;
+        var dateFrom = document.getElementById('dateFrom').value;
+        var dateTo = document.getElementById('dateTo').value;
         
         if (!dateFrom || !dateTo) {
             showToast('warning', 'Peringatan!', 'Silakan pilih periode laporan terlebih dahulu');
             return;
         }
         
-        if (new Date(dateFrom) > new Date(dateTo)) {
-            showToast('warning', 'Peringatan!', 'Tanggal awal tidak boleh lebih besar dari tanggal akhir');
+        var todayStr = formatDateLocal(new Date());
+        
+        if (dateFrom > dateTo) {
+            showToast('warning', 'Peringatan!', '📅 Tanggal awal tidak boleh lebih besar dari tanggal akhir');
             return;
         }
         
-        const btn = document.getElementById('btnDownloadNow');
-        const loading = document.getElementById('downloadLoading');
+        if (dateTo > todayStr) {
+            showToast('info', 'Info', '📅 Data akan diproses sesuai yang tersedia.');
+        }
+        
+        if (downloadServiceData) {
+            var minDate = downloadServiceData.minDate;
+            var maxDate = downloadServiceData.maxDate;
+            
+            if (dateFrom < minDate) {
+                showToast('warning', 'Periode Tidak Valid', 
+                    '❌ Service "' + downloadServiceData.serviceName + '" dibuat pada ' + minDate + 
+                    '.\n📅 Tidak ada data sebelum tanggal tersebut.\n\n💡 Silakan pilih tanggal dari ' + minDate + ' sampai ' + maxDate);
+                return;
+            }
+            
+            if (dateTo > maxDate) {
+                showToast('warning', 'Periode Tidak Valid', 
+                    '❌ Service "' + downloadServiceData.serviceName + '" baru memiliki ' + downloadServiceData.availableDays + 
+                    ' hari data.\n📅 Data hanya tersedia sampai ' + maxDate + 
+                    '.\n\n💡 Silakan pilih tanggal dari ' + minDate + ' sampai ' + maxDate);
+                return;
+            }
+        }
+        
+        var btn = document.getElementById('btnDownloadNow');
+        var loading = document.getElementById('downloadLoading');
         
         btn.disabled = true;
         btn.textContent = '⏳ Memproses...';
         loading.style.display = 'block';
         
-        const url = `/services/${currentDownloadId}/download-report?` + new URLSearchParams({
+        var url = '/services/' + currentDownloadId + '/download-report?' + new URLSearchParams({
             date_from: dateFrom,
             date_to: dateTo,
             format: 'pdf',
             _: Date.now()
         });
         
-        window.open(url, '_blank');
-        
-        setTimeout(() => {
+        var newWindow = window.open(url, '_blank');
+        if (!newWindow) {
+            showToast('warning', 'Perhatian!', 'Browser Anda memblokir popup. Izinkan popup untuk mendownload PDF.');
             btn.disabled = false;
             btn.textContent = '📥 Download PDF';
             loading.style.display = 'none';
-            showToast('success', 'Berhasil!', 'Laporan PDF berhasil diunduh');
+            return;
+        }
+        
+        setTimeout(function() {
+            btn.disabled = false;
+            btn.textContent = '📥 Download PDF';
+            loading.style.display = 'none';
+            showToast('success', 'Berhasil!', '📄 Laporan PDF berhasil diunduh');
         }, 3000);
     }
 
@@ -3381,6 +4016,7 @@
         document.getElementById('downloadModal').classList.remove('active');
         document.body.style.overflow = '';
         currentDownloadId = null;
+        downloadServiceData = null;
         document.dispatchEvent(new Event('modalClosed'));
     }
 
@@ -3571,6 +4207,30 @@
         if (this.value.trim() !== '') {
             this.classList.remove('error');
             removeFieldError(this);
+        }
+    });
+
+    // ================= EVENT LISTENER UNTUK VALIDASI DATE =================
+    document.addEventListener('DOMContentLoaded', function() {
+        var dateFrom = document.getElementById('dateFrom');
+        var dateTo = document.getElementById('dateTo');
+        
+        if (dateFrom) {
+            dateFrom.addEventListener('change', function() {
+                validateDateRange();
+            });
+            dateFrom.addEventListener('input', function() {
+                validateDateRange();
+            });
+        }
+        
+        if (dateTo) {
+            dateTo.addEventListener('change', function() {
+                validateDateRange();
+            });
+            dateTo.addEventListener('input', function() {
+                validateDateRange();
+            });
         }
     });
 </script>

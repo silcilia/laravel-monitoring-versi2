@@ -58,9 +58,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/services', [ServiceController::class, 'index'])->name('services');
     Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
     Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
-    Route::get('/services/{id}/edit', [ServiceController::class, 'edit'])->name('services.edit');  // FIX: pakai {id}
-    Route::put('/services/{id}', [ServiceController::class, 'update'])->name('services.update');   // FIX: pakai {id}
-    Route::delete('/services/{id}', [ServiceController::class, 'destroy'])->name('services.destroy'); // FIX: pakai {id}
+    Route::get('/services/{id}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+    Route::put('/services/{id}', [ServiceController::class, 'update'])->name('services.update');
+    Route::delete('/services/{id}', [ServiceController::class, 'destroy'])->name('services.destroy');
+
+    // 🔥🔥🔥 ROUTE ARCHIVE & RESTORE (DITAMBAHKAN)
+    Route::post('/services/{id}/archive', [ServiceController::class, 'archive'])->name('services.archive');
+    Route::post('/services/{id}/restore', [ServiceController::class, 'restore'])->name('services.restore');
+    Route::delete('/services/{id}/permanent', [ServiceController::class, 'destroyPermanent'])->name('services.destroy-permanent');
 
     // Search
     Route::get('/services/search', [ServiceController::class, 'search'])->name('services.search');
@@ -85,7 +90,7 @@ Route::middleware('auth')->group(function () {
     // LOGS - Riwayat Monitoring
     // ==========================================================
     Route::get('/logs', [LogController::class, 'index'])->name('logs');
-    Route::get('/logs/{id}', [LogController::class, 'show'])->name('logs.show');  // TAMBAHKAN
+    Route::get('/logs/{id}', [LogController::class, 'show'])->name('logs.show');
 
     // ==========================================================
     // CONTACTS - Kontak WhatsApp
@@ -93,9 +98,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/contacts', [ContactController::class, 'index'])->name('contacts');
     Route::get('/contacts/create', [ContactController::class, 'create'])->name('contacts.create');
     Route::post('/contacts', [ContactController::class, 'store'])->name('contacts.store');
-    Route::get('/contacts/{id}/edit', [ContactController::class, 'edit'])->name('contacts.edit');  // FIX: pakai {id}
-    Route::put('/contacts/{id}', [ContactController::class, 'update'])->name('contacts.update');   // FIX: pakai {id}
-    Route::delete('/contacts/{id}', [ContactController::class, 'destroy'])->name('contacts.destroy'); // FIX: pakai {id}
+    Route::get('/contacts/{id}/edit', [ContactController::class, 'edit'])->name('contacts.edit');
+    Route::put('/contacts/{id}', [ContactController::class, 'update'])->name('contacts.update');
+    Route::delete('/contacts/{id}', [ContactController::class, 'destroy'])->name('contacts.destroy');
     Route::get('/contacts/search', [ContactController::class, 'search'])->name('contacts.search');
 
     // ==========================================================
