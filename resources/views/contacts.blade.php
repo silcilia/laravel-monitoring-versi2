@@ -25,9 +25,11 @@
         --bg-info-box: #eff6ff;
         --border-info-box: #93c5fd;
         --text-info-box: #1e40af;
+        --bg-max-info: #fef3c7;
+        --border-max-info: #f59e0b;
+        --text-max-info: #92400e;
     }
 
-    /* Dark mode override dari layout utama */
     [data-theme="dark"] {
         --bg-contacts: #0f172a;
         --bg-card-contacts: #1e293b;
@@ -50,8 +52,9 @@
         --bg-info-box: #1a2332;
         --border-info-box: #3b82f6;
         --text-info-box: #93c5fd;
-        
-        /* Dark mode untuk warna teks form */
+        --bg-max-info: #422b00;
+        --border-max-info: #f59e0b;
+        --text-max-info: #fbbf24;
         --text-form: #e2e8f0;
     }
 
@@ -141,6 +144,54 @@
         z-index: 1;
     }
 
+    /* ================= MAX CONTACT INFO ================= */
+    .max-contact-info {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 13px;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .max-contact-info .count {
+        font-weight: 700;
+        color: #25D366;
+    }
+
+    .max-contact-info .max {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .max-contact-info.warning {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .max-contact-info.warning .count {
+        color: #f87171;
+    }
+
+    .max-contact-info.full {
+        background: rgba(239, 68, 68, 0.3);
+        border-color: rgba(239, 68, 68, 0.4);
+        animation: pulseBorder 1.5s infinite;
+    }
+
+    .max-contact-info.full .count {
+        color: #f87171;
+    }
+
+    @keyframes pulseBorder {
+        0%, 100% { border-color: rgba(239, 68, 68, 0.4); }
+        50% { border-color: rgba(239, 68, 68, 0.8); }
+    }
+
     .btn-primary {
         background: rgba(255, 255, 255, 0.15);
         color: white;
@@ -162,6 +213,12 @@
         background: rgba(255, 255, 255, 0.25);
         transform: translateY(-2px);
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
     }
 
     .btn-primary svg {
@@ -240,10 +297,6 @@
         color: var(--text-muted-contacts);
     }
 
-    .search-wrapper .search-input-wrap input:focus + .search-spinner {
-        display: none;
-    }
-
     .search-wrapper .btn-search {
         background: #25D366;
         color: white;
@@ -264,12 +317,6 @@
         background: #1da851;
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
-    }
-
-    .search-wrapper .btn-search:disabled {
-        opacity: 0.7;
-        cursor: not-allowed;
-        transform: none;
     }
 
     .search-wrapper .btn-reset {
@@ -365,9 +412,7 @@
         transition: background 0.3s ease, color 0.3s ease;
     }
 
-    .search-status.active {
-        display: flex;
-    }
+    .search-status.active { display: flex; }
 
     .search-status .status-spinner {
         width: 16px;
@@ -377,25 +422,6 @@
         border-radius: 50%;
         animation: spin 0.7s linear infinite;
         flex-shrink: 0;
-    }
-
-    .search-status .status-text {
-        flex: 1;
-        color: var(--text-secondary-contacts);
-    }
-
-    .search-status .status-cancel {
-        background: none;
-        border: none;
-        color: var(--text-muted-contacts);
-        cursor: pointer;
-        font-size: 18px;
-        padding: 0 4px;
-        transition: color 0.2s ease;
-    }
-
-    .search-status .status-cancel:hover {
-        color: var(--text-contacts);
     }
 
     /* ================= TABLE ================= */
@@ -480,11 +506,6 @@
     .perpage-selector select:focus {
         border-color: #6366f1;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-
-    .perpage-selector select option {
-        background: var(--bg-input);
-        color: var(--text-contacts);
     }
 
     .table-scroll {
@@ -627,7 +648,6 @@
         transition: color 0.3s ease;
     }
 
-    /* Empty State */
     .empty-state {
         text-align: center;
         padding: 60px 20px;
@@ -832,7 +852,7 @@
         transition: all 0.3s ease;
     }
 
-    /* ================= FORM DALAM MODAL ================= */
+    /* ================= FORM ================= */
     .modal-body .form-group { margin-bottom: 18px; }
     .modal-body .form-group label {
         display: block;
@@ -875,19 +895,6 @@
         color: var(--text-muted-contacts);
     }
 
-    .modal-body select.form-control {
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        padding-right: 36px;
-        cursor: pointer;
-    }
-
-    [data-theme="dark"] .modal-body select.form-control {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    }
-
     .modal-body .error-message {
         color: #ef4444;
         font-size: 13px;
@@ -919,6 +926,30 @@
         border-radius: 4px;
         font-size: 12px;
         font-family: 'Courier New', monospace;
+    }
+
+    /* 🔥 MAX CONTACT WARNING IN MODAL */
+    .modal-body .max-warning-box {
+        background: var(--bg-max-info);
+        border: 2px solid var(--border-max-info);
+        color: var(--text-max-info);
+        padding: 14px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .modal-body .max-warning-box .warning-icon { font-size: 24px; flex-shrink: 0; }
+    .modal-body .max-warning-box .warning-content { font-size: 14px; line-height: 1.5; }
+    .modal-body .max-warning-box .warning-content strong { display: block; }
+    .modal-body .max-warning-box .warning-content .highlight {
+        color: #dc2626;
+        font-weight: 700;
+        font-size: 16px;
     }
 
     [data-theme="dark"] .modal-body .info-box .info-content code {
@@ -959,6 +990,17 @@
 
     .btn-submit-modal.edit-mode:hover {
         box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-submit-modal.full-mode {
+        background: linear-gradient(135deg, #6b7280, #4b5563);
+        box-shadow: none;
+        cursor: not-allowed;
+    }
+
+    .btn-submit-modal.full-mode:hover {
+        transform: none;
+        box-shadow: none;
     }
 
     .btn-cancel-modal {
@@ -1090,6 +1132,7 @@
         }
         .contacts-header h1 { font-size: 20px; }
         .contacts-header .header-icon { width: 44px; height: 44px; font-size: 20px; }
+        .max-contact-info { font-size: 12px; padding: 4px 12px; align-self: flex-start; }
         .table-scroll { padding: 0 12px 12px; }
         .table-container thead th,
         .table-container tbody td { padding: 10px 10px; font-size: 12px; }
@@ -1133,6 +1176,7 @@
         .search-wrapper .btn-reset { font-size: 11px; padding: 6px 10px; }
         .search-wrapper .search-input-wrap input { padding: 6px 10px 6px 32px; font-size: 12px; }
         .search-wrapper .search-input-wrap .search-icon { font-size: 13px; left: 10px; }
+        .max-contact-info { font-size: 10px; padding: 3px 10px; }
     }
 </style>
 
@@ -1148,6 +1192,9 @@
             is_active: {{ $contact->is_active ?? 1 }}
         };
     @endforeach
+
+    // 🔥 KONSTANTA MAX CONTACTS (sama dengan di Controller)
+    const MAX_CONTACTS = 10;
 </script>
 
 <div class="contacts-container">
@@ -1164,11 +1211,34 @@
             </div>
         </div>
         <div class="header-actions">
-            <button class="btn-primary" onclick="openCreateModal()">
+            @php
+                $currentCount = $contacts->total();
+                $maxContacts = 10;
+                $remaining = $maxContacts - $currentCount;
+                $isFull = $remaining <= 0;
+                $isWarning = $remaining <= 2 && $remaining > 0;
+            @endphp
+
+            <span class="max-contact-info {{ $isFull ? 'full' : ($isWarning ? 'warning' : '') }}">
+                📊 <span class="count">{{ $currentCount }}</span>
+                <span class="max">/ {{ $maxContacts }}</span>
+                @if($isFull)
+                    <span style="color:#f87171;">🔴 Penuh</span>
+                @elseif($isWarning)
+                    <span style="color:#fbbf24;">⚠️ Sisa {{ $remaining }}</span>
+                @else
+                    <span style="color:#34d399;">✅ Sisa {{ $remaining }}</span>
+                @endif
+            </span>
+
+            <button class="btn-primary" onclick="openCreateModal()" {{ $isFull ? 'disabled' : '' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                     <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
                 </svg>
                 Tambah Kontak
+                @if($isFull)
+                    (Penuh)
+                @endif
             </button>
         </div>
     </div>
@@ -1336,12 +1406,23 @@
             <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
         <div class="modal-body">
+            <!-- 🔥 MAX CONTACT WARNING -->
+            <div class="max-warning-box" id="maxWarningBox" style="display:none;">
+                <span class="warning-icon">⚠️</span>
+                <div class="warning-content">
+                    <strong>Batas Maksimal Kontak Tercapai!</strong>
+                    Maksimal <span class="highlight">{{ $maxContacts }}</span> kontak.
+                    Saat ini sudah <span class="highlight" id="currentCountDisplay">{{ $currentCount }}</span> kontak.
+                    <br><small>Hapus kontak yang tidak digunakan terlebih dahulu untuk menambah kontak baru.</small>
+                </div>
+            </div>
+
             <div class="info-box">
                 <span class="info-icon">ℹ️</span>
                 <div class="info-content">
                     <strong>Format Nomor WhatsApp:</strong>
                     Gunakan format internasional tanpa tanda +, spasi, atau tanda hubung.<br>
-                    Contoh: <code>6281234567890</code> (Indonesia) atau <code>60123456789</code> (Malaysia)
+                    Contoh: <code>6281234567890</code>  atau </code>081234567890
                 </div>
             </div>
 
@@ -1416,6 +1497,7 @@
     let searchTimeout = null;
     let isSearching = false;
     let currentSearchQuery = '';
+    let currentContactCount = {{ $currentCount }};
 
     // ================= DOM READY =================
     document.addEventListener('DOMContentLoaded', function() {
@@ -1432,7 +1514,6 @@
             showToast('info', 'Info', '{{ session('info') }}');
         @endif
 
-        // 🔥 SEARCH WITH DEBOUNCE + INDICATOR
         const searchInput = document.getElementById('searchContact');
         if (searchInput) {
             searchInput.addEventListener('keypress', function(e) {
@@ -1455,9 +1536,7 @@
                 }
                 
                 if (query.length >= 2) {
-                    // Tampilkan status "sedang mengetik..."
                     showSearchStatus('✍️ Mengetik...', false);
-                    
                     searchTimeout = setTimeout(function() {
                         searchContacts();
                     }, 800);
@@ -1467,7 +1546,6 @@
             });
         }
 
-        // Auto focus search on Ctrl+F
         document.addEventListener('keydown', function(e) {
             if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
                 e.preventDefault();
@@ -1534,7 +1612,7 @@
         }, 5000);
     }
 
-    // ================= SEARCH CONTACTS (AJAX) - TANPA ALERT PROSES =================
+    // ================= SEARCH CONTACTS =================
     function searchContacts() {
         const query = document.getElementById('searchContact').value.trim();
         currentSearchQuery = query;
@@ -1554,7 +1632,6 @@
         const btnSearch = document.getElementById('btnSearch');
         const spinner = document.getElementById('searchSpinner');
         
-        // Tampilkan status mencari
         showSearchStatus('🔍 Sedang mencari "' + query + '"...');
         btnSearch.disabled = true;
         btnSearch.textContent = '⏳';
@@ -1585,7 +1662,6 @@
             } else {
                 hideSearchStatus();
                 showToast('error', 'Gagal!', data.message || 'Gagal mencari data');
-                // Kembalikan ke tampilan awal
                 window.location.reload();
             }
         })
@@ -1596,7 +1672,6 @@
             spinner.classList.remove('active');
             hideSearchStatus();
             showToast('error', 'Error!', 'Terjadi kesalahan: ' + error.message);
-            // Kembalikan ke tampilan awal
             window.location.reload();
         });
     }
@@ -1612,7 +1687,6 @@
         const tbody = document.getElementById('tableBody');
         const info = document.getElementById('tableInfo');
         const paginationWrapper = document.getElementById('paginationWrapper');
-        const searchStatus = document.getElementById('searchStatus');
         
         if (!tbody) return;
         
@@ -1642,7 +1716,6 @@
             const initials = contact.name.substring(0, 2).toUpperCase();
             const no = index + 1;
             
-            // Highlight matching text
             let displayName = contact.name;
             let displayPhone = contact.phone;
             
@@ -1703,16 +1776,49 @@
 
     // ================= OPEN CREATE MODAL =================
     function openCreateModal() {
+        // 🔥 CEK APAKAH SUDAH MENTOK
+        if (currentContactCount >= MAX_CONTACTS) {
+            showToast('warning', '⚠️ Batas Maksimal!', 
+                `Maksimal ${MAX_CONTACTS} kontak. Saat ini sudah ${currentContactCount} kontak. Hapus kontak yang tidak digunakan terlebih dahulu.`);
+            
+            // Tampilkan warning di modal
+            document.getElementById('maxWarningBox').style.display = 'flex';
+            document.getElementById('currentCountDisplay').textContent = currentContactCount;
+            
+            // Buka modal dengan state disable
+            const modal = document.getElementById('contactModal');
+            document.getElementById('modalTitle').textContent = '⚠️ Batas Maksimal Tercapai';
+            document.getElementById('modalIcon').textContent = '⚠️';
+            document.getElementById('btnSubmitModal').disabled = true;
+            document.getElementById('btnSubmitModal').className = 'btn-submit-modal full-mode';
+            document.getElementById('btnSubmitModal').textContent = '🔒 Penuh';
+            
+            // Disable form inputs
+            document.getElementById('modal_name').disabled = true;
+            document.getElementById('modal_phone').disabled = true;
+            
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            return;
+        }
+
+        // Normal mode
         const modal = document.getElementById('contactModal');
         const title = document.getElementById('modalTitle');
         const icon = document.getElementById('modalIcon');
         const btnSubmit = document.getElementById('btnSubmitModal');
         const form = document.getElementById('contactForm');
 
+        document.getElementById('maxWarningBox').style.display = 'none';
+        
         form.reset();
         document.getElementById('contactId').value = '';
         document.getElementById('formMethod').value = 'POST';
         form.action = '{{ route('contacts.store') }}';
+
+        // Enable inputs
+        document.getElementById('modal_name').disabled = false;
+        document.getElementById('modal_phone').disabled = false;
 
         title.textContent = 'Tambah Kontak';
         icon.textContent = '💬';
@@ -1730,7 +1836,7 @@
         }, 100);
     }
 
-    // ================= OPEN EDIT MODAL - INSTANT! =================
+    // ================= OPEN EDIT MODAL =================
     function openEditModal(id) {
         const modal = document.getElementById('contactModal');
         const title = document.getElementById('modalTitle');
@@ -1738,7 +1844,8 @@
         const btnSubmit = document.getElementById('btnSubmitModal');
         const form = document.getElementById('contactForm');
 
-        // 🔥 AMBIL DATA DARI CACHE (contactsMap) - INSTANT!
+        document.getElementById('maxWarningBox').style.display = 'none';
+
         const contact = contactsMap[id];
         
         if (!contact) {
@@ -1746,14 +1853,16 @@
             return;
         }
 
-        // 🔥 SET MODAL TITLE & ICON
+        // Enable inputs (edit selalu bisa)
+        document.getElementById('modal_name').disabled = false;
+        document.getElementById('modal_phone').disabled = false;
+
         title.textContent = 'Edit Kontak';
         icon.textContent = '✏️';
         btnSubmit.textContent = '💾 Update Kontak';
         btnSubmit.className = 'btn-submit-modal edit-mode';
         btnSubmit.disabled = false;
 
-        // 🔥 ISI FORM DENGAN DATA (INSTANT, TANPA TUNGGU)
         document.getElementById('modal_name').value = contact.name;
         document.getElementById('modal_phone').value = contact.phone;
         document.getElementById('contactId').value = contact.id;
@@ -1775,6 +1884,12 @@
         const modal = document.getElementById('contactModal');
         modal.classList.remove('active');
         document.body.style.overflow = '';
+        // Reset ke normal
+        document.getElementById('btnSubmitModal').disabled = false;
+        document.getElementById('btnSubmitModal').className = 'btn-submit-modal';
+        document.getElementById('modal_name').disabled = false;
+        document.getElementById('modal_phone').disabled = false;
+        document.getElementById('maxWarningBox').style.display = 'none';
     }
 
     // ================= OPEN DELETE MODAL =================
@@ -1803,6 +1918,13 @@
         const btnSubmit = document.getElementById('btnSubmitModal');
         const name = document.getElementById('modal_name');
         const phone = document.getElementById('modal_phone');
+        const contactId = document.getElementById('contactId').value;
+
+        // 🔥 CEK APAKAH SUDAH MENTOK (kecuali edit)
+        if (!contactId && currentContactCount >= MAX_CONTACTS) {
+            showToast('error', '⚠️ Gagal!', `Maksimal ${MAX_CONTACTS} kontak. Hapus kontak yang tidak digunakan terlebih dahulu.`);
+            return;
+        }
 
         let hasError = false;
 
@@ -1866,7 +1988,6 @@
                 submitForm();
             }
         }
-        // Ctrl+K for search focus
         if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
             e.preventDefault();
             document.getElementById('searchContact').focus();
@@ -1889,5 +2010,14 @@
             removeFieldError(this);
         }
     });
+
+    // 🔥 Update counter setelah delete (di-trigger dari server via session)
+    // Tapi kita update secara manual di frontend setelah aksi
+    function updateContactCounter(newCount) {
+        currentContactCount = newCount;
+        // Update tampilan
+        const countSpan = document.querySelector('.max-contact-info .count');
+        if (countSpan) countSpan.textContent = newCount;
+    }
 </script>
 @endsection

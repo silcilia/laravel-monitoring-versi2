@@ -2308,7 +2308,7 @@
                 <thead>
                     <tr>
                         <th style="width: 45px;" class="sortable-header" data-sort="no" onclick="sortTable('no')">
-                            #
+                            No
                             <span class="sort-icon">
                                 <span class="arrow-up">▲</span>
                                 <span class="arrow-down">▼</span>

@@ -163,53 +163,6 @@
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     }
 
-    /* Stats Bar */
-    .stats-bar {
-        display: grid;
-        grid-template-columns: repeat(5, 1fr);
-        gap: 16px;
-        margin-bottom: 24px;
-    }
-
-    .stat-item {
-        background: var(--bg-stats-logs);
-        padding: 16px 20px;
-        border-radius: 12px;
-        border: 1px solid var(--border-color-logs);
-        box-shadow: var(--shadow-card-logs);
-        text-align: center;
-        transition: all 0.2s ease;
-    }
-
-    .stat-item:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-hover-logs);
-    }
-
-    .stat-item .stat-number {
-        font-size: 28px;
-        font-weight: 700;
-        color: var(--text-primary-logs);
-        display: block;
-        transition: color 0.3s ease;
-    }
-
-    .stat-item .stat-label {
-        font-size: 12px;
-        color: var(--text-muted-logs);
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-top: 4px;
-        transition: color 0.3s ease;
-    }
-
-    .stat-item .stat-number.green { color: #10b981; }
-    .stat-item .stat-number.yellow { color: #f59e0b; }
-    .stat-item .stat-number.red { color: #ef4444; }
-    .stat-item .stat-number.purple { color: #6366f1; }
-    .stat-item .stat-number.blue { color: #3b82f6; }
-
     /* Filter Bar */
     .filter-bar {
         background: var(--bg-card-logs);
@@ -515,7 +468,7 @@
     .response-time.fast { color: #10b981; }
 
     .message-cell {
-        max-width: 400px;
+        max-width: 500px;
         word-wrap: break-word;
         white-space: normal;
         font-size: 13px;
@@ -542,32 +495,6 @@
     .code-cell.success { color: #10b981; }
     .code-cell.error { color: #ef4444; }
     .code-cell.warning { color: #f59e0b; }
-
-    /* Change indicator */
-    .change-badge {
-        display: inline-block;
-        font-size: 10px;
-        font-weight: 700;
-        padding: 2px 8px;
-        border-radius: 10px;
-        margin-left: 4px;
-    }
-    .change-badge.yes {
-        background: #dbeafe;
-        color: #1d4ed8;
-    }
-    .change-badge.no {
-        background: #f3f4f6;
-        color: #6b7280;
-    }
-    [data-theme="dark"] .change-badge.yes {
-        background: #1a2332;
-        color: #93c5fd;
-    }
-    [data-theme="dark"] .change-badge.no {
-        background: #374151;
-        color: #9ca3af;
-    }
 
     .empty-state {
         text-align: center;
@@ -663,7 +590,6 @@
 
     /* Responsive */
     @media (max-width: 1024px) {
-        .stats-bar { grid-template-columns: repeat(3, 1fr); }
         .filter-bar { flex-direction: column; align-items: stretch; }
         .filter-group { justify-content: stretch; }
         .filter-group select, .filter-group input { flex: 1; min-width: 100px; }
@@ -674,15 +600,13 @@
         .logs-header { padding: 16px 20px; flex-direction: column; align-items: stretch; }
         .logs-header h1 { font-size: 20px; }
         .logs-header .header-icon { width: 40px; height: 40px; font-size: 20px; }
-        .stats-bar { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .stat-item .stat-number { font-size: 22px; }
         .table-scroll { padding: 0 12px 12px; }
         .table-container thead th,
         .table-container tbody td { padding: 10px 10px; font-size: 12px; }
         .status-badge { font-size: 10px; padding: 3px 10px; }
         .pagination-wrapper { flex-direction: column; align-items: stretch; padding: 12px 16px; }
         .pagination-links { justify-content: center; }
-        .message-cell { max-width: 200px; }
+        .message-cell { max-width: 250px; }
         .perpage-selector { font-size: 12px; }
         .perpage-selector select { padding: 4px 8px; font-size: 12px; }
         .table-header { flex-direction: column; align-items: stretch; gap: 8px; }
@@ -694,14 +618,10 @@
     }
 
     @media (max-width: 480px) {
-        .stats-bar { grid-template-columns: 1fr 1fr; gap: 8px; }
-        .stat-item { padding: 12px 14px; }
-        .stat-item .stat-number { font-size: 18px; }
-        .stat-item .stat-label { font-size: 10px; }
         .table-container thead th,
         .table-container tbody td { padding: 8px 6px; font-size: 11px; }
         .time-cell { font-size: 11px; }
-        .message-cell { max-width: 150px; font-size: 11px; }
+        .message-cell { max-width: 180px; font-size: 11px; }
         .response-time { font-size: 11px; }
         .code-cell { font-size: 11px; }
         .pagination-links .page-link { padding: 4px 8px; font-size: 11px; min-width: 30px; }
@@ -731,38 +651,6 @@
             <a href="{{ route('services') }}" class="btn-back">
                 ← Kembali ke Service
             </a>
-        </div>
-    </div>
-
-    <!-- Stats Bar -->
-    @php
-        $totalLogs = $stats['total'] ?? $logs->total();
-        $upCount = $stats['up'] ?? 0;
-        $warningCount = $stats['warning'] ?? 0;
-        $downCount = $stats['down'] ?? 0;
-        $changesCount = $stats['changes'] ?? 0;
-    @endphp
-
-    <div class="stats-bar">
-        <div class="stat-item">
-            <span class="stat-number purple">{{ $totalLogs }}</span>
-            <span class="stat-label">Total Logs</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number green">{{ $upCount }}</span>
-            <span class="stat-label">UP</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number yellow">{{ $warningCount }}</span>
-            <span class="stat-label">Warning</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number red">{{ $downCount }}</span>
-            <span class="stat-label">DOWN</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-number blue">{{ $changesCount }}</span>
-            <span class="stat-label">🔄 Perubahan</span>
         </div>
     </div>
 
@@ -842,8 +730,7 @@
                         <th style="width: 100px;">Status</th>
                         <th style="width: 80px;">Code</th>
                         <th style="width: 100px;">Response</th>
-                        <th style="min-width: 250px;">Message</th>
-                        <th style="width: 80px;">Perubahan</th>
+                        <th style="min-width: 300px;">Message</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -854,11 +741,6 @@
                             $responseTime = $log->response_time ?? 0;
                             $timeClass = $responseTime < 1 ? 'fast' : ($responseTime < 3 ? '' : 'slow');
                             $codeClass = $log->response_code < 400 ? 'success' : ($log->response_code < 500 ? 'warning' : 'error');
-                            $isChange = $log->is_status_change ?? false;
-                            $previousStatus = $log->previous_status ?? null;
-                            $isChangeDisplay = $isChange || ($previousStatus && $previousStatus != $statusLabel);
-                            $changeText = $isChangeDisplay ? '🔄 Berubah' : '➖ Tetap';
-                            $changeClass = $isChangeDisplay ? 'yes' : 'no';
                             
                             $message = $log->message ?? '-';
                             if ($statusLabel == 'UP' && $log->response_code == 200) {
@@ -909,22 +791,17 @@
                             <td>
                                 <div class="message-cell">
                                     {{ $message }}
-                                    @if($isChangeDisplay && $previousStatus && $previousStatus != $statusLabel)
+                                    @if($log->previous_status && $log->previous_status != $statusLabel)
                                         <small style="display:block;font-size:11px;color:var(--text-muted-logs);margin-top:2px;">
-                                            ({{ $previousStatus }} → {{ $statusLabel }})
+                                            ({{ $log->previous_status }} → {{ $statusLabel }})
                                         </small>
                                     @endif
                                 </div>
                             </td>
-                            <td>
-                                <span class="change-badge {{ $changeClass }}">
-                                    {{ $changeText }}
-                                </span>
-                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7">
+                            <td colspan="6">
                                 <div class="empty-state">
                                     <span class="empty-icon">📭</span>
                                     <h3>Belum Ada Log Perubahan</h3>

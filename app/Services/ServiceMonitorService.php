@@ -104,7 +104,7 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * 🔍 CHECK HTTP
+     * 🔍 CHECK HTTP - DIPERBAIKI
      * ============================================================
      */
     private function checkHttp(Service $service)
@@ -113,6 +113,7 @@ class ServiceMonitorService
         $code = null;
         $time = 0;
         $start = microtime(true);
+        $analysis = null;
 
         try {
             $url = $this->normalizeUrl($service->target);
@@ -156,9 +157,11 @@ class ServiceMonitorService
                 return;
             }
 
+            // 🔥 ANALISIS RESPONSE NORMAL
             $analysis = $this->analyzeResponseByCode($code, $response->body(), $time);
             Log::info("Analysis {$service->name}: " . json_encode($analysis));
 
+            // 🔥 RESET FAILURES JIKA UP
             if ($analysis['status'] === 'UP') {
                 $service->update(['consecutive_failures' => 0]);
             }
@@ -199,8 +202,11 @@ class ServiceMonitorService
             return;
         }
 
-        $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time, 
-                         $analysis['reason'], $analysis['detail'], $analysis['action']);
+        // 🔥 SAVE RESULT UNTUK RESPONSE NORMAL
+        if ($analysis !== null) {
+            $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time, 
+                             $analysis['reason'], $analysis['detail'], $analysis['action']);
+        }
     }
 
     /**
@@ -456,10 +462,6 @@ class ServiceMonitorService
         } else {
             // ❌ TIMEOUT KE-1 → DIABAIKAN (TETAP STATUS LAMA)
             Log::info("⏳ Timeout lambat pertama - DIABAIKAN, status tetap {$oldStatus}");
-            
-            // 🔥 STATUS TETAP SAMA (TIDAK BERUBAH KE WARNING)
-            // HANYA UPDATE consecutive_failures (sudah di update di atas)
-            // TIDAK UPDATE last_status, TIDAK BUAT LOG, TIDAK KIRIM WA
             
             // 🔥 UPDATE INTERVAL LOGIC TANPA PERUBAHAN STATUS
             $this->handleIntervalLogic($service, $oldStatus, $oldStatus, 'TIMEOUT_SLOW_1', $time, 
