@@ -30,6 +30,11 @@ class Service extends Model
         'interval_wa_sent_in_this_cycle',
         'is_archived',
         'archived_at',
+        // 🔥 SSL FIELDS (HANYA YANG ADA DI DATABASE)
+        'ssl_status',
+        'ssl_days_remaining',
+        'ssl_expiry_date',
+        'ssl_checked_at',
     ];
 
     /**
@@ -48,6 +53,10 @@ class Service extends Model
         'interval_wa_sent_in_this_cycle' => 'boolean',
         'is_archived' => 'boolean',
         'archived_at' => 'datetime',
+        // 🔥 SSL CASTS (HANYA YANG ADA DI DATABASE)
+        'ssl_expiry_date' => 'datetime',
+        'ssl_days_remaining' => 'integer',
+        'ssl_checked_at' => 'datetime',
     ];
 
     /**
@@ -75,25 +84,16 @@ class Service extends Model
     // 🔥 SCOPES UNTUK ARSIP
     // ================================================================
 
-    /**
-     * Scope untuk service yang aktif (tidak diarsip)
-     */
     public function scopeActive($query)
     {
         return $query->where('is_archived', 0);
     }
 
-    /**
-     * Scope untuk service yang diarsip
-     */
     public function scopeArchived($query)
     {
         return $query->where('is_archived', 1);
     }
 
-    /**
-     * Scope untuk service yang bisa di-check (aktif + tidak diarsip)
-     */
     public function scopeCheckable($query)
     {
         return $query->where('is_archived', 0);
@@ -103,9 +103,6 @@ class Service extends Model
     // 🔥 SCOPES UNTUK LOG PERUBAHAN STATUS
     // ================================================================
 
-    /**
-     * Scope untuk service yang memiliki perubahan status
-     */
     public function scopeStatusChanges($query)
     {
         return $query->whereHas('logs', function($q) {
@@ -113,9 +110,6 @@ class Service extends Model
         });
     }
 
-    /**
-     * Scope untuk service yang TIDAK memiliki perubahan status
-     */
     public function scopeNoStatusChanges($query)
     {
         return $query->whereHas('logs', function($q) {
@@ -127,9 +121,6 @@ class Service extends Model
     // 🔥 LOGIKA INTERVAL
     // ================================================================
 
-    /**
-     * 🔥 CEK APAKAH SUDAH MELEWATI INTERVAL
-     */
     public function isIntervalReached(): bool
     {
         $interval = $this->wa_interval_minutes ?? 0;
@@ -147,9 +138,6 @@ class Service extends Model
         return $minutesSinceLastCheck >= $interval;
     }
 
-    /**
-     * 🔥 MULAI INTERVAL BARU
-     */
     public function startNewInterval(string $currentStatus): void
     {
         $this->update([
@@ -160,9 +148,6 @@ class Service extends Model
         ]);
     }
 
-    /**
-     * 🔥 TANDAI WA SUDAH TERKIRIM DI INTERVAL INI
-     */
     public function markWaSentInThisCycle(): void
     {
         $this->update([
@@ -170,9 +155,6 @@ class Service extends Model
         ]);
     }
 
-    /**
-     * 🔥 CEK APAKAH PERLU KIRIM WA (LOGIKA PER-SERVICE)
-     */
     public function shouldSendWaByInterval(string $currentStatus): bool
     {
         $interval = $this->wa_interval_minutes ?? 0;
@@ -204,9 +186,6 @@ class Service extends Model
         return false;
     }
 
-    /**
-     * 🔥 UPDATE WAKTU TERAKHIR KIRIM WA
-     */
     public function updateLastWaSent($status)
     {
         $this->update([
@@ -216,20 +195,85 @@ class Service extends Model
     }
 
     // ================================================================
+    // 🔥 SSL METHODS
+    // ================================================================
+
+    public function isSslValid(): bool
+    {
+        return $this->ssl_status === 'VALID' || $this->ssl_status === null;
+    }
+
+    public function isSslWarning(): bool
+    {
+        return $this->ssl_status === 'WARNING';
+    }
+
+    public function isSslCritical(): bool
+    {
+        return $this->ssl_status === 'CRITICAL';
+    }
+
+    public function isSslExpired(): bool
+    {
+        return $this->ssl_status === 'EXPIRED';
+    }
+
+    public function getSslDaysRemaining(): ?int
+    {
+        return $this->ssl_days_remaining;
+    }
+
+    public function getSslExpiryDate(): ?string
+    {
+        return $this->ssl_expiry_date?->format('d-m-Y H:i:s');
+    }
+
+    public function isSslIssue(): bool
+    {
+        return in_array($this->ssl_status, ['WARNING', 'CRITICAL', 'EXPIRED']);
+    }
+
+    public function getSslBadge(): array
+    {
+        $statusMap = [
+            'VALID' => ['label' => 'VALID ✅', 'class' => 'ssl-valid', 'color' => '#059669'],
+            'WARNING' => ['label' => 'WARNING 🟡', 'class' => 'ssl-warning', 'color' => '#d97706'],
+            'CRITICAL' => ['label' => 'CRITICAL 🔴', 'class' => 'ssl-critical', 'color' => '#dc2626'],
+            'EXPIRED' => ['label' => 'EXPIRED 🚨', 'class' => 'ssl-expired', 'color' => '#991b1b'],
+            null => ['label' => 'NOT CHECKED ❓', 'class' => 'ssl-unknown', 'color' => '#94a3b8'],
+        ];
+
+        return $statusMap[$this->ssl_status] ?? $statusMap[null];
+    }
+
+    public function updateSslInfo(array $data): bool
+    {
+        $updateData = [];
+        
+        if (isset($data['status'])) {
+            $updateData['ssl_status'] = $data['status'];
+        }
+        if (isset($data['days_remaining'])) {
+            $updateData['ssl_days_remaining'] = $data['days_remaining'];
+        }
+        if (isset($data['expiry_date'])) {
+            $updateData['ssl_expiry_date'] = $data['expiry_date'];
+        }
+        
+        $updateData['ssl_checked_at'] = now();
+        
+        return $this->update($updateData);
+    }
+
+    // ================================================================
     // 🔥 METHOD UNTUK ARSIP
     // ================================================================
 
-    /**
-     * 🔥 CEK APAKAH SERVICE DIARSIP
-     */
     public function isArchived(): bool
     {
         return (bool) ($this->is_archived ?? 0);
     }
 
-    /**
-     * 🔥 ARSIPKAN SERVICE
-     */
     public function archive(): bool
     {
         if ($this->is_archived) {
@@ -242,9 +286,6 @@ class Service extends Model
         ]);
     }
 
-    /**
-     * 🔥 PULIHKAN SERVICE DARI ARSIP
-     */
     public function restore(): bool
     {
         if (!$this->is_archived) {
@@ -257,19 +298,13 @@ class Service extends Model
         ]);
     }
 
-    /**
-     * 🔥 HAPUS PERMANEN SERVICE (TERMASUK LOGS)
-     */
     public function deletePermanently(): bool
     {
         if (!$this->is_archived) {
             return false;
         }
 
-        // Hapus semua log terkait
         $this->logs()->delete();
-        
-        // Hapus service
         return $this->delete();
     }
 
@@ -277,25 +312,16 @@ class Service extends Model
     // 🔥 METHOD UNTUK LOG PERUBAHAN STATUS
     // ================================================================
 
-    /**
-     * 🔥 CEK APAKAH STATUS BERUBAH
-     */
     public function hasStatusChanged(string $newStatus): bool
     {
         return ($this->last_status ?? 'UNKNOWN') !== $newStatus;
     }
 
-    /**
-     * 🔥 DAPATKAN STATUS SEBELUMNYA
-     */
     public function getPreviousStatus(): string
     {
         return $this->last_status ?? 'UNKNOWN';
     }
 
-    /**
-     * 🔥 CATAT PERUBAHAN STATUS KE LOG
-     */
     public function logStatusChange(string $newStatus, array $data = []): ServiceLog
     {
         $oldStatus = $this->getPreviousStatus();
@@ -312,9 +338,6 @@ class Service extends Model
         ]);
     }
 
-    /**
-     * 🔥 UPDATE LOG TERAKHIR (TANPA BUAT LOG BARU)
-     */
     public function updateLastLog(array $data = []): bool
     {
         $lastLog = $this->logs()->latest()->first();
@@ -331,15 +354,11 @@ class Service extends Model
         ]);
     }
 
-    /**
-     * 🔥 UPDATE SERVICE SETELAH CHECK (DENGAN LOGIKA PERUBAHAN)
-     */
     public function updateAfterCheck(string $newStatus, array $data = []): array
     {
         $oldStatus = $this->getPreviousStatus();
         $isChanged = $this->hasStatusChanged($newStatus);
         
-        // Data untuk update service
         $updateData = [
             'last_status' => $newStatus,
             'last_code' => $data['response_code'] ?? null,
@@ -348,23 +367,17 @@ class Service extends Model
             'last_check_at' => now(),
         ];
         
-        // Update service
         $this->update($updateData);
         
-        // LOGIKA LOG
         $logCreated = false;
         $logData = null;
         
         if ($isChanged) {
-            // 🔥 STATUS BERUBAH → BUAT LOG BARU
             $logData = $this->logStatusChange($newStatus, $data);
             $logCreated = true;
-            
             Log::info("📝 Log baru: Service {$this->name} status berubah {$oldStatus} → {$newStatus}");
         } else {
-            // 🔥 STATUS TETAP → UPDATE LOG TERAKHIR
             $this->updateLastLog($data);
-            
             Log::info("🔄 Status tetap: Service {$this->name} masih {$newStatus} (update waktu check)");
         }
         
@@ -543,6 +556,39 @@ class Service extends Model
             });
     }
 
+    // ================================================================
+    // 🔥 SSL SCOPES
+    // ================================================================
+
+    public function scopeSslValid($query)
+    {
+        return $query->where('ssl_status', 'VALID');
+    }
+
+    public function scopeSslWarning($query)
+    {
+        return $query->where('ssl_status', 'WARNING');
+    }
+
+    public function scopeSslCritical($query)
+    {
+        return $query->where('ssl_status', 'CRITICAL');
+    }
+
+    public function scopeSslExpired($query)
+    {
+        return $query->where('ssl_status', 'EXPIRED');
+    }
+
+    public function scopeSslNotValid($query)
+    {
+        return $query->whereIn('ssl_status', ['WARNING', 'CRITICAL', 'EXPIRED']);
+    }
+
+    // ================================================================
+    // 🔥 STATISTICS
+    // ================================================================
+
     public static function getStatistics()
     {
         $total = self::count();
@@ -561,9 +607,6 @@ class Service extends Model
         ];
     }
 
-    /**
-     * 🔥 STATISTIK DENGAN FILTER ARSIP
-     */
     public static function getStatisticsWithArchive()
     {
         $all = self::all();

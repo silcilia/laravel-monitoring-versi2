@@ -20,6 +20,10 @@ class ServiceMonitorService
     private const TIMEOUT_FAST = 5;      // 5 detik - langsung DOWN
     private const TIMEOUT_SLOW = 10;     // 10 detik - pakai consecutive
 
+    // 🔥 KONSTANTA SSL
+    private const SSL_WARNING_DAYS = 30;     // 30 hari: warning 1x
+    private const SSL_CRITICAL_DAYS = 7;     // 7 hari: critical 1x
+
     /**
      * ============================================================
      * 🔍 CHECK SINGLE SERVICE
@@ -104,7 +108,402 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * 🔍 CHECK HTTP - DIPERBAIKI
+     * 🔍 CHECK SSL CERTIFICATE
+     * ============================================================
+     * 🔥 DIPANGGIL DARI checkHttp() SETIAP KALI SERVICE DI-CHECK
+     */
+    private function checkSSL($service, $host, $port = 443)
+    {
+        Log::info("🔍 Checking SSL certificate for {$host}:{$port}");
+
+        try {
+            // 🔥 CEK SSL CERTIFICATE
+            $context = stream_context_create([
+                'ssl' => [
+                    'capture_peer_cert' => true,
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true,
+                ]
+            ]);
+            
+            $client = stream_socket_client(
+                "ssl://{$host}:{$port}",
+                $errno,
+                $errstr,
+                10,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
+            
+            if (!$client) {
+                Log::warning("⚠️ Gagal connect SSL ke {$host}:{$port} - {$errstr}");
+                return null;
+            }
+            
+            $params = stream_context_get_params($client);
+            $cert = $params['options']['ssl']['peer_certificate'] ?? null;
+            
+            if (!$cert) {
+                fclose($client);
+                Log::warning("⚠️ Tidak ada SSL certificate untuk {$host}:{$port}");
+                return null;
+            }
+            
+            $certInfo = openssl_x509_parse($cert);
+            
+            if (!$certInfo) {
+                fclose($client);
+                Log::warning("⚠️ Gagal parse SSL certificate untuk {$host}:{$port}");
+                return null;
+            }
+            
+            fclose($client);
+            
+            // 🔥 AMBIL DATA CERTIFICATE
+            $validFrom = Carbon::createFromTimestamp($certInfo['validFrom_time_t']);
+            $validTo = Carbon::createFromTimestamp($certInfo['validTo_time_t']);
+            $now = Carbon::now();
+            
+            $daysRemaining = $now->diffInDays($validTo, false);
+            $daysRemaining = (int)ceil($daysRemaining);
+            
+            $subject = $certInfo['subject'] ?? [];
+            $issuer = $certInfo['issuer'] ?? [];
+            
+            $commonName = $subject['CN'] ?? 'Unknown';
+            $organization = $subject['O'] ?? '';
+            $issuerCN = $issuer['CN'] ?? 'Unknown';
+            
+            Log::info("📊 SSL Certificate {$host}:", [
+                'subject' => $commonName,
+                'issuer' => $issuerCN,
+                'valid_from' => $validFrom->format('Y-m-d'),
+                'valid_to' => $validTo->format('Y-m-d'),
+                'days_remaining' => $daysRemaining
+            ]);
+            
+            // 🔥🔥🔥 DETERMINE STATUS
+            
+            // 🔴 SSL EXPIRED = DOWN!
+            if ($daysRemaining <= 0) {
+                $status = 'EXPIRED';
+                $isDown = true;
+                $message = "🔴 SSL CERTIFICATE EXPIRED! Expired sejak {$validTo->format('d-m-Y')} - SERVICE DOWN!";
+                $action = '🚨 SEGERA PERBARUI SSL CERTIFICATE! Service tidak aman dan tidak bisa diakses!';
+                $sendAlert = true;
+                
+                Log::info("🚨 SSL EXPIRED DETECTED! Setting service to DOWN");
+                
+                // 🔥 UPDATE SSL INFO
+                $this->saveSSLResult($service, [
+                    'status' => $status,
+                    'is_down' => $isDown,
+                    'subject' => $commonName,
+                    'issuer' => $issuerCN,
+                    'valid_from' => $validFrom->format('Y-m-d H:i:s'),
+                    'valid_to' => $validTo->format('Y-m-d H:i:s'),
+                    'days_remaining' => $daysRemaining,
+                    'message' => $message,
+                    'action' => $action,
+                    'send_alert' => true
+                ]);
+                
+                return [
+                    'valid' => true,
+                    'status' => $status,
+                    'is_down' => $isDown,
+                    'subject' => $commonName,
+                    'organization' => $organization,
+                    'issuer' => $issuerCN,
+                    'valid_from' => $validFrom->format('Y-m-d H:i:s'),
+                    'valid_to' => $validTo->format('Y-m-d H:i:s'),
+                    'days_remaining' => $daysRemaining,
+                    'message' => $message,
+                    'action' => $action,
+                    'send_alert' => true
+                ];
+            }
+            
+            // 🟡 CRITICAL (7 hari) = Service jadi WARNING + WA 1x
+            if ($daysRemaining <= self::SSL_CRITICAL_DAYS) {
+                $status = 'CRITICAL';
+                $isDown = false;
+                $message = "🔴 SSL akan expired dalam {$daysRemaining} hari! (Exp: {$validTo->format('d-m-Y')})";
+                $action = '⚠️ SEGERA perpanjang SSL certificate! Tinggal ' . $daysRemaining . ' hari lagi!';
+                
+                // 🔥 CEK APAKAH SUDAH PERNAH KIRIM WARNING CRITICAL
+                $lastCriticalSent = $service->ssl_critical_sent_at;
+                $sendAlert = false;
+                
+                if (!$lastCriticalSent) {
+                    $sendAlert = true;
+                    Log::info("🟡 SSL CRITICAL: First warning for {$service->name} ({$daysRemaining} days remaining)");
+                } else {
+                    Log::info("⏭️ SSL Critical warning already sent at {$lastCriticalSent}, skip");
+                }
+                
+                // 🔥 UPDATE SSL INFO DAN STATUS SERVICE JADI WARNING
+                $this->saveSSLResult($service, [
+                    'status' => $status,
+                    'is_down' => $isDown,
+                    'subject' => $commonName,
+                    'issuer' => $issuerCN,
+                    'valid_from' => $validFrom->format('Y-m-d H:i:s'),
+                    'valid_to' => $validTo->format('Y-m-d H:i:s'),
+                    'days_remaining' => $daysRemaining,
+                    'message' => $message,
+                    'action' => $action,
+                    'send_alert' => $sendAlert
+                ]);
+                
+                // 🔥🔥🔥 UBAH STATUS SERVICE MENJADI WARNING
+                if ($service->last_status !== 'WARNING') {
+                    $service->update([
+                        'last_status' => 'WARNING',
+                        'last_message' => $message,
+                        'last_check_at' => now(),
+                    ]);
+                    Log::info("🟡 Service status changed to WARNING due to SSL CRITICAL: {$service->name}");
+                }
+                
+                return [
+                    'valid' => true,
+                    'status' => $status,
+                    'is_down' => $isDown,
+                    'subject' => $commonName,
+                    'organization' => $organization,
+                    'issuer' => $issuerCN,
+                    'valid_from' => $validFrom->format('Y-m-d H:i:s'),
+                    'valid_to' => $validTo->format('Y-m-d H:i:s'),
+                    'days_remaining' => $daysRemaining,
+                    'message' => $message,
+                    'action' => $action,
+                    'send_alert' => $sendAlert
+                ];
+            }
+            
+            // 🟡 WARNING (60 hari) = Service jadi WARNING + WA 1x
+            if ($daysRemaining <= self::SSL_WARNING_DAYS) {
+                $status = 'WARNING';
+                $isDown = false;
+                $message = "🟡 SSL akan expired dalam {$daysRemaining} hari (Exp: {$validTo->format('d-m-Y')})";
+                $action = '📌 Rencanakan perpanjangan SSL certificate dalam ' . $daysRemaining . ' hari';
+                
+                // 🔥 CEK APAKAH SUDAH PERNAH KIRIM WARNING
+                $lastWarningSent = $service->ssl_warning_sent_at;
+                $sendAlert = false;
+                
+                if (!$lastWarningSent) {
+                    $sendAlert = true;
+                    Log::info("🟡 SSL WARNING: First warning for {$service->name} ({$daysRemaining} days remaining)");
+                } else {
+                    Log::info("⏭️ SSL Warning already sent at {$lastWarningSent}, skip");
+                }
+                
+                // 🔥 UPDATE SSL INFO
+                $this->saveSSLResult($service, [
+                    'status' => $status,
+                    'is_down' => $isDown,
+                    'subject' => $commonName,
+                    'issuer' => $issuerCN,
+                    'valid_from' => $validFrom->format('Y-m-d H:i:s'),
+                    'valid_to' => $validTo->format('Y-m-d H:i:s'),
+                    'days_remaining' => $daysRemaining,
+                    'message' => $message,
+                    'action' => $action,
+                    'send_alert' => $sendAlert
+                ]);
+                
+                // 🔥🔥🔥 UBAH STATUS SERVICE MENJADI WARNING
+                if ($service->last_status !== 'WARNING') {
+                    $service->update([
+                        'last_status' => 'WARNING',
+                        'last_message' => $message,
+                        'last_check_at' => now(),
+                    ]);
+                    Log::info("🟡 Service status changed to WARNING due to SSL: {$service->name}");
+                }
+                
+                return [
+                    'valid' => true,
+                    'status' => $status,
+                    'is_down' => $isDown,
+                    'subject' => $commonName,
+                    'organization' => $organization,
+                    'issuer' => $issuerCN,
+                    'valid_from' => $validFrom->format('Y-m-d H:i:s'),
+                    'valid_to' => $validTo->format('Y-m-d H:i:s'),
+                    'days_remaining' => $daysRemaining,
+                    'message' => $message,
+                    'action' => $action,
+                    'send_alert' => $sendAlert
+                ];
+            }
+            
+            // ✅ VALID (> 60 hari) - Status service tetap UP atau kembali UP
+            $status = 'VALID';
+            $isDown = false;
+            $message = "✅ Certificate valid until {$validTo->format('d-m-Y')} (sisa {$daysRemaining} hari)";
+            $action = 'Certificate dalam kondisi baik';
+            
+            // 🔥 UPDATE SSL INFO
+            $this->saveSSLResult($service, [
+                'status' => $status,
+                'is_down' => $isDown,
+                'subject' => $commonName,
+                'issuer' => $issuerCN,
+                'valid_from' => $validFrom->format('Y-m-d H:i:s'),
+                'valid_to' => $validTo->format('Y-m-d H:i:s'),
+                'days_remaining' => $daysRemaining,
+                'message' => $message,
+                'action' => $action,
+                'send_alert' => false
+            ]);
+            
+            // 🔥🔥🔥 KEMBALIKAN STATUS SERVICE KE UP JIKA SEBELUMNYA WARNING KARENA SSL
+            if ($service->last_status === 'WARNING') {
+                // Cek apakah masih ada masalah SSL lain
+                $sslStatus = $service->ssl_status;
+                if ($sslStatus === 'VALID' || $sslStatus === null) {
+                    $service->update([
+                        'last_status' => 'UP',
+                        'last_message' => 'Service normal, SSL valid',
+                        'last_check_at' => now(),
+                    ]);
+                    Log::info("🟢 Service status restored to UP: {$service->name}");
+                }
+            }
+            
+            return [
+                'valid' => true,
+                'status' => $status,
+                'is_down' => $isDown,
+                'subject' => $commonName,
+                'organization' => $organization,
+                'issuer' => $issuerCN,
+                'valid_from' => $validFrom->format('Y-m-d H:i:s'),
+                'valid_to' => $validTo->format('Y-m-d H:i:s'),
+                'days_remaining' => $daysRemaining,
+                'message' => $message,
+                'action' => $action,
+                'send_alert' => false
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error("❌ SSL Check error untuk {$host}:{$port} - " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * ============================================================
+     * 💾 SAVE SSL RESULT
+     * ============================================================
+     */
+    private function saveSSLResult($service, $sslData)
+    {
+        Log::info("💾 Save SSL Result for {$service->name}: " . $sslData['status']);
+        
+        $service->update([
+            'ssl_status' => $sslData['status'],
+            'ssl_expiry_date' => $sslData['valid_to'] ?? null,
+            'ssl_days_remaining' => $sslData['days_remaining'] ?? null,
+            'ssl_issuer' => $sslData['issuer'] ?? null,
+            'ssl_subject' => $sslData['subject'] ?? null,
+            'ssl_message' => $sslData['message'] ?? null,
+            'ssl_is_expired' => $sslData['is_down'] ?? false,
+            'ssl_checked_at' => now(),
+        ]);
+        
+        // 🔥 UPDATE SSL WARNING TIMESTAMP (hanya 1x)
+        if ($sslData['status'] === 'WARNING' && $sslData['send_alert'] === true) {
+            $service->update(['ssl_warning_sent_at' => now()]);
+        }
+        
+        if ($sslData['status'] === 'CRITICAL' && $sslData['send_alert'] === true) {
+            $service->update(['ssl_critical_sent_at' => now()]);
+        }
+        
+        // 🔥 BUAT LOG SSL (hanya untuk WARNING, CRITICAL, atau EXPIRED)
+        if (in_array($sslData['status'], ['WARNING', 'CRITICAL', 'EXPIRED'])) {
+            ServiceLog::create([
+                'service_id' => $service->id,
+                'status' => $sslData['is_down'] ? 'DOWN' : 'WARNING',
+                'response_code' => 'SSL_' . $sslData['status'],
+                'response_time' => 0,
+                'message' => $sslData['message'] ?? 'SSL Certificate check',
+                'action' => $sslData['action'] ?? 'Periksa SSL certificate',
+                'checked_at' => now(),
+                'is_status_change' => true,
+                'previous_status' => $service->last_status ?? 'UNKNOWN',
+            ]);
+        }
+    }
+
+    /**
+     * ============================================================
+     * 📨 KIRIM WA SSL ALERT
+     * ============================================================
+     */
+    private function sendSSLAlert($service, $sslResult)
+    {
+        $contacts = Contact::where('is_active', true)->get();
+        if ($contacts->isEmpty()) {
+            Log::warning('Tidak ada kontak aktif untuk SSL Alert');
+            return;
+        }
+
+        $newline = "\n";
+        
+        if ($sslResult['is_down']) {
+            $judul = "🔴🚨 SSL CERTIFICATE EXPIRED! SERVICE DOWN!";
+            $icon = "🔴";
+            $statusText = "DOWN - EXPIRED";
+            $urgency = "🚨 SEGERA PERBAIKI!";
+        } elseif ($sslResult['status'] === 'CRITICAL') {
+            $judul = "🔴⚠️ SSL CERTIFICATE CRITICAL!";
+            $icon = "🔴";
+            $statusText = "CRITICAL - Segera Perbarui!";
+            $urgency = "⚠️ SEGERA PERPANJANG! Tinggal " . $sslResult['days_remaining'] . " hari lagi!";
+        } else {
+            $judul = "🟡 SSL CERTIFICATE WARNING";
+            $icon = "🟡";
+            $statusText = "WARNING - Akan Expired";
+            $urgency = "📌 Rencanakan perpanjangan SSL";
+        }
+
+        $message = $judul . $newline . $newline;
+        $message .= "Nama    : " . $service->name . $newline;
+        $message .= "Domain  : " . $service->target . $newline;
+        $message .= $newline;
+        $message .= "Status  : " . $icon . " " . $statusText . $newline;
+        $message .= "Issuer  : " . ($sslResult['issuer'] ?? 'Unknown') . $newline;
+        $message .= "Subject : " . ($sslResult['subject'] ?? 'Unknown') . $newline;
+        $message .= $newline;
+        $message .= "Sisa Hari : " . $sslResult['days_remaining'] . " hari" . $newline;
+        $message .= "Valid From: " . ($sslResult['valid_from'] ?? 'Unknown') . $newline;
+        $message .= "Expired   : " . ($sslResult['valid_to'] ?? 'Unknown') . $newline;
+        $message .= $newline;
+        $message .= $urgency . $newline;
+        $message .= $newline;
+        $message .= "Detail:" . $newline;
+        $message .= $sslResult['message'] . $newline;
+        $message .= $newline;
+        $message .= "Tindakan:" . $newline;
+        $message .= $sslResult['action'] . $newline;
+        $message .= $newline;
+        $message .= "🕐 " . now()->format('d-m-Y H:i:s') . " WIB";
+
+        foreach ($contacts as $contact) {
+            $result = FonnteService::send($contact->phone, $message);
+            Log::info($result ? "✅ SSL WA ke: {$contact->phone}" : "❌ Gagal SSL WA ke: {$contact->phone}");
+        }
+    }
+
+    /**
+     * ============================================================
+     * 🔍 CHECK HTTP - DIPERBAIKI DENGAN SSL CHECK + WA 1x SAAT DOWN
      * ============================================================
      */
     private function checkHttp(Service $service)
@@ -115,6 +514,64 @@ class ServiceMonitorService
         $start = microtime(true);
         $analysis = null;
 
+        // 🔥 CEK SSL UNTUK HTTPS
+        $url = $this->normalizeUrl($service->target);
+        $sslResult = null;
+        $parsedUrl = parse_url($url);
+        
+        if ($parsedUrl && ($parsedUrl['scheme'] ?? '') === 'https') {
+            $host = $parsedUrl['host'] ?? '';
+            $port = $parsedUrl['port'] ?? 443;
+            
+            if (!empty($host)) {
+                $sslResult = $this->checkSSL($service, $host, $port);
+                
+                // 🔥🔥🔥 SSL EXPIRED = LANGSUNG DOWN + KIRIM WA!
+                if ($sslResult && $sslResult['is_down'] === true) {
+                    Log::info("🚨 SSL EXPIRED DETECTED! Setting service to DOWN");
+                    
+                    // 🔥 STATUS DOWN + KIRIM WA (hanya 1x)
+                    $this->saveResult(
+                        $service, 
+                        $oldStatus, 
+                        'DOWN', 
+                        'SSL_EXPIRED', 
+                        0, 
+                        'SSL_EXPIRED',
+                        $sslResult['message'],
+                        $sslResult['action']
+                    );
+                    
+                    // 🔥 KIRIM WA LANGSUNG (hanya 1x karena sudah di-track di saveResult)
+                    $this->sendSSLAlert($service, $sslResult);
+                    
+                    // 🔥 SKIP HTTP CHECK KARENA SSL EXPIRED (TIDAK BISA AKSES)
+                    return;
+                }
+                
+                // 🔥🔥🔥 SSL WARNING/CRITICAL = SET STATUS WARNING, SKIP HTTP CHECK!
+                if ($sslResult && ($sslResult['status'] === 'WARNING' || $sslResult['status'] === 'CRITICAL')) {
+                    Log::info("🟡 SSL " . $sslResult['status'] . " detected! Setting service to WARNING, skipping HTTP check.");
+                    
+                    // Kirim WA jika perlu
+                    if ($sslResult['send_alert'] === true) {
+                        $this->sendSSLAlert($service, $sslResult);
+                    }
+                    
+                    // UPDATE STATUS SERVICE JADI WARNING
+                    $service->update([
+                        'last_status' => 'WARNING',
+                        'last_message' => $sslResult['message'],
+                        'last_check_at' => now(),
+                    ]);
+                    
+                    // 🔥 SKIP HTTP CHECK! (return)
+                    return;
+                }
+            }
+        }
+
+        // 🔥 LANJUTKAN HTTP CHECK (HANYA JIKA SSL VALID)
         try {
             $url = $this->normalizeUrl($service->target);
             $start = microtime(true);
@@ -436,8 +893,7 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * 🔥 HANDLE TIMEOUT FAILURE - UNTUK TIMEOUT > 5 DETIK SAJA
-     * 🔥 TIMEOUT_SLOW_1: DIABAIKAN (TETAP STATUS LAMA)
+     * 🔥 HANDLE TIMEOUT FAILURE
      * ============================================================
      */
     private function handleTimeoutFailure($service, $oldStatus, $time, $reason, $detail, $action)
@@ -451,19 +907,13 @@ class ServiceMonitorService
         Log::info("⏱️ TIMEOUT LAMBAT #{$failures} untuk {$service->name} (waktu: {$time}s)");
         
         if ($failures >= 2) {
-            // ✅ TIMEOUT KE-2+ → DOWN + KIRIM WA + BUAT LOG
             Log::info("🚨 TIMEOUT LAMBAT TERUS MENERUS! Kirim WA untuk {$service->name}");
             
-            $this->sendWhatsappAlert($service, 'DOWN', 'TIMEOUT_SLOW', $time, $reason, $detail, $action);
-            $service->update(['last_wa_sent_at' => now()]);
-            
-            // 🔥 BUAT LOG (via saveResult)
+            // 🔥 WA hanya 1x (sudah di-handle oleh saveResult)
             $this->saveResult($service, $oldStatus, 'DOWN', 'TIMEOUT_SLOW', $time, $reason, $detail, $action);
         } else {
-            // ❌ TIMEOUT KE-1 → DIABAIKAN (TETAP STATUS LAMA)
             Log::info("⏳ Timeout lambat pertama - DIABAIKAN, status tetap {$oldStatus}");
             
-            // 🔥 UPDATE INTERVAL LOGIC TANPA PERUBAHAN STATUS
             $this->handleIntervalLogic($service, $oldStatus, $oldStatus, 'TIMEOUT_SLOW_1', $time, 
                                        $reason . ' (ke-1 - diabaikan)', 
                                        $detail . ' - Timeout sesaat, diabaikan', 
@@ -518,7 +968,7 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * 📊 ANALISIS RESPONSE - DIPERBAIKI UNTUK 404
+     * 📊 ANALISIS RESPONSE
      * ============================================================
      */
     private function analyzeResponse($code, $time)
@@ -541,7 +991,7 @@ class ServiceMonitorService
             ];
         }
 
-        // 3xx REDIRECT (302, 303, 307 - redirect sementara)
+        // 3xx REDIRECT
         if (in_array($code, [302, 303, 307])) {
             return [
                 'status' => 'UP',
@@ -553,7 +1003,6 @@ class ServiceMonitorService
 
         // 4xx CLIENT ERROR
         if ($code >= 400 && $code < 500) {
-            // 🔥 404 NOT FOUND - DOWN
             if ($code == 404) {
                 return [
                     'status' => 'DOWN',
@@ -563,7 +1012,6 @@ class ServiceMonitorService
                 ];
             }
             
-            // 401, 403, 405, 429 - UP
             $upCodes = [401, 403, 405, 429];
             if (in_array($code, $upCodes)) {
                 return [
@@ -674,12 +1122,12 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * 💾 SAVE RESULT - TIMEOUT_SLOW_1 DIABAIKAN
+     * 💾 SAVE RESULT - WA HANYA 1X SAAT STATUS BERUBAH KE DOWN
      * ============================================================
      */
     private function saveResult($service, $oldStatus, $status, $code, $time, $reason, $detail, $action)
     {
-        // 🔥 JIKA TIMEOUT_SLOW_1, DIABAIKAN (TIDAK BUAT LOG)
+        // 🔥 JIKA TIMEOUT_SLOW_1, DIABAIKAN
         if ($code === 'TIMEOUT_SLOW_1') {
             Log::info("⏭️ TIMEOUT_SLOW_1 - DIABAIKAN, status tetap {$oldStatus}");
             return;
@@ -692,6 +1140,7 @@ class ServiceMonitorService
         $statusChanged = ($oldStatus !== $status);
         $isFirstCheck = empty($oldStatus) || $oldStatus === 'UNKNOWN';
         
+        // 🔥 UPDATE SERVICE
         $service->update([
             'last_status' => $status,
             'last_code' => $code,
@@ -715,6 +1164,32 @@ class ServiceMonitorService
             ]);
             
             Log::info("📝 LOG BARU: {$service->name} {$oldStatus} → {$status}, Code: {$code}");
+            
+            // 🔥🔥🔥 KIRIM WA HANYA JIKA STATUS BERUBAH DAN BUKAN UP (DOWN/WARNING)
+            // 🔥 DAN HANYA JIKA BELUM PERNAH KIRIM WA UNTUK STATUS INI
+            if ($statusChanged && $status !== 'UP') {
+                // 🔥 CEK APAKAH SUDAH PERNAH KIRIM WA UNTUK STATUS DOWN/WARNING INI
+                $lastWaSent = $service->last_wa_sent_at;
+                $shouldSendWa = true;
+                
+                if ($lastWaSent) {
+                    $lastSent = Carbon::parse($lastWaSent);
+                    $minutesSinceLastWa = $lastSent->diffInMinutes(now());
+                    
+                    // 🔥 JIKA KURANG DARI 60 MENIT (1 JAM), JANGAN KIRIM WA LAGI
+                    // 🔥 UNTUK MENCEGAH SPAM
+                    if ($minutesSinceLastWa < 60) {
+                        $shouldSendWa = false;
+                        Log::info("⏭️ Skip WA (last WA sent {$minutesSinceLastWa} menit yang lalu) - {$service->name}");
+                    }
+                }
+                
+                if ($shouldSendWa) {
+                    Log::info("📨 Sending WA for {$service->name}: {$oldStatus} → {$status}");
+                    $this->sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action);
+                    $service->update(['last_wa_sent_at' => now()]);
+                }
+            }
         } else {
             // UPDATE LOG TERAKHIR
             $lastLog = ServiceLog::where('service_id', $service->id)
@@ -733,22 +1208,23 @@ class ServiceMonitorService
             }
         }
 
+        // 🔥 PANGGIL INTERVAL LOGIC (TAPI TIDAK KIRIM WA LAGI)
         $this->handleIntervalLogic($service, $oldStatus, $status, $code, $time, $reason, $detail, $action, $isFirstCheck);
     }
 
     /**
      * ============================================================
-     * 🔄 HANDLE INTERVAL LOGIC
+     * 🔄 HANDLE INTERVAL LOGIC - TIDAK KIRIM WA, HANYA UPDATE TIMER
      * ============================================================
      */
     private function handleIntervalLogic($service, $oldStatus, $status, $code, $time, $reason, $detail, $action, $isFirstCheck = false)
     {
-        // 🔥 JIKA TIMEOUT_SLOW_1, JANGAN KIRIM WA
+        // 🔥 JIKA TIMEOUT_SLOW_1, SKIP
         if ($code === 'TIMEOUT_SLOW_1') {
             Log::info("⏭️ TIMEOUT_SLOW_1 - SKIP WA untuk {$service->name}");
             
             $service->update([
-                'last_interval_status' => $oldStatus, // Tetap pakai status lama
+                'last_interval_status' => $oldStatus,
                 'last_interval_checked_at' => now(),
                 'last_interval_value' => $service->wa_interval_minutes ?? 0,
                 'interval_wa_sent_in_this_cycle' => 0,
@@ -760,44 +1236,27 @@ class ServiceMonitorService
         
         Log::info("🔍 INTERVAL CHECK: {$service->name} | Interval: {$interval} menit | Status: {$status} | Old: {$oldStatus}");
 
-        if ($isFirstCheck && ($status === 'DOWN' || $status === 'WARNING')) {
-            Log::info("🚨 FIRST CHECK: Service baru dengan status {$status} - LANGSUNG KIRIM WA");
-            $this->sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action);
-            $service->update(['last_wa_sent_at' => now()]);
-            
+        // 🔥 FIRST CHECK: LANGSUNG UPDATE TIMER (WA SUDAH DIKIRIM DI SAVE RESULT)
+        if ($isFirstCheck) {
+            Log::info("🔄 FIRST CHECK: {$service->name} status {$status}");
             $service->update([
                 'last_interval_status' => $status,
                 'last_interval_checked_at' => now(),
                 'last_interval_value' => $interval,
-                'interval_wa_sent_in_this_cycle' => 1,
-            ]);
-            return;
-        }
-        
-        if ($isFirstCheck && $status === 'UP') {
-            Log::info("⏭️ FIRST CHECK: Service baru dengan status UP - TIDAK KIRIM WA");
-            $service->update([
-                'last_interval_status' => $status,
-                'last_interval_checked_at' => now(),
-                'last_interval_value' => $interval,
-                'interval_wa_sent_in_this_cycle' => 0,
-                'last_wa_sent_at' => now(),
+                'interval_wa_sent_in_this_cycle' => ($status === 'UP' ? 0 : 1),
             ]);
             return;
         }
 
+        // 🔥 INTERVAL 0 → UPDATE TIMER SAJA (WA SUDAH DIKIRIM DI SAVE RESULT)
         if ($interval == 0) {
-            Log::info("⏭️ Interval 0 - Kirim WA langsung saat status berubah");
-            
-            if ($oldStatus !== $status) {
-                if ($status === 'UP') {
-                    $this->sendRestoredAlert($service, $oldStatus, $code, $time, $detail);
-                } else {
-                    $this->sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action);
-                }
-                $service->update(['last_wa_sent_at' => now()]);
-                Log::info("✅ WA terkirim (interval 0): {$service->name} {$oldStatus} → {$status}");
-            }
+            Log::info("⏭️ Interval 0 - Update timer saja untuk {$service->name}");
+            $service->update([
+                'last_interval_status' => $status,
+                'last_interval_checked_at' => now(),
+                'last_interval_value' => $interval,
+                'interval_wa_sent_in_this_cycle' => ($status === 'UP' ? 0 : 1),
+            ]);
             return;
         }
         
@@ -807,7 +1266,6 @@ class ServiceMonitorService
         
         if ($lastIntervalValue != $interval) {
             Log::info("🔄 INTERVAL BERUBAH: {$lastIntervalValue} → {$interval} menit - RESET TIMER");
-            
             $service->update([
                 'last_interval_checked_at' => now(),
                 'last_interval_value' => $interval,
@@ -833,39 +1291,20 @@ class ServiceMonitorService
         Log::info("⏱️ TIMER: {$minutesSinceLastCheck}/{$interval} menit | Status awal: {$lastIntervalStatus} | Status skrg: {$status}");
         
         if ($minutesSinceLastCheck < $interval) {
-            Log::info("⏳ Interval belum tercapai ({$minutesSinceLastCheck}/{$interval} menit) - TIDAK KIRIM WA");
+            Log::info("⏳ Interval belum tercapai ({$minutesSinceLastCheck}/{$interval} menit) - UPDATE TIMER SAJA");
             return;
         }
 
         Log::info("🎯 INTERVAL REACHED! {$service->name} | Awal: {$lastIntervalStatus} | Akhir: {$status}");
         
-        if ($status !== $lastIntervalStatus) {
-            Log::info("✅ STATUS BERUBAH: {$lastIntervalStatus} → {$status} (KIRIM WA)");
-            
-            if ($status === 'UP') {
-                $this->sendRestoredAlert($service, $lastIntervalStatus, $code, $time, $detail);
-            } else {
-                $this->sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action);
-            }
-            
-            $service->update([
-                'last_wa_sent_at' => now(),
-                'last_interval_status' => $status,
-                'last_interval_checked_at' => now(),
-                'last_interval_value' => $interval,
-                'interval_wa_sent_in_this_cycle' => 1,
-            ]);
-            Log::info("✅ WA terkirim: {$service->name} {$lastIntervalStatus} → {$status}");
-        } else {
-            Log::info("⏭️ Status tetap {$status} - TIDAK KIRIM WA");
-            
-            $service->update([
-                'last_interval_checked_at' => now(),
-                'last_interval_value' => $interval,
-                'interval_wa_sent_in_this_cycle' => 0,
-            ]);
-            Log::info("⏱️ Timer direset untuk interval berikutnya");
-        }
+        // 🔥 UPDATE TIMER (TIDAK KIRIM WA, KARENA WA SUDAH DIKIRIM DI SAVE RESULT)
+        $service->update([
+            'last_interval_status' => $status,
+            'last_interval_checked_at' => now(),
+            'last_interval_value' => $interval,
+            'interval_wa_sent_in_this_cycle' => ($status === 'UP' ? 0 : 1),
+        ]);
+        Log::info("⏱️ Timer direset untuk interval berikutnya");
     }
 
     /**

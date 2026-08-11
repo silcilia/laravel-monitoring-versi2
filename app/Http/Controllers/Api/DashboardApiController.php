@@ -25,26 +25,38 @@ class DashboardApiController extends Controller
     public function stats()
     {
         try {
-            // Service Stats
-            $total = Service::count();
-            $up = Service::where('last_status', 'UP')->count();
-            $warning = Service::where('last_status', 'WARNING')->count();
-            $down = Service::where('last_status', 'DOWN')->count();
+            // Service Stats - HANYA YANG TIDAK DIARSIP
+            $total = Service::where('is_archived', 0)->count();
+            $up = Service::where('last_status', 'UP')->where('is_archived', 0)->count();
+            $warning = Service::where('last_status', 'WARNING')->where('is_archived', 0)->count();
+            $down = Service::where('last_status', 'DOWN')->where('is_archived', 0)->count();
 
-            // ESP Status
+            // ESP Status - AMBIL DEVICE TERBARU
             $smokeDevices = SmokeDevice::all();
             $onlineCount = 0;
             $lastSmokeValue = 0;
             $lastSmokeStatus = 'NORMAL';
             $lastSeenAt = null;
+            $deviceName = 'ESP32-Smoke';
 
-            foreach ($smokeDevices as $device) {
-                if ($device->last_seen_at && Carbon::parse($device->last_seen_at)->diffInMinutes(now()) < 2) {
-                    $onlineCount++;
+            // Cari device yang terakhir update
+            $latestDevice = $smokeDevices->sortByDesc('last_seen_at')->first();
+            
+            if ($latestDevice) {
+                $isOnline = false;
+                if ($latestDevice->last_seen_at) {
+                    $lastSeen = Carbon::parse($latestDevice->last_seen_at);
+                    $isOnline = $lastSeen->diffInMinutes(now()) < 2;
                 }
-                $lastSmokeValue = $device->smoke_value ?? 0;
-                $lastSmokeStatus = $device->status ?? 'NORMAL';
-                $lastSeenAt = $device->last_seen_at;
+                
+                if ($isOnline) {
+                    $onlineCount = 1;
+                }
+                
+                $lastSmokeValue = $latestDevice->smoke_value ?? 0;
+                $lastSmokeStatus = $latestDevice->status ?? 'NORMAL';
+                $lastSeenAt = $latestDevice->last_seen_at;
+                $deviceName = $latestDevice->name ?? 'ESP32-Smoke';
             }
 
             $espStatus = $onlineCount > 0 ? 'ONLINE' : 'OFFLINE';
@@ -59,7 +71,9 @@ class DashboardApiController extends Controller
                         'down' => $down,
                     ],
                     'esp' => [
+                        'device_name' => $deviceName,
                         'status' => $espStatus,
+                        'is_online' => $onlineCount > 0,
                         'online_count' => $onlineCount,
                         'last_smoke_value' => $lastSmokeValue,
                         'last_smoke_status' => $lastSmokeStatus,
@@ -90,31 +104,43 @@ class DashboardApiController extends Controller
     public function uptime()
     {
         try {
+            // HANYA ambil log dari service yang aktif (tidak diarsip)
+            $activeServiceIds = Service::where('is_archived', 0)->pluck('id')->toArray();
+
             // Uptime 24 Jam
-            $logs24h = ServiceLog::where('created_at', '>=', now()->subHours(24))->get();
+            $logs24h = ServiceLog::whereIn('service_id', $activeServiceIds)
+                ->where('created_at', '>=', now()->subHours(24))
+                ->get();
             $uptime24h = $this->calculateUptimeFromLogs($logs24h);
 
             // Uptime 7 Hari
-            $logs7d = ServiceLog::where('created_at', '>=', now()->subDays(7))->get();
+            $logs7d = ServiceLog::whereIn('service_id', $activeServiceIds)
+                ->where('created_at', '>=', now()->subDays(7))
+                ->get();
             $uptime7d = $this->calculateUptimeFromLogs($logs7d);
 
             // Uptime 30 Hari
-            $logs30d = ServiceLog::where('created_at', '>=', now()->subDays(30))->get();
+            $logs30d = ServiceLog::whereIn('service_id', $activeServiceIds)
+                ->where('created_at', '>=', now()->subDays(30))
+                ->get();
             $uptime30d = $this->calculateUptimeFromLogs($logs30d);
 
-            // Uptime Keseluruhan (semua data)
-            $allLogs = ServiceLog::all();
+            // Uptime Keseluruhan (semua data dari service aktif)
+            $allLogs = ServiceLog::whereIn('service_id', $activeServiceIds)->get();
             $uptimeOverall = $this->calculateUptimeFromLogs($allLogs);
 
             // Status berdasarkan uptime 30 hari
             $status = 'excellent';
             $statusText = 'Excellent';
+            $statusColor = '#22c55e'; // green
             if ($uptime30d < 70) {
                 $status = 'poor';
                 $statusText = 'Needs Attention';
+                $statusColor = '#ef4444'; // red
             } elseif ($uptime30d < 90) {
                 $status = 'good';
                 $statusText = 'Good';
+                $statusColor = '#eab308'; // yellow
             }
 
             return response()->json([
@@ -126,6 +152,7 @@ class DashboardApiController extends Controller
                     'uptime_overall' => round($uptimeOverall, 2),
                     'status' => $status,
                     'status_text' => $statusText,
+                    'status_color' => $statusColor,
                     'last_updated' => now()->toDateTimeString()
                 ]
             ]);
@@ -154,7 +181,11 @@ class DashboardApiController extends Controller
             $startDate = Carbon::now()->subDays(6)->startOfDay();
             $endDate = Carbon::now()->endOfDay();
             
-            $logs = ServiceLog::where('created_at', '>=', $startDate)
+            // HANYA ambil log dari service yang aktif
+            $activeServiceIds = Service::where('is_archived', 0)->pluck('id')->toArray();
+            
+            $logs = ServiceLog::whereIn('service_id', $activeServiceIds)
+                ->where('created_at', '>=', $startDate)
                 ->where('created_at', '<=', $endDate)
                 ->orderBy('created_at', 'asc')
                 ->get();
@@ -201,7 +232,8 @@ class DashboardApiController extends Controller
                 'data' => [
                     'labels' => $labels,
                     'values' => $data,
-                    'period' => '7 Hari Terakhir'
+                    'period' => '7 Hari Terakhir',
+                    'unit' => '%'
                 ]
             ]);
 
@@ -215,7 +247,7 @@ class DashboardApiController extends Controller
 
     /**
      * ============================================================
-     *  📡 API 4: SMOKE CHART (7 HARI)
+     *  📡 API 4: SMOKE CHART (7 HARI) - PERBAIKAN
      *  ============================================================
      *  🔗 URL: GET /api/dashboard/smoke-chart
      *  🔑 Butuh Auth: Sanctum Token
@@ -248,11 +280,14 @@ class DashboardApiController extends Controller
                 $key = $current->format('Y-m-d');
                 $labels[] = $current->format('d/m/Y');
                 
+                // CEK: Apakah ada log untuk tanggal ini?
                 if (isset($groupedLogs[$key])) {
-                    $avgSmoke = $groupedLogs[$key]->avg('smoke_value') ?? 0;
-                    $data[] = round($avgSmoke, 2);
+                    // ADA DATA: ambil nilai smoke terakhir di hari tersebut
+                    $lastLogOfDay = $groupedLogs[$key]->last();
+                    $data[] = round($lastLogOfDay->smoke_value, 2);
                 } else {
-                    $data[] = 0;
+                    // TIDAK ADA DATA: set ke null (tidak menampilkan titik)
+                    $data[] = null;
                 }
                 
                 $current->addDay();
@@ -264,7 +299,8 @@ class DashboardApiController extends Controller
                     'labels' => $labels,
                     'values' => $data,
                     'period' => '7 Hari Terakhir',
-                    'unit' => 'ppm'
+                    'unit' => 'ppm',
+                    'has_null' => true // Flag untuk frontend menangani null
                 ]
             ]);
 
@@ -278,7 +314,7 @@ class DashboardApiController extends Controller
 
     /**
      * ============================================================
-     *  📡 API 5: ESP STATUS REAL-TIME
+     *  📡 API 5: ESP STATUS REAL-TIME - PERBAIKAN
      *  ============================================================
      *  🔗 URL: GET /api/dashboard/esp-status
      *  🔑 Butuh Auth: Sanctum Token
@@ -296,29 +332,56 @@ class DashboardApiController extends Controller
             $lastSmokeStatus = 'NORMAL';
             $lastSeenAt = null;
             $deviceName = 'ESP32-Smoke';
+            $totalDevices = $smokeDevices->count();
             
-            foreach ($smokeDevices as $device) {
-                if ($device->last_seen_at && Carbon::parse($device->last_seen_at)->diffInMinutes(now()) < 2) {
-                    $onlineCount++;
+            // Cari device yang terakhir update
+            $latestDevice = $smokeDevices->sortByDesc('last_seen_at')->first();
+            
+            if ($latestDevice) {
+                $isOnline = false;
+                if ($latestDevice->last_seen_at) {
+                    $lastSeen = Carbon::parse($latestDevice->last_seen_at);
+                    $isOnline = $lastSeen->diffInMinutes(now()) < 2;
                 }
                 
-                $lastSmokeValue = $device->smoke_value ?? 0;
-                $lastSmokeStatus = $device->status ?? 'NORMAL';
-                $lastSeenAt = $device->last_seen_at;
-                $deviceName = $device->name ?? 'ESP32-Smoke';
+                if ($isOnline) {
+                    $onlineCount = 1;
+                }
+                
+                $lastSmokeValue = $latestDevice->smoke_value ?? 0;
+                $lastSmokeStatus = $latestDevice->status ?? 'NORMAL';
+                $lastSeenAt = $latestDevice->last_seen_at;
+                $deviceName = $latestDevice->name ?? 'ESP32-Smoke';
             }
 
             $isOnline = $onlineCount > 0;
+
+            // Tentukan status class dan icon
+            $statusClass = $isOnline ? 'online' : 'offline';
+            $statusIcon = $isOnline ? '🟢' : '🔴';
+            $statusLabel = $isOnline ? 'ONLINE' : 'OFFLINE';
+
+            // Tentukan warna berdasarkan status smoke
+            $smokeColor = '#22c55e'; // hijau untuk NORMAL
+            if ($lastSmokeStatus === 'WARNING') {
+                $smokeColor = '#eab308'; // kuning
+            } elseif ($lastSmokeStatus === 'DANGER') {
+                $smokeColor = '#ef4444'; // merah
+            }
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'device_name' => $deviceName,
-                    'status' => $isOnline ? 'ONLINE' : 'OFFLINE',
+                    'status' => $statusLabel,
+                    'status_class' => $statusClass,
+                    'status_icon' => $statusIcon,
                     'is_online' => $isOnline,
                     'online_count' => $onlineCount,
+                    'total_devices' => $totalDevices,
                     'last_smoke_value' => $lastSmokeValue,
                     'last_smoke_status' => $lastSmokeStatus,
+                    'smoke_color' => $smokeColor,
                     'last_seen_at' => $lastSeenAt ? Carbon::parse($lastSeenAt)->diffForHumans() : null,
                     'last_seen_raw' => $lastSeenAt,
                     'last_updated' => now()->toDateTimeString()
@@ -381,6 +444,48 @@ class DashboardApiController extends Controller
         }
     }
 
+    /**
+     * ============================================================
+     *  📡 API 7: SMOKE HISTORY (UNTUK DETAIL)
+     *  ============================================================
+     *  🔗 URL: GET /api/dashboard/smoke-history
+     *  🔑 Butuh Auth: Sanctum Token
+     *  📦 Response: History data smoke dengan pagination
+     * ============================================================
+     */
+    public function smokeHistory(Request $request)
+    {
+        try {
+            $perPage = $request->input('perPage', 20);
+            $days = $request->input('days', 7);
+            
+            $startDate = Carbon::now()->subDays($days)->startOfDay();
+            
+            $logs = SmokeLog::where('created_at', '>=', $startDate)
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'logs' => $logs->items(),
+                    'pagination' => [
+                        'current_page' => $logs->currentPage(),
+                        'per_page' => $logs->perPage(),
+                        'total' => $logs->total(),
+                        'last_page' => $logs->lastPage(),
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil history smoke: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     // ================================================================
     // 🔧 PRIVATE HELPER METHODS
     // ================================================================
@@ -416,24 +521,35 @@ class DashboardApiController extends Controller
      */
     private function getStatsData()
     {
-        $total = Service::count();
-        $up = Service::where('last_status', 'UP')->count();
-        $warning = Service::where('last_status', 'WARNING')->count();
-        $down = Service::where('last_status', 'DOWN')->count();
+        $total = Service::where('is_archived', 0)->count();
+        $up = Service::where('last_status', 'UP')->where('is_archived', 0)->count();
+        $warning = Service::where('last_status', 'WARNING')->where('is_archived', 0)->count();
+        $down = Service::where('last_status', 'DOWN')->where('is_archived', 0)->count();
 
         $smokeDevices = SmokeDevice::all();
         $onlineCount = 0;
         $lastSmokeValue = 0;
         $lastSmokeStatus = 'NORMAL';
         $lastSeenAt = null;
+        $deviceName = 'ESP32-Smoke';
 
-        foreach ($smokeDevices as $device) {
-            if ($device->last_seen_at && Carbon::parse($device->last_seen_at)->diffInMinutes(now()) < 2) {
-                $onlineCount++;
+        $latestDevice = $smokeDevices->sortByDesc('last_seen_at')->first();
+        
+        if ($latestDevice) {
+            $isOnline = false;
+            if ($latestDevice->last_seen_at) {
+                $lastSeen = Carbon::parse($latestDevice->last_seen_at);
+                $isOnline = $lastSeen->diffInMinutes(now()) < 2;
             }
-            $lastSmokeValue = $device->smoke_value ?? 0;
-            $lastSmokeStatus = $device->status ?? 'NORMAL';
-            $lastSeenAt = $device->last_seen_at;
+            
+            if ($isOnline) {
+                $onlineCount = 1;
+            }
+            
+            $lastSmokeValue = $latestDevice->smoke_value ?? 0;
+            $lastSmokeStatus = $latestDevice->status ?? 'NORMAL';
+            $lastSeenAt = $latestDevice->last_seen_at;
+            $deviceName = $latestDevice->name ?? 'ESP32-Smoke';
         }
 
         return [
@@ -444,7 +560,9 @@ class DashboardApiController extends Controller
                 'down' => $down,
             ],
             'esp' => [
+                'device_name' => $deviceName,
                 'status' => $onlineCount > 0 ? 'ONLINE' : 'OFFLINE',
+                'is_online' => $onlineCount > 0,
                 'online_count' => $onlineCount,
                 'last_smoke_value' => $lastSmokeValue,
                 'last_smoke_status' => $lastSmokeStatus,
@@ -458,26 +576,37 @@ class DashboardApiController extends Controller
      */
     private function getUptimeData()
     {
-        $logs24h = ServiceLog::where('created_at', '>=', now()->subHours(24))->get();
+        $activeServiceIds = Service::where('is_archived', 0)->pluck('id')->toArray();
+
+        $logs24h = ServiceLog::whereIn('service_id', $activeServiceIds)
+            ->where('created_at', '>=', now()->subHours(24))
+            ->get();
         $uptime24h = $this->calculateUptimeFromLogs($logs24h);
 
-        $logs7d = ServiceLog::where('created_at', '>=', now()->subDays(7))->get();
+        $logs7d = ServiceLog::whereIn('service_id', $activeServiceIds)
+            ->where('created_at', '>=', now()->subDays(7))
+            ->get();
         $uptime7d = $this->calculateUptimeFromLogs($logs7d);
 
-        $logs30d = ServiceLog::where('created_at', '>=', now()->subDays(30))->get();
+        $logs30d = ServiceLog::whereIn('service_id', $activeServiceIds)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->get();
         $uptime30d = $this->calculateUptimeFromLogs($logs30d);
 
-        $allLogs = ServiceLog::all();
+        $allLogs = ServiceLog::whereIn('service_id', $activeServiceIds)->get();
         $uptimeOverall = $this->calculateUptimeFromLogs($allLogs);
 
         $status = 'excellent';
         $statusText = 'Excellent';
+        $statusColor = '#22c55e';
         if ($uptime30d < 70) {
             $status = 'poor';
             $statusText = 'Needs Attention';
+            $statusColor = '#ef4444';
         } elseif ($uptime30d < 90) {
             $status = 'good';
             $statusText = 'Good';
+            $statusColor = '#eab308';
         }
 
         return [
@@ -487,6 +616,7 @@ class DashboardApiController extends Controller
             'uptime_overall' => round($uptimeOverall, 2),
             'status' => $status,
             'status_text' => $statusText,
+            'status_color' => $statusColor,
         ];
     }
 
@@ -498,7 +628,10 @@ class DashboardApiController extends Controller
         $startDate = Carbon::now()->subDays(6)->startOfDay();
         $endDate = Carbon::now()->endOfDay();
         
-        $logs = ServiceLog::where('created_at', '>=', $startDate)
+        $activeServiceIds = Service::where('is_archived', 0)->pluck('id')->toArray();
+        
+        $logs = ServiceLog::whereIn('service_id', $activeServiceIds)
+            ->where('created_at', '>=', $startDate)
             ->where('created_at', '<=', $endDate)
             ->orderBy('created_at', 'asc')
             ->get();
@@ -543,12 +676,13 @@ class DashboardApiController extends Controller
         return [
             'labels' => $labels,
             'values' => $data,
-            'period' => '7 Hari Terakhir'
+            'period' => '7 Hari Terakhir',
+            'unit' => '%'
         ];
     }
 
     /**
-     * Get smoke chart data
+     * Get smoke chart data - PERBAIKAN
      */
     private function getSmokeChartData()
     {
@@ -575,10 +709,12 @@ class DashboardApiController extends Controller
             $labels[] = $current->format('d/m/Y');
             
             if (isset($groupedLogs[$key])) {
-                $avgSmoke = $groupedLogs[$key]->avg('smoke_value') ?? 0;
-                $data[] = round($avgSmoke, 2);
+                // Ambil nilai terakhir di hari tersebut
+                $lastLogOfDay = $groupedLogs[$key]->last();
+                $data[] = round($lastLogOfDay->smoke_value, 2);
             } else {
-                $data[] = 0;
+                // Tidak ada data: set null
+                $data[] = null;
             }
             
             $current->addDay();
@@ -588,12 +724,13 @@ class DashboardApiController extends Controller
             'labels' => $labels,
             'values' => $data,
             'period' => '7 Hari Terakhir',
-            'unit' => 'ppm'
+            'unit' => 'ppm',
+            'has_null' => true
         ];
     }
 
     /**
-     * Get ESP status data
+     * Get ESP status data - PERBAIKAN
      */
     private function getEspStatusData()
     {
@@ -604,16 +741,25 @@ class DashboardApiController extends Controller
         $lastSmokeStatus = 'NORMAL';
         $lastSeenAt = null;
         $deviceName = 'ESP32-Smoke';
+        $totalDevices = $smokeDevices->count();
         
-        foreach ($smokeDevices as $device) {
-            if ($device->last_seen_at && Carbon::parse($device->last_seen_at)->diffInMinutes(now()) < 2) {
-                $onlineCount++;
+        $latestDevice = $smokeDevices->sortByDesc('last_seen_at')->first();
+        
+        if ($latestDevice) {
+            $isOnline = false;
+            if ($latestDevice->last_seen_at) {
+                $lastSeen = Carbon::parse($latestDevice->last_seen_at);
+                $isOnline = $lastSeen->diffInMinutes(now()) < 2;
             }
             
-            $lastSmokeValue = $device->smoke_value ?? 0;
-            $lastSmokeStatus = $device->status ?? 'NORMAL';
-            $lastSeenAt = $device->last_seen_at;
-            $deviceName = $device->name ?? 'ESP32-Smoke';
+            if ($isOnline) {
+                $onlineCount = 1;
+            }
+            
+            $lastSmokeValue = $latestDevice->smoke_value ?? 0;
+            $lastSmokeStatus = $latestDevice->status ?? 'NORMAL';
+            $lastSeenAt = $latestDevice->last_seen_at;
+            $deviceName = $latestDevice->name ?? 'ESP32-Smoke';
         }
 
         $isOnline = $onlineCount > 0;
@@ -621,8 +767,11 @@ class DashboardApiController extends Controller
         return [
             'device_name' => $deviceName,
             'status' => $isOnline ? 'ONLINE' : 'OFFLINE',
+            'status_class' => $isOnline ? 'online' : 'offline',
+            'status_icon' => $isOnline ? '🟢' : '🔴',
             'is_online' => $isOnline,
             'online_count' => $onlineCount,
+            'total_devices' => $totalDevices,
             'last_smoke_value' => $lastSmokeValue,
             'last_smoke_status' => $lastSmokeStatus,
             'last_seen_at' => $lastSeenAt ? Carbon::parse($lastSeenAt)->diffForHumans() : null,

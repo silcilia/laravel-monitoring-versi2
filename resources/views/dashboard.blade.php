@@ -1014,6 +1014,15 @@
         filter: brightness(0.9) contrast(1.1);
     }
 
+    /* Status badge untuk ESP */
+    .status-badge {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+    }
+
     @media (max-width: 1024px) {
         .stats-grid { grid-template-columns: repeat(3, 1fr); }
         .charts-grid { grid-template-columns: 1fr; }
@@ -1112,6 +1121,22 @@
         $downPercent = $total > 0 ? round(($down / $total) * 100, 1) : 0;
         $warningPercent = $total > 0 ? round(($warning / $total) * 100, 1) : 0;
         $hasData = $total > 0;
+        
+        // ESP Status
+        $isOnline = ($onlineCount ?? 0) > 0;
+        $espDisplayStatus = $isOnline ? 'ONLINE' : 'OFFLINE';
+        
+        // Status badge class untuk smoke
+        $smokeStatusClass = strtolower($lastSmokeStatus);
+        $smokeBgColor = '#d1fae5';
+        $smokeTextColor = '#065f46';
+        if ($lastSmokeStatus === 'DANGER') {
+            $smokeBgColor = '#fee2e2';
+            $smokeTextColor = '#991b1b';
+        } elseif ($lastSmokeStatus === 'WARNING') {
+            $smokeBgColor = '#fef3c7';
+            $smokeTextColor = '#92400e';
+        }
     @endphp
 
     <div class="stats-grid">
@@ -1170,10 +1195,6 @@
                 <i class="fas fa-microchip"></i>
             </div>
             <div class="stat-value" id="espStatusDisplay" style="font-size: 1.6rem; display: flex; align-items: center; gap: 8px;">
-                @php
-                    $isOnline = ($onlineCount ?? 0) > 0;
-                    $espDisplayStatus = $isOnline ? 'ONLINE' : 'OFFLINE';
-                @endphp
                 <span id="espDot" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; 
                     @if($espDisplayStatus == 'ONLINE') background: #10b981; box-shadow: 0 0 20px rgba(16,185,129,0.4);
                     @else background: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,0.4);
@@ -1190,12 +1211,7 @@
             </div>
             <div class="stat-label" style="margin-top: 4px; font-size: 11px; color: var(--gray-400);">
                 📊 Nilai Asap: <strong id="espSmokeValue">{{ $lastSmokeValue }}</strong>
-                | Status: <span id="espSmokeStatus" class="status-badge {{ strtolower($lastSmokeStatus) }}" style="font-size: 10px; padding: 2px 10px; border-radius: 12px; 
-                    @if($lastSmokeStatus == 'DANGER') background: #fee2e2; color: #991b1b;
-                    @elseif($lastSmokeStatus == 'WARNING') background: #fef3c7; color: #92400e;
-                    @else background: #d1fae5; color: #065f46;
-                    @endif
-                ">
+                | Status: <span id="espSmokeStatus" class="status-badge" style="background: {{ $smokeBgColor }}; color: {{ $smokeTextColor }};">
                     {{ $lastSmokeStatus }}
                 </span>
             </div>
@@ -1317,9 +1333,18 @@
                     $smokeLabels = $smokeLabels ?? [];
                     $smokeData = $smokeData ?? [];
                     $hasSmokeData = count($smokeLabels) > 0 && count($smokeData) > 0;
+                    
+                    // Filter data yang null untuk ditampilkan di tooltip
+                    $hasValidSmokeData = false;
+                    foreach ($smokeData as $value) {
+                        if ($value !== null && $value > 0) {
+                            $hasValidSmokeData = true;
+                            break;
+                        }
+                    }
                 @endphp
 
-                @if($hasSmokeData)
+                @if($hasSmokeData && $hasValidSmokeData)
                     <canvas id="smokeChart"></canvas>
                 @else
                     <div class="chart-empty">
@@ -1369,7 +1394,6 @@
             const ctxDonut = document.getElementById('serviceDonutChart');
             if (ctxDonut) {
                 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                const textColor = isDark ? '#94a3b8' : '#64748b';
                 
                 // Ambil data dari PHP
                 const up = {{ $upPercent }};
@@ -1436,18 +1460,38 @@
                 const textColor = isDark ? '#94a3b8' : '#64748b';
                 const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
                 
+                // Ambil data dari PHP dan filter null
+                const labels = @json($smokeLabels);
+                const rawData = @json($smokeData);
+                
+                // Proses data: null tetap null untuk ditampilkan di chart
+                const chartData = rawData.map(val => val === null ? null : val);
+                
                 new Chart(ctx2, {
                     type: 'bar',
                     data: {
-                        labels: @json($smokeLabels),
+                        labels: labels,
                         datasets: [{
-                            label: 'Nilai Asap',
-                            data: @json($smokeData),
-                            backgroundColor: isDark ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.6)',
-                            borderColor: '#ef4444',
-                            borderWidth: 1.5,
+                            label: 'Nilai Asap (ppm)',
+                            data: chartData,
+                            backgroundColor: function(context) {
+                                const value = context.raw;
+                                if (value === null) return 'transparent';
+                                return isDark ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.6)';
+                            },
+                            borderColor: function(context) {
+                                const value = context.raw;
+                                if (value === null) return 'transparent';
+                                return '#ef4444';
+                            },
+                            borderWidth: function(context) {
+                                const value = context.raw;
+                                if (value === null) return 0;
+                                return 1.5;
+                            },
                             borderRadius: 6,
                             maxBarThickness: 50,
+                            spanGaps: false,
                         }]
                     },
                     options: {
@@ -1463,7 +1507,14 @@
                                 cornerRadius: 8,
                                 callbacks: {
                                     label: function(context) {
-                                        return '🔥 ' + context.parsed.y;
+                                        const value = context.raw;
+                                        if (value === null) {
+                                            return '📭 Tidak ada data';
+                                        }
+                                        return '🔥 ' + value + ' ppm';
+                                    },
+                                    title: function(context) {
+                                        return context[0].label;
                                     }
                                 }
                             }
@@ -1473,7 +1524,7 @@
                                 beginAtZero: true,
                                 title: {
                                     display: true,
-                                    text: isMobile ? 'Nilai' : 'Nilai Asap',
+                                    text: isMobile ? 'Nilai (ppm)' : 'Nilai Asap (ppm)',
                                     font: { size: isMobile ? 9 : 11, weight: '500' },
                                     color: textColor
                                 },
@@ -1688,7 +1739,7 @@
                     if (statusBadge) {
                         const status = esp.status || 'NORMAL';
                         statusBadge.textContent = status;
-                        statusBadge.className = 'status-badge ' + status.toLowerCase();
+                        statusBadge.className = 'status-badge';
                         if (status === 'DANGER') {
                             statusBadge.style.background = '#fee2e2';
                             statusBadge.style.color = '#991b1b';

@@ -18,8 +18,8 @@ class SmokeApiController extends Controller
      *  🔥 KONFIGURASI THRESHOLD
      * ============================================================
      */
-    private const WARNING_THRESHOLD = 700;
-    private const DANGER_THRESHOLD  = 1000;
+    private const WARNING_THRESHOLD = 300;
+    private const DANGER_THRESHOLD  = 500;
     private const DEFAULT_DEVICE_NAME = 'ESP32-Smoke';
     private const DEFAULT_DEVICE_LOCATION = 'Ruang Server';
 

@@ -111,16 +111,18 @@ class DashboardController extends Controller
         }
 
         // ============================================================
-        // 🔥 GRAFIK SMOKE (7 HARI) - TIDAK BERUBAH
+        // 🔥 GRAFIK SMOKE (7 HARI) - PERBAIKAN
         // ============================================================
         $smokeStartDate = Carbon::now()->subDays(6)->startOfDay();
         $smokeEndDate = Carbon::now()->endOfDay();
         
+        // Ambil semua log smoke dalam 7 hari terakhir
         $smokeLogs = SmokeLog::where('created_at', '>=', $smokeStartDate)
             ->where('created_at', '<=', $smokeEndDate)
             ->orderBy('created_at', 'asc')
             ->get();
 
+        // Kelompokkan berdasarkan tanggal
         $groupedSmokeLogs = $smokeLogs->groupBy(function($log) {
             return $log->created_at->format('Y-m-d');
         });
@@ -128,6 +130,7 @@ class DashboardController extends Controller
         $smokeLabels = [];
         $smokeData = [];
 
+        // Loop untuk 7 hari terakhir
         $currentSmoke = Carbon::now()->subDays(6)->startOfDay();
         $endSmoke = Carbon::now()->endOfDay();
 
@@ -135,18 +138,21 @@ class DashboardController extends Controller
             $key = $currentSmoke->format('Y-m-d');
             $smokeLabels[] = $currentSmoke->format('d/m/Y');
             
+            // CEK: Apakah ada log untuk tanggal ini?
             if (isset($groupedSmokeLogs[$key])) {
-                $avgSmoke = $groupedSmokeLogs[$key]->avg('smoke_value') ?? 0;
-                $smokeData[] = round($avgSmoke, 2);
+                // ADA DATA: ambil nilai smoke terakhir di hari tersebut
+                $lastLogOfDay = $groupedSmokeLogs[$key]->last();
+                $smokeData[] = round($lastLogOfDay->smoke_value, 2);
             } else {
-                $smokeData[] = 0;
+                // TIDAK ADA DATA: set ke null untuk tidak menampilkan titik
+                $smokeData[] = null;
             }
             
             $currentSmoke->addDay();
         }
 
         // ============================================================
-        // 🔥 ESP STATUS - TIDAK BERUBAH
+        // 🔥 ESP STATUS - PERBAIKAN
         // ============================================================
         $smokeDevices = SmokeDevice::all();
         
@@ -156,30 +162,33 @@ class DashboardController extends Controller
         $lastSeenAt = null;
         $deviceName = 'ESP32-Smoke';
         
-        foreach ($smokeDevices as $device) {
+        // Cari device yang terakhir update
+        $latestDevice = $smokeDevices->sortByDesc('last_seen_at')->first();
+        
+        if ($latestDevice) {
             $isOnline = false;
-            if ($device->last_seen_at) {
-                $lastSeen = Carbon::parse($device->last_seen_at);
+            if ($latestDevice->last_seen_at) {
+                $lastSeen = Carbon::parse($latestDevice->last_seen_at);
                 $isOnline = $lastSeen->diffInMinutes(now()) < 2;
             }
             
             if ($isOnline) {
-                $onlineCount++;
+                $onlineCount = 1;
             }
             
-            if ($isOnline || $device->id == $smokeDevices->last()?->id) {
-                $lastSmokeValue = $device->smoke_value ?? 0;
-                $lastSmokeStatus = $device->status ?? 'NORMAL';
-                $lastSeenAt = $device->last_seen_at;
-                $deviceName = $device->name ?? 'ESP32-Smoke';
-            }
+            $lastSmokeValue = $latestDevice->smoke_value ?? 0;
+            $lastSmokeStatus = $latestDevice->status ?? 'NORMAL';
+            $lastSeenAt = $latestDevice->last_seen_at;
+            $deviceName = $latestDevice->name ?? 'ESP32-Smoke';
         }
 
+        // Jika tidak ada device sama sekali
         if ($smokeDevices->isEmpty()) {
             $onlineCount = 0;
             $lastSmokeValue = 0;
             $lastSmokeStatus = 'NORMAL';
             $lastSeenAt = null;
+            $deviceName = 'ESP32-Smoke';
         }
 
         $espStatus = $onlineCount > 0 ? 'ONLINE' : 'OFFLINE';

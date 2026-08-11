@@ -18,8 +18,8 @@ class SmokeController extends Controller
      *  SAMA PERSIS DENGAN ARDUINO
      * ============================================================
      */
-    private const WARNING_THRESHOLD = 700;   // SAMA DENGAN ARDUINO
-    private const DANGER_THRESHOLD  = 1000;  // SAMA DENGAN ARDUINO
+    private const WARNING_THRESHOLD = 300;   // SAMA DENGAN ARDUINO
+    private const DANGER_THRESHOLD  = 500;  // SAMA DENGAN ARDUINO
     private const DEFAULT_DEVICE_NAME = 'ESP32-Smoke';
     private const DEFAULT_DEVICE_LOCATION = 'Ruang Server';
 
