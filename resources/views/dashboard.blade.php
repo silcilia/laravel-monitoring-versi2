@@ -1268,55 +1268,75 @@
 
     <!-- ================= CHARTS GRID ================= -->
     <div class="charts-grid">
-        <!-- ================= CHART SERVICE - DONUT 7 HARI ================= -->
+        <!-- ================= 🔥 CHART SERVICE - DONUT 7 HARI (SEMUA PERUBAHAN) ================= -->
         <div class="chart-card">
             <div class="chart-header">
-                <h3><i class="fas fa-chart-pie"></i> Status Service 7 Hari</h3>
-                <span class="chart-badge"><i class="far fa-clock"></i> 7 Hari</span>
+                <h3><i class="fas fa-chart-pie"></i> Status 7 Hari Terakhir</h3>
+                <span class="chart-badge">
+                    <i class="far fa-clock"></i> 
+                    {{ \Carbon\Carbon::now()->subDays(6)->format('d/m/Y') }} - {{ \Carbon\Carbon::now()->format('d/m/Y') }}
+                </span>
             </div>
             <div class="chart-container" style="display: flex; align-items: center; justify-content: center; gap: 30px; flex-wrap: wrap; height: auto; min-height: 250px;">
-                @if($hasData)
+                @php
+                    // Data dari controller untuk donut chart 7 hari
+                    $totalUp7 = $totalUp ?? 0;
+                    $totalWarning7 = $totalWarning ?? 0;
+                    $totalDown7 = $totalDown ?? 0;
+                    $totalChanges7 = $totalChanges ?? 0;
+                    $hasData7 = $totalChanges7 > 0;
+                    
+                    // Hitung persentase
+                    $upPercent7 = $hasData7 ? round(($totalUp7 / $totalChanges7) * 100, 1) : 0;
+                    $warningPercent7 = $hasData7 ? round(($totalWarning7 / $totalChanges7) * 100, 1) : 0;
+                    $downPercent7 = $hasData7 ? round(($totalDown7 / $totalChanges7) * 100, 1) : 0;
+                @endphp
+
+                @if($hasData7)
                     <div style="position: relative; width: 200px; height: 200px;">
-                        <canvas id="serviceDonutChart"></canvas>
+                        <canvas id="serviceDonutChart7"></canvas>
                         <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                            <div style="font-size: 14px; font-weight: 600; color: var(--text-dashboard);">Total</div>
-                            <div style="font-size: 28px; font-weight: 800; color: var(--primary);">{{ $total }}</div>
-                            <div style="font-size: 10px; color: var(--gray-400);">Service</div>
+                            <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary-dash);">Total</div>
+                            <div style="font-size: 24px; font-weight: 800; color: var(--primary);">{{ $totalChanges7 }}</div>
+                            <div style="font-size: 9px; color: var(--gray-400);">Perubahan</div>
                         </div>
                     </div>
                     
                     <!-- LEGEND -->
-                    <div style="display: flex; flex-direction: column; gap: 10px; min-width: 140px;">
+                    <div style="display: flex; flex-direction: column; gap: 10px; min-width: 160px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: #10b981;"></span>
                             <span style="font-size: 13px; color: var(--text-dashboard); font-weight: 500;">UP</span>
-                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #10b981;">{{ $upPercent }}%</span>
-                            <span style="font-size: 11px; color: var(--gray-400);">({{ $up }})</span>
+                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #10b981;">{{ $upPercent7 }}%</span>
+                            <span style="font-size: 11px; color: var(--gray-400);">({{ $totalUp7 }})</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: #f59e0b;"></span>
                             <span style="font-size: 13px; color: var(--text-dashboard); font-weight: 500;">WARNING</span>
-                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #f59e0b;">{{ $warningPercent }}%</span>
-                            <span style="font-size: 11px; color: var(--gray-400);">({{ $warning }})</span>
+                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #f59e0b;">{{ $warningPercent7 }}%</span>
+                            <span style="font-size: 11px; color: var(--gray-400);">({{ $totalWarning7 }})</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: #ef4444;"></span>
                             <span style="font-size: 13px; color: var(--text-dashboard); font-weight: 500;">DOWN</span>
-                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #ef4444;">{{ $downPercent }}%</span>
-                            <span style="font-size: 11px; color: var(--gray-400);">({{ $down }})</span>
+                            <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #ef4444;">{{ $downPercent7 }}%</span>
+                            <span style="font-size: 11px; color: var(--gray-400);">({{ $totalDown7 }})</span>
                         </div>
                         
                         <!-- TOTAL PERSENTASE -->
                         <div style="margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border-dash); display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-400);">
                             <span>Total: 100%</span>
-                            <span>{{ $total }} service</span>
+                            <span>{{ $totalChanges7 }} perubahan</span>
+                        </div>
+                        <div style="font-size: 10px; color: var(--gray-400); text-align: center; margin-top: 4px;">
+                            <i class="fas fa-sync-alt"></i> Rolling 7 hari otomatis
                         </div>
                     </div>
                 @else
                     <div class="chart-empty" style="width: 100%;">
                         <i class="fas fa-chart-pie"></i>
-                        <h4>Belum Ada Data Service</h4>
-                        <p>Data akan muncul setelah ada service yang dimonitor</p>
+                        <h4>Belum Ada Data 7 Hari</h4>
+                        <p>Data akan muncul setelah ada perubahan status service</p>
                     </div>
                 @endif
             </div>
@@ -1388,19 +1408,22 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ====================== SERVICE DONUT CHART (7 Hari) ======================
-        @if($hasData)
+        // ====================== 🔥 SERVICE DONUT CHART (7 HARI - SEMUA PERUBAHAN) ======================
+        @if(isset($totalChanges) && $totalChanges > 0)
         {
-            const ctxDonut = document.getElementById('serviceDonutChart');
-            if (ctxDonut) {
+            const ctxDonut7 = document.getElementById('serviceDonutChart7');
+            if (ctxDonut7) {
                 const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
                 
                 // Ambil data dari PHP
-                const up = {{ $upPercent }};
-                const warning = {{ $warningPercent }};
-                const down = {{ $downPercent }};
+                const up = {{ $upPercent7 }};
+                const warning = {{ $warningPercent7 }};
+                const down = {{ $downPercent7 }};
+                const totalUp = {{ $totalUp7 }};
+                const totalWarning = {{ $totalWarning7 }};
+                const totalDown = {{ $totalDown7 }};
                 
-                new Chart(ctxDonut, {
+                new Chart(ctxDonut7, {
                     type: 'doughnut',
                     data: {
                         labels: ['UP', 'WARNING', 'DOWN'],
@@ -1436,6 +1459,11 @@
                                         const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                         const percentage = total > 0 ? (value / total) * 100 : 0;
                                         return context.label + ': ' + percentage.toFixed(1) + '%';
+                                    },
+                                    afterLabel: function(context) {
+                                        const dataIndex = context.dataIndex;
+                                        const counts = [totalUp, totalWarning, totalDown];
+                                        return 'Total: ' + counts[dataIndex] + ' perubahan';
                                     }
                                 }
                             }

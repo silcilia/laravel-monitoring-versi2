@@ -10,6 +10,7 @@ use App\Services\FonnteService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use Kreait\Firebase\Contract\Database;
 
 class SmokeApiController extends Controller
 {
@@ -22,6 +23,19 @@ class SmokeApiController extends Controller
     private const DANGER_THRESHOLD  = 500;
     private const DEFAULT_DEVICE_NAME = 'ESP32-Smoke';
     private const DEFAULT_DEVICE_LOCATION = 'Ruang Server';
+
+    /**
+     * @var Database
+     */
+    protected $firebase;
+
+    /**
+     * Constructor dengan dependency injection Firebase
+     */
+    public function __construct(Database $firebase)
+    {
+        $this->firebase = $firebase;
+    }
 
     /**
      * ============================================================
@@ -50,6 +64,7 @@ class SmokeApiController extends Controller
                         'is_status_changed' => false,
                         'is_adc_updated' => false,
                         'latest_log' => null,
+                        'firebase' => null
                     ]
                 ]);
             }
@@ -103,6 +118,9 @@ class SmokeApiController extends Controller
                 ];
             }
 
+            // 🔥 AMBIL DATA TERBARU DARI FIREBASE
+            $firebaseData = $this->getFirebaseLatestData();
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -118,6 +136,7 @@ class SmokeApiController extends Controller
                     'last_log_status' => $lastLog?->status,
                     'last_log_adc' => $lastLog?->smoke_value,
                     'latest_log' => $latestLogData,
+                    'firebase' => $firebaseData
                 ]
             ]);
 
@@ -299,11 +318,11 @@ class SmokeApiController extends Controller
 
     /**
      * ============================================================
-     *  📡 ESP32 KIRIM DATA (POST /api/smoke/receive)
+     *  📡 ESP32 KIRIM DATA (POST /api/smoke)
      *  ============================================================
-     *  🔗 URL: POST /api/smoke/receive
+     *  🔗 URL: POST /api/smoke
      *  🔑 Butuh Auth: Tidak (untuk ESP32)
-     *  📦 Body: { "adc": 850 }
+     *  📦 Body: { "adc": 850, "device_id": "ESP32-01" }
      *  📤 Response: Status pemrosesan data
      * ============================================================
      */
@@ -312,9 +331,11 @@ class SmokeApiController extends Controller
         try {
             $validated = $request->validate([
                 'adc' => 'required|integer|min:0|max:4095',
+                'device_id' => 'nullable|string|max:255'
             ]);
 
             $adc = $validated['adc'];
+            $deviceId = $validated['device_id'] ?? 'ESP32-Smoke-01';
 
             $device = SmokeDevice::first();
             if (!$device) {
@@ -353,8 +374,13 @@ class SmokeApiController extends Controller
             $isAdcUpdated = false;
             $lastLog = null;
             $updatedLog = null;
+            $isDateChanged = false;
 
+            // ============================================================
+            // 🔥 PERBAIKAN: LOGIKA PENYIMPANAN LOG DENGAN CEK PERUBAHAN TANGGAL
+            // ============================================================
             if ($isStatusChanged) {
+                // ✅ STATUS BERUBAH → BUAT LOG BARU
                 $log = SmokeLog::create([
                     'smoke_device_id' => $device->id,
                     'smoke_value' => $adc,
@@ -363,19 +389,41 @@ class SmokeApiController extends Controller
                 ]);
                 $isNewLogSaved = true;
                 $updatedLog = $log;
+                Log::info("📝 Log baru: Status berubah dari {$oldStatus} ke {$status} (ADC: {$adc})");
             } else {
+                // 🔥 STATUS SAMA → CEK PERUBAHAN TANGGAL
                 $lastLog = SmokeLog::where('smoke_device_id', $device->id)
                     ->whereIn('status', ['NORMAL', 'WARNING', 'DANGER'])
                     ->orderBy('created_at', 'desc')
                     ->first();
                 
                 if ($lastLog) {
-                    $lastLog->smoke_value = $adc;
-                    $lastLog->updated_at = Carbon::now();
-                    $lastLog->save();
-                    $isAdcUpdated = true;
-                    $updatedLog = $lastLog;
+                    $lastDate = Carbon::parse($lastLog->created_at)->format('Y-m-d');
+                    $today = Carbon::now()->format('Y-m-d');
+                    
+                    // 🔥 JIKA TANGGAL BERBEDA → BUAT LOG BARU
+                    if ($lastDate != $today) {
+                        $log = SmokeLog::create([
+                            'smoke_device_id' => $device->id,
+                            'smoke_value' => $adc,
+                            'status' => $status,
+                            'message' => "📅 Log harian: {$message}",
+                        ]);
+                        $isNewLogSaved = true;
+                        $updatedLog = $log;
+                        $isDateChanged = true;
+                        Log::info("📝 Log baru: Hari baru {$lastDate} → {$today}, Status tetap {$status} (ADC: {$adc})");
+                    } else {
+                        // ✅ STATUS SAMA & TANGGAL SAMA → UPDATE updated_at SAJA
+                        $lastLog->smoke_value = $adc;
+                        $lastLog->updated_at = Carbon::now();
+                        $lastLog->save();
+                        $isAdcUpdated = true;
+                        $updatedLog = $lastLog;
+                        Log::info("🔄 Log diupdate: Status {$status} tetap, ADC: {$oldAdc} → {$adc}");
+                    }
                 } else {
+                    // 🔥 TIDAK ADA LOG SAMA SEKALI → BUAT LOG PERTAMA
                     $log = SmokeLog::create([
                         'smoke_device_id' => $device->id,
                         'smoke_value' => $adc,
@@ -384,6 +432,7 @@ class SmokeApiController extends Controller
                     ]);
                     $isNewLogSaved = true;
                     $updatedLog = $log;
+                    Log::info("📝 Log pertama: {$status} (ADC: {$adc})");
                 }
             }
 
@@ -394,7 +443,11 @@ class SmokeApiController extends Controller
                 'last_seen_at' => Carbon::now(),
             ]);
 
+            // 🔥 SIMPAN KE FIREBASE
+            $firebaseResult = $this->saveToFirebase($adc, $status, $deviceId);
+
             if ($wasOffline) {
+                Log::info("📱 ESP kembali online, kirim WA online alert");
                 $this->sendEspOnlineAlert($device);
             }
 
@@ -410,7 +463,12 @@ class SmokeApiController extends Controller
                 if ($isStatusUp) {
                     $this->sendSmokeAlert($device, $adc, $status);
                     $device->update(['last_wa_sent_at' => Carbon::now()]);
+                    Log::info("📱 WA SMOKE dikirim: {$oldStatus} → {$status} (ADC: {$adc})");
+                } else {
+                    Log::info("⏭️ WA SMOKE skip (status turun): {$oldStatus} → {$status} (ADC: {$adc})");
                 }
+            } else {
+                Log::info("⏭️ WA SMOKE skip: Status {$status} tetap (ADC: {$oldAdc} → {$adc})");
             }
 
             return response()->json([
@@ -428,12 +486,15 @@ class SmokeApiController extends Controller
                     'is_status_changed' => $isStatusChanged,
                     'is_new_log_saved' => $isNewLogSaved,
                     'is_adc_updated' => $isAdcUpdated,
+                    'is_date_changed' => $isDateChanged,
                     'device_name' => $device->name,
+                    'device_id' => $deviceId,
                     'was_offline' => $wasOffline,
                     'created_at' => $log?->created_at?->format('Y-m-d H:i:s') ?? $lastLog?->created_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
                     'updated_at' => $lastLog?->updated_at?->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
                     'wa_sent' => $isStatusUp,
                     'wa_reason' => $isStatusUp ? "Status naik {$oldStatus}→{$status}" : "Status turun/tetap",
+                    'firebase' => $firebaseResult,
                     'latest_log' => $updatedLog ? [
                         'id' => $updatedLog->id,
                         'adc' => $updatedLog->smoke_value,
@@ -467,7 +528,7 @@ class SmokeApiController extends Controller
      * ============================================================
      *  🔍 CHECK ESP STATUS (UNTUK SCHEDULER)
      *  ============================================================
-     *  🔗 URL: GET /api/smoke/check-status
+     *  🔗 URL: GET /api/smoke/check-esp-status
      *  🔑 Butuh Auth: Sanctum Token
      *  📤 Response: Status semua ESP (online/offline)
      * ============================================================
@@ -475,9 +536,12 @@ class SmokeApiController extends Controller
     public function checkEspStatus()
     {
         try {
+            Log::info('🔄 ===== START CHECK ESP STATUS =====');
+            
             $devices = SmokeDevice::all();
 
             if ($devices->isEmpty()) {
+                Log::info('📡 Tidak ada device ESP yang terdaftar');
                 return response()->json([
                     'success' => true,
                     'message' => 'Tidak ada device ESP yang terdaftar',
@@ -503,12 +567,22 @@ class SmokeApiController extends Controller
                     $lastSeen = Carbon::parse($device->last_seen_at);
                     $minutesDiff = $lastSeen->diffInMinutes(now());
                     
+                    Log::info("🚨 Device {$device->name} OFFLINE! - {$minutesDiff} menit");
+                    
                     if ($minutesDiff >= 2 && $statusChanged) {
+                        Log::info("📤📤📤 MENGIRIM WA ESP OFFLINE...");
                         $this->sendEspOfflineAlert($device, $minutesDiff);
+                    } else {
+                        Log::info("⏭️ Skip WA offline: minutesDiff={$minutesDiff}, statusChanged=" . ($statusChanged ? 'YES' : 'NO'));
                     }
                 } else {
+                    Log::info("✅ Device {$device->name} ONLINE");
+                    
                     if ($statusChanged) {
+                        Log::info("🟢🟢🟢 MENGIRIM WA ESP ONLINE...");
                         $this->sendEspOnlineAlert($device);
+                    } else {
+                        Log::info("⏭️ Skip WA online: status sudah ONLINE");
                     }
                 }
                 
@@ -523,6 +597,9 @@ class SmokeApiController extends Controller
                     'status_changed' => $statusChanged,
                 ];
             }
+            
+            Log::info('✅ ===== ESP MONITORING SELESAI =====');
+            Log::info('📊 Stats: Total=' . $devices->count() . ', Online=' . $devices->where('device_status', 'ONLINE')->count() . ', Offline=' . $devices->where('device_status', 'OFFLINE')->count());
             
             return response()->json([
                 'success' => true,
@@ -595,7 +672,7 @@ class SmokeApiController extends Controller
      * ============================================================
      *  📥 EXPORT LOGS KE CSV
      *  ============================================================
-     *  🔗 URL: GET /api/smoke/export
+     *  🔗 URL: POST /api/smoke/export (sesuai api.php)
      *  🔑 Butuh Auth: Sanctum Token
      *  📤 Response: File CSV
      * ============================================================
@@ -699,9 +776,146 @@ class SmokeApiController extends Controller
         }
     }
 
+    /**
+     * ============================================================
+     *  🔥 GET DATA DARI FIREBASE (API ENDPOINT)
+     *  ============================================================
+     *  🔗 URL: GET /api/smoke/firebase
+     *  📦 Query: ?limit=20
+     *  📤 Response: Data dari Firebase
+     * ============================================================
+     */
+    public function getFirebaseData(Request $request)
+    {
+        try {
+            $limit = $request->input('limit', 20);
+            $reference = $this->firebase->getReference('sensor_data/smoke');
+            $snapshot = $reference->getSnapshot();
+            $data = $snapshot->getValue();
+
+            if (!$data) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                    'total' => 0,
+                    'message' => 'Tidak ada data di Firebase'
+                ]);
+            }
+
+            $keys = array_keys($data);
+            $lastKeys = array_slice($keys, -$limit);
+            $result = [];
+
+            foreach ($lastKeys as $key) {
+                $item = $data[$key];
+                $result[] = [
+                    'id' => $key,
+                    'smoke_level' => $item['smoke_level'] ?? 0,
+                    'status' => $item['status'] ?? 'normal',
+                    'timestamp' => $item['timestamp'] ?? null,
+                    'device_id' => $item['device_id'] ?? 'unknown',
+                    'message' => $item['message'] ?? ''
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => array_reverse($result),
+                'total' => count($data),
+                'limit' => $limit
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data dari Firebase: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     // ================================================================
     // 🔧 PRIVATE HELPER METHODS
     // ================================================================
+
+    /**
+     * 🔥 SIMPAN DATA KE FIREBASE REALTIME DATABASE
+     */
+    private function saveToFirebase($adc, $status, $deviceId)
+    {
+        try {
+            $data = [
+                'smoke_level' => (float) $adc,
+                'status' => strtolower($status),
+                'timestamp' => now()->toDateTimeString(),
+                'device_id' => $deviceId,
+                'message' => $this->getStatusMessage($status, $adc)
+            ];
+
+            $reference = $this->firebase->getReference('sensor_data/smoke');
+            $newPost = $reference->push($data);
+
+            Log::info("🔥 Data berhasil disimpan ke Firebase dengan key: " . $newPost->getKey());
+
+            return [
+                'success' => true,
+                'firebase_key' => $newPost->getKey(),
+                'path' => 'sensor_data/smoke/' . $newPost->getKey()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("❌ Gagal menyimpan ke Firebase: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * 🔥 AMBIL DATA TERBARU DARI FIREBASE
+     */
+    private function getFirebaseLatestData()
+    {
+        try {
+            $reference = $this->firebase->getReference('sensor_data/smoke');
+            $snapshot = $reference->getSnapshot();
+            $data = $snapshot->getValue();
+
+            if (!$data) {
+                return null;
+            }
+
+            $keys = array_keys($data);
+            $lastKey = end($keys);
+            $latestData = $data[$lastKey];
+
+            return [
+                'id' => $lastKey,
+                'smoke_level' => $latestData['smoke_level'] ?? 0,
+                'status' => $latestData['status'] ?? 'normal',
+                'timestamp' => $latestData['timestamp'] ?? null,
+                'device_id' => $latestData['device_id'] ?? 'unknown',
+                'message' => $latestData['message'] ?? ''
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("❌ Error get Firebase data: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 📊 Helper: GET STATUS MESSAGE
+     */
+    private function getStatusMessage($status, $adc)
+    {
+        $messages = [
+            'DANGER' => "🔥 DANGER! Smoke level tinggi: {$adc} ADC",
+            'WARNING' => "⚠️ WARNING! Smoke terdeteksi: {$adc} ADC",
+            'NORMAL' => "✅ NORMAL: {$adc} ADC"
+        ];
+        return $messages[$status] ?? "NORMAL: {$adc} ADC";
+    }
 
     /**
      * ⚠️ KIRIM WA ESP OFFLINE
@@ -777,6 +991,7 @@ class SmokeApiController extends Controller
     private function sendSmokeAlert($device, $adc, $status)
     {
         if (!in_array($status, ['WARNING', 'DANGER'])) {
+            Log::info("⏭️ WA tidak dikirim: Status {$status} (hanya WARNING/DANGER)");
             return;
         }
 

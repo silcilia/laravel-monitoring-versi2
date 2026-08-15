@@ -33,6 +33,10 @@ Route::withoutMiddleware([\Laravel\Sanctum\Http\Middleware\EnsureFrontendRequest
         Route::get('/smoke/status', [SmokeApiController::class, 'getStatus']);
         Route::get('/smoke/logs', [SmokeApiController::class, 'getLogs']);
         Route::get('/smoke/check-esp-status', [SmokeApiController::class, 'checkEspStatus']);
+        
+        // ✅ TAMBAHKAN EXPORT DI SINI (PUBLIC)
+        Route::get('/smoke/export', [SmokeApiController::class, 'export'])
+            ->name('api.smoke.export');
 
         // ============================================================
         // 🌐 NETWORK STATUS
@@ -136,8 +140,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/logs/service/{id}', [LogApiController::class, 'serviceLogsById']);
     Route::get('/logs/stats', [LogApiController::class, 'stats']);
 
-    // ============================================================
-    // 🔥 SMOKE DETECTOR API (Protected)
-    // ============================================================
-    Route::post('/smoke/export', [SmokeApiController::class, 'export']);
 });

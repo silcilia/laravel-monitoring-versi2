@@ -34,58 +34,79 @@ class DashboardController extends Controller
             ->appends(['perPage' => $perPage]);
 
         // ============================================================
-        // 🔥 GRAFIK UPTIME 7 HARI - HANYA LOG DARI SERVICE AKTIF
+        // 🔥 DONUT CHART - SEMUA PERUBAHAN STATUS (7 HARI TERAKHIR)
         // ============================================================
         $startDate = Carbon::now()->subDays(6)->startOfDay();
         $endDate = Carbon::now()->endOfDay();
         
-        // Ambil ID service yang aktif (tidak diarsip)
         $activeServiceIds = Service::where('is_archived', 0)->pluck('id')->toArray();
         
-        // HANYA ambil log dari service yang aktif
+        // Ambil SEMUA log dalam 7 hari terakhir
         $logs = ServiceLog::whereIn('service_id', $activeServiceIds)
+            ->where('created_at', '>=', $startDate)
+            ->where('created_at', '<=', $endDate)
+            ->get();
+
+        // Hitung SEMUA perubahan status
+        $totalUp = $logs->where('status', 'UP')->count();
+        $totalWarning = $logs->where('status', 'WARNING')->count();
+        $totalDown = $logs->where('status', 'DOWN')->count();
+        $totalChanges = $logs->count();
+
+        // Total service aktif
+        $totalServices = Service::where('is_archived', 0)->count();
+
+        // ============================================================
+        // 🔥 GRAFIK UPTIME 7 HARI - STATUS TERAKHIR PER HARI
+        // ============================================================
+        // Ambil semua log dalam 7 hari terakhir (untuk bar chart)
+        $logsForChart = ServiceLog::whereIn('service_id', $activeServiceIds)
             ->where('created_at', '>=', $startDate)
             ->where('created_at', '<=', $endDate)
             ->orderBy('created_at', 'asc')
             ->get();
 
-        $groupedLogs = $logs->groupBy(function($log) {
+        // Kelompokkan berdasarkan tanggal
+        $groupedLogs = $logsForChart->groupBy(function($log) {
             return $log->created_at->format('Y-m-d');
         });
 
         $chartLabels = [];
         $uptimeData = [];
+        $statusPerDay = [];
 
-        $current = Carbon::now()->subDays(6)->startOfDay();
-        $end = Carbon::now()->endOfDay();
-
-        while ($current <= $end) {
-            $key = $current->format('Y-m-d');
-            $chartLabels[] = $current->format('d/m/Y');
+        // Loop 7 hari dari yang paling lama ke yang paling baru
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $key = $date->format('Y-m-d');
+            $chartLabels[] = $date->format('d/m/Y');
             
             if (isset($groupedLogs[$key])) {
                 $dayLogs = $groupedLogs[$key];
-                $totalChecks = $dayLogs->count();
                 
-                $totalWeight = 0;
-                foreach ($dayLogs as $log) {
-                    if ($log->status === 'UP') {
-                        $totalWeight += 100;
-                    } elseif ($log->status === 'WARNING') {
-                        $totalWeight += 70;
-                    } elseif ($log->status === 'DOWN') {
-                        $totalWeight += 0;
-                    }
+                // Ambil status TERAKHIR di hari itu
+                $lastLog = $dayLogs->sortByDesc('created_at')->first();
+                
+                if ($lastLog->status === 'UP') {
+                    $uptimeValue = 100;
+                    $statusPerDay[$key] = 'UP';
+                } elseif ($lastLog->status === 'WARNING') {
+                    $uptimeValue = 70;
+                    $statusPerDay[$key] = 'WARNING';
+                } elseif ($lastLog->status === 'DOWN') {
+                    $uptimeValue = 0;
+                    $statusPerDay[$key] = 'DOWN';
+                } else {
+                    $uptimeValue = 0;
+                    $statusPerDay[$key] = 'UNKNOWN';
                 }
                 
-                $uptimeData[] = $totalChecks > 0 
-                    ? round($totalWeight / $totalChecks, 2) 
-                    : 0;
+                $uptimeData[] = $uptimeValue;
+                
             } else {
                 $uptimeData[] = 0;
+                $statusPerDay[$key] = 'NO_DATA';
             }
-            
-            $current->addDay();
         }
 
         // ============================================================
@@ -111,48 +132,52 @@ class DashboardController extends Controller
         }
 
         // ============================================================
-        // 🔥 GRAFIK SMOKE (7 HARI) - PERBAIKAN
+        // 🔥 GRAFIK SMOKE (7 HARI) - MENAMPILKAN NILAI TERTINGGI PER HARI
         // ============================================================
         $smokeStartDate = Carbon::now()->subDays(6)->startOfDay();
         $smokeEndDate = Carbon::now()->endOfDay();
         
-        // Ambil semua log smoke dalam 7 hari terakhir
         $smokeLogs = SmokeLog::where('created_at', '>=', $smokeStartDate)
             ->where('created_at', '<=', $smokeEndDate)
-            ->orderBy('created_at', 'asc')
+            ->orderBy('smoke_value', 'desc')
             ->get();
 
-        // Kelompokkan berdasarkan tanggal
         $groupedSmokeLogs = $smokeLogs->groupBy(function($log) {
             return $log->created_at->format('Y-m-d');
         });
 
         $smokeLabels = [];
         $smokeData = [];
+        $smokeStatuses = [];
+        $smokeTimestamps = [];
+        $smokeMaxValues = [];
 
-        // Loop untuk 7 hari terakhir
-        $currentSmoke = Carbon::now()->subDays(6)->startOfDay();
-        $endSmoke = Carbon::now()->endOfDay();
-
-        while ($currentSmoke <= $endSmoke) {
-            $key = $currentSmoke->format('Y-m-d');
-            $smokeLabels[] = $currentSmoke->format('d/m/Y');
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now()->subDays($i);
+            $dateKey = $date->format('Y-m-d');
+            $smokeLabels[] = $date->format('d/m/Y');
             
-            // CEK: Apakah ada log untuk tanggal ini?
-            if (isset($groupedSmokeLogs[$key])) {
-                // ADA DATA: ambil nilai smoke terakhir di hari tersebut
-                $lastLogOfDay = $groupedSmokeLogs[$key]->last();
-                $smokeData[] = round($lastLogOfDay->smoke_value, 2);
+            if (isset($groupedSmokeLogs[$dateKey])) {
+                $dayLogs = $groupedSmokeLogs[$dateKey];
+                
+                $maxSmokeValue = $dayLogs->max('smoke_value');
+                $logWithMaxValue = $dayLogs->where('smoke_value', $maxSmokeValue)->first();
+                
+                $smokeData[] = round($maxSmokeValue, 2);
+                $smokeStatuses[$dateKey] = $logWithMaxValue->status ?? 'NORMAL';
+                $smokeTimestamps[$dateKey] = $logWithMaxValue->created_at->format('H:i:s');
+                $smokeMaxValues[$dateKey] = $maxSmokeValue;
+                
             } else {
-                // TIDAK ADA DATA: set ke null untuk tidak menampilkan titik
-                $smokeData[] = null;
+                $smokeData[] = 0;
+                $smokeStatuses[$dateKey] = 'NO_DATA';
+                $smokeTimestamps[$dateKey] = null;
+                $smokeMaxValues[$dateKey] = 0;
             }
-            
-            $currentSmoke->addDay();
         }
 
         // ============================================================
-        // 🔥 ESP STATUS - PERBAIKAN
+        // 🔥 ESP STATUS
         // ============================================================
         $smokeDevices = SmokeDevice::all();
         
@@ -162,7 +187,6 @@ class DashboardController extends Controller
         $lastSeenAt = null;
         $deviceName = 'ESP32-Smoke';
         
-        // Cari device yang terakhir update
         $latestDevice = $smokeDevices->sortByDesc('last_seen_at')->first();
         
         if ($latestDevice) {
@@ -182,7 +206,6 @@ class DashboardController extends Controller
             $deviceName = $latestDevice->name ?? 'ESP32-Smoke';
         }
 
-        // Jika tidak ada device sama sekali
         if ($smokeDevices->isEmpty()) {
             $onlineCount = 0;
             $lastSmokeValue = 0;
@@ -196,12 +219,19 @@ class DashboardController extends Controller
         $espStatusLabel = $onlineCount > 0 ? '🟢 ONLINE' : '🔴 OFFLINE';
 
         // ============================================================
-        // 🔥 TAMBAHKAN TOTAL ARSIP UNTUK REFERENSI
+        // 🔥 TAMBAHKAN DATA UNTUK INFO TAMBAHAN
+        // ============================================================
+        $today = Carbon::now()->format('Y-m-d');
+        $todayMaxValue = isset($smokeMaxValues[$today]) ? $smokeMaxValues[$today] : 0;
+        $todayStatus = isset($smokeStatuses[$today]) ? $smokeStatuses[$today] : 'NO_DATA';
+
+        // ============================================================
+        // 🔥 TOTAL ARSIP
         // ============================================================
         $totalArchived = Service::where('is_archived', 1)->count();
 
         // ============================================================
-        // 🔥 DONUT CHART - HANYA SERVICE AKTIF
+        // 🔥 HAS DATA
         // ============================================================
         $hasData = $total > 0;
 
@@ -220,6 +250,9 @@ class DashboardController extends Controller
                 'uptimeOverall',
                 'smokeLabels',
                 'smokeData',
+                'smokeStatuses',
+                'smokeTimestamps',
+                'smokeMaxValues',
                 'onlineCount',
                 'espStatus',
                 'espStatusClass',
@@ -228,7 +261,15 @@ class DashboardController extends Controller
                 'lastSmokeStatus',
                 'lastSeenAt',
                 'deviceName',
-                'hasData'
+                'hasData',
+                'todayMaxValue',
+                'todayStatus',
+                // Data baru untuk donut chart
+                'totalUp',
+                'totalWarning',
+                'totalDown',
+                'totalChanges',
+                'totalServices'
             )
         );
     }

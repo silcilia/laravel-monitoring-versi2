@@ -51,6 +51,12 @@
         --date-picker-filter: none;
         --sort-active-color: #6366f1;
         --sort-inactive-color: #94a3b8;
+        
+        /* CSS Variables untuk log type */
+        --border-status-change: #8b5cf6;
+        --border-date-change: #f59e0b;
+        --bg-date-change: rgba(245, 158, 11, 0.03);
+        --bg-date-change-dark: rgba(245, 158, 11, 0.05);
     }
 
     [data-theme="dark"] {
@@ -93,6 +99,9 @@
         --date-picker-filter: invert(1);
         --sort-active-color: #818cf8;
         --sort-inactive-color: #475569;
+        
+        --bg-date-change: rgba(245, 158, 11, 0.05);
+        --bg-date-change-dark: rgba(245, 158, 11, 0.08);
     }
 
     /* ========== SORTING CSS ========== */
@@ -139,7 +148,6 @@
         font-size: 8px;
     }
 
-    /* Active ASC - panah atas biru */
     .sortable-header.active-asc .sort-icon .arrow-up {
         color: var(--sort-active-color) !important;
         opacity: 1 !important;
@@ -151,7 +159,6 @@
         opacity: 0.3 !important;
     }
 
-    /* Active DESC - panah bawah biru */
     .sortable-header.active-desc .sort-icon .arrow-down {
         color: var(--sort-active-color) !important;
         opacity: 1 !important;
@@ -163,7 +170,6 @@
         opacity: 0.3 !important;
     }
 
-    /* Text color */
     .sortable-header.active-asc,
     .sortable-header.active-desc {
         color: var(--sort-active-color) !important;
@@ -339,68 +345,6 @@
     @keyframes pulse-offline {
         0%, 100% { opacity: 1; transform: scale(1); }
         50% { opacity: 0.3; transform: scale(0.8); }
-    }
-
-    .auto-refresh-timer {
-        position: fixed;
-        bottom: 24px;
-        right: 24px;
-        background: var(--bg-timer);
-        color: white;
-        padding: 10px 18px;
-        border-radius: 12px;
-        z-index: 99999;
-        font-family: 'Courier New', monospace;
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        box-shadow: var(--shadow-timer);
-        backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        user-select: none;
-        cursor: default;
-        transition: var(--transition);
-    }
-
-    .auto-refresh-timer:hover {
-        transform: scale(1.05);
-        background: var(--bg-timer);
-    }
-
-    .auto-refresh-timer .icon {
-        font-size: 16px;
-    }
-
-    .auto-refresh-timer .label {
-        opacity: 0.7;
-        font-size: 11px;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .auto-refresh-timer .countdown {
-        font-weight: 700;
-        font-size: 16px;
-        min-width: 45px;
-        text-align: center;
-        color: #6ee7b7;
-        transition: var(--transition);
-    }
-
-    .auto-refresh-timer .countdown.warning {
-        color: var(--warning);
-    }
-
-    .auto-refresh-timer .countdown.danger {
-        color: var(--danger);
-        animation: blink 0.5s infinite;
-    }
-
-    @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.2; }
     }
 
     .smoke-status-card {
@@ -659,6 +603,141 @@
         transition: all 0.3s ease;
     }
 
+    /* ========== FILTER LOGS ========== */
+    .filter-group {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 6px;
+    }
+
+    .filter-btn {
+        padding: 5px 14px;
+        border-radius: 20px;
+        border: 1.5px solid var(--border-color);
+        background: var(--bg-card);
+        color: var(--text-secondary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .filter-btn:hover {
+        border-color: var(--text-muted);
+        background: var(--bg-hover-row);
+    }
+
+    .filter-btn.active {
+        border-color: #6366f1;
+        background: #6366f1;
+        color: white;
+    }
+
+    .filter-btn.active-normal {
+        border-color: #10b981;
+        background: #10b981;
+        color: white;
+    }
+
+    .filter-btn.active-warning {
+        border-color: #f59e0b;
+        background: #f59e0b;
+        color: white;
+    }
+
+    .filter-btn.active-danger {
+        border-color: #ef4444;
+        background: #ef4444;
+        color: white;
+    }
+
+    .filter-btn .badge-count {
+        background: rgba(0,0,0,0.08);
+        padding: 0 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--text-muted);
+    }
+
+    .filter-btn.active .badge-count {
+        background: rgba(255,255,255,0.25);
+        color: white;
+    }
+
+    .filter-btn.active-normal .badge-count {
+        background: rgba(255,255,255,0.25);
+        color: white;
+    }
+
+    .filter-btn.active-warning .badge-count {
+        background: rgba(255,255,255,0.25);
+        color: white;
+    }
+
+    .filter-btn.active-danger .badge-count {
+        background: rgba(255,255,255,0.25);
+        color: white;
+    }
+
+    /* ========== STATISTIK RINGKAS ========== */
+    .stats-ringkas {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding: 4px 0;
+    }
+
+    .stats-ringkas .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+    }
+
+    .stats-ringkas .stat-item .stat-number {
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--text-primary);
+    }
+
+    .stats-ringkas .stat-item .stat-label {
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 12px;
+    }
+
+    .stats-ringkas .stat-item .stat-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+    }
+
+    .stats-ringkas .stat-item .stat-dot.total {
+        background: #6366f1;
+    }
+
+    .stats-ringkas .stat-item .stat-dot.normal {
+        background: #10b981;
+    }
+
+    .stats-ringkas .stat-item .stat-dot.warning {
+        background: #f59e0b;
+    }
+
+    .stats-ringkas .stat-item .stat-dot.danger {
+        background: #ef4444;
+    }
+
+    /* ========== TABLE ========== */
     .table-container {
         background: var(--bg-card);
         border-radius: var(--radius);
@@ -677,18 +756,30 @@
         border-bottom: 1px solid var(--border-table);
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         flex-wrap: wrap;
         gap: 16px;
         background: var(--bg-table-header);
         transition: all 0.3s ease;
     }
 
+    .table-header .header-left {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .table-header .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
     .table-header h2 {
         font-size: 16px;
         font-weight: 600;
         color: var(--text-primary);
-        margin: 0;
+        margin: 0 0 4px 0;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -765,12 +856,38 @@
         border-bottom: none;
     }
 
+    /* ========== PERBAIKAN: STYLE UNTUK JENIS LOG ========== */
     .table-container tbody tr.status-change {
-        border-left: 4px solid #8b5cf6;
+        border-left: 4px solid var(--border-status-change);
     }
 
-    .table-container tbody tr.status-change td:first-child {
+    .table-container tbody tr.date-change {
+        border-left: 4px solid var(--border-date-change);
+        background: var(--bg-date-change);
+    }
+
+    .table-container tbody tr.status-change td:first-child,
+    .table-container tbody tr.date-change td:first-child {
         padding-left: 12px;
+    }
+
+    [data-theme="dark"] .table-container tbody tr.date-change {
+        background: var(--bg-date-change-dark);
+    }
+
+    .log-type-indicator {
+        display: inline-block;
+        font-size: 10px;
+        margin-left: 6px;
+        font-weight: 600;
+    }
+
+    .log-type-indicator.status-change {
+        color: var(--border-status-change);
+    }
+
+    .log-type-indicator.date-change {
+        color: var(--border-date-change);
     }
 
     .status-badge {
@@ -1067,6 +1184,34 @@
         display: inline-block;
     }
 
+    /* 🔥 REAL-TIME BADGE */
+    .realtime-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(16, 185, 129, 0.15);
+        color: #10b981;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .realtime-badge .dot-pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: pulse-dot 1s infinite;
+    }
+
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.3; transform: scale(0.5); }
+    }
+
     /* ========== RESPONSIVE ========== */
     @media (max-width: 1024px) {
         .smoke-status-right {
@@ -1091,6 +1236,13 @@
         .sortable-header .sort-icon .arrow-up,
         .sortable-header .sort-icon .arrow-down {
             font-size: 7px;
+        }
+        .table-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .table-header .header-right {
+            justify-content: flex-start;
         }
     }
 
@@ -1205,16 +1357,6 @@
         .pagination .page-link .arrow {
             font-size: 12px;
         }
-        .auto-refresh-timer {
-            bottom: 16px;
-            right: 16px;
-            padding: 8px 14px;
-            font-size: 11px;
-        }
-        .auto-refresh-timer .countdown {
-            font-size: 14px;
-            min-width: 35px;
-        }
         .perpage-selector {
             font-size: 12px;
         }
@@ -1233,6 +1375,26 @@
         .sortable-header .sort-icon .arrow-up,
         .sortable-header .sort-icon .arrow-down {
             font-size: 6px;
+        }
+        .stats-ringkas {
+            gap: 12px;
+        }
+        .stats-ringkas .stat-item {
+            font-size: 12px;
+        }
+        .stats-ringkas .stat-item .stat-number {
+            font-size: 15px;
+        }
+        .filter-btn {
+            padding: 4px 12px;
+            font-size: 11px;
+        }
+        .filter-btn .badge-count {
+            font-size: 9px;
+            padding: 0 6px;
+        }
+        .table-header .header-right {
+            justify-content: flex-start;
         }
     }
 
@@ -1374,6 +1536,35 @@
         .sortable-header .sort-icon .arrow-down {
             font-size: 5px;
         }
+        .stats-ringkas {
+            gap: 8px;
+        }
+        .stats-ringkas .stat-item {
+            font-size: 11px;
+        }
+        .stats-ringkas .stat-item .stat-number {
+            font-size: 14px;
+        }
+        .stats-ringkas .stat-item .stat-dot {
+            width: 8px;
+            height: 8px;
+        }
+        .filter-group {
+            gap: 4px;
+        }
+        .filter-btn {
+            padding: 3px 10px;
+            font-size: 10px;
+        }
+        .filter-btn .badge-count {
+            font-size: 8px;
+            padding: 0 5px;
+        }
+        .table-header .header-right {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
     }
 </style>
 
@@ -1386,12 +1577,15 @@
                 <h1>Smoke Detector Monitoring</h1>
                 <div class="header-subtitle">
                     Pantau status asap dan kondisi device
-                    <span>Real-time</span>
+                    <span class="realtime-badge">
+                        <span class="dot-pulse"></span>
+                        Real-time
+                    </span>
                 </div>
             </div>
         </div>
         <div class="header-actions">
-            <a href="{{ route('smoke.export') }}" class="btn-download-csv">
+            <a href="{{ route('api.smoke.export') }}" class="btn-download-csv">
                 📥 <span>Download CSV</span>
             </a>
             <div class="status-esp" id="espStatus">
@@ -1444,7 +1638,7 @@
                 </div>
                 <div class="bar-labels">
                     <span class="min-label">0</span>
-                    <span class="current-value">{{ number_format($smokeValue, 0) }}</span>
+                    <span class="current-value" id="barCurrentValue">{{ number_format($smokeValue, 0) }}</span>
                     <span class="max-label">⚠️ {{ $maxAdc }}</span>
                 </div>
             </div>
@@ -1452,13 +1646,76 @@
     </div>
 
     <!-- ========== TABLE LOGS ========== -->
+    @php
+        // Statistik untuk filter
+        $filterStatus = request('status', '');
+        
+        // Hitung total per status (dari semua data, bukan hanya halaman)
+        $allLogsForStats = \App\Models\SmokeLog::whereIn('status', ['NORMAL', 'WARNING', 'DANGER'])->get();
+        $totalNormal = $allLogsForStats->where('status', 'NORMAL')->count();
+        $totalWarning = $allLogsForStats->where('status', 'WARNING')->count();
+        $totalDanger = $allLogsForStats->where('status', 'DANGER')->count();
+        $totalAllLogs = $allLogsForStats->count();
+    @endphp
+
     <div class="table-container">
         <div class="table-header">
-            <h2>
-                📋 Logs Smoke Detector
-                <span id="logCount">{{ $smokeLogs->total() }}</span>
-            </h2>
-            <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+            <div class="header-left">
+                <h2>
+                    📋 Logs Smoke Detector
+                    <span id="logCount">{{ $smokeLogs->total() }}</span>
+                </h2>
+                
+                <!-- 🔥 STATISTIK RINGKAS -->
+                <div class="stats-ringkas">
+                    <div class="stat-item">
+                        <span class="stat-dot total"></span>
+                        <span class="stat-number">{{ number_format($totalAllLogs) }}</span>
+                        <span class="stat-label">Total</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-dot normal"></span>
+                        <span class="stat-number">{{ number_format($totalNormal) }}</span>
+                        <span class="stat-label">Normal</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-dot warning"></span>
+                        <span class="stat-number">{{ number_format($totalWarning) }}</span>
+                        <span class="stat-label">Warning</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-dot danger"></span>
+                        <span class="stat-number">{{ number_format($totalDanger) }}</span>
+                        <span class="stat-label">Danger</span>
+                    </div>
+                </div>
+                
+                <!-- 🔥 FILTER STATUS -->
+                <div class="filter-group">
+                    <a href="{{ request()->fullUrlWithQuery(['status' => '', 'page' => 1]) }}" 
+                       class="filter-btn {{ $filterStatus == '' ? 'active' : '' }}">
+                        Semua
+                        <span class="badge-count">{{ number_format($totalAllLogs) }}</span>
+                    </a>
+                    <a href="{{ request()->fullUrlWithQuery(['status' => 'NORMAL', 'page' => 1]) }}" 
+                       class="filter-btn {{ $filterStatus == 'NORMAL' ? 'active-normal' : '' }}">
+                        🟢 Normal
+                        <span class="badge-count">{{ number_format($totalNormal) }}</span>
+                    </a>
+                    <a href="{{ request()->fullUrlWithQuery(['status' => 'WARNING', 'page' => 1]) }}" 
+                       class="filter-btn {{ $filterStatus == 'WARNING' ? 'active-warning' : '' }}">
+                        🟡 Warning
+                        <span class="badge-count">{{ number_format($totalWarning) }}</span>
+                    </a>
+                    <a href="{{ request()->fullUrlWithQuery(['status' => 'DANGER', 'page' => 1]) }}" 
+                       class="filter-btn {{ $filterStatus == 'DANGER' ? 'active-danger' : '' }}">
+                        🔴 Danger
+                        <span class="badge-count">{{ number_format($totalDanger) }}</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="header-right">
                 <div class="perpage-selector">
                     <label for="perPage">Tampilkan:</label>
                     <select id="perPage" onchange="changePerPage(this.value)">
@@ -1500,7 +1757,7 @@
                                 <span class="arrow-down">▼</span>
                             </span>
                         </th>
-                        <th style="width: 140px;" class="sortable-header {{ request('sort', 'id') == 'status' ? (request('direction', 'desc') == 'asc' ? 'active-asc' : 'active-desc') : '' }}" data-sort="status" onclick="sortTable('status')">
+                        <th style="width: 180px;" class="sortable-header {{ request('sort', 'id') == 'status' ? (request('direction', 'desc') == 'asc' ? 'active-asc' : 'active-desc') : '' }}" data-sort="status" onclick="sortTable('status')">
                             📌 Status
                             <span class="sort-icon">
                                 <span class="arrow-up">▲</span>
@@ -1519,8 +1776,25 @@
                             $logMessage = $log->status == 'DANGER' ? '🔥 Asap tinggi! Periksa segera!' : ($log->status == 'WARNING' ? '⚠️ Asap mulai terdeteksi, waspada!' : '✅ Kondisi dalam status aman');
                             
                             $rowNumber = $smokeLogs->firstItem() + $index;
+                            
+                            // 🔥 DETEKSI JENIS LOG: Status Change atau Date Change
+                            $isDateChange = false;
+                            if ($index > 0) {
+                                $prevLog = $smokeLogs[$index - 1] ?? null;
+                                if ($prevLog && $prevLog->status == $log->status) {
+                                    $prevDate = \Carbon\Carbon::parse($prevLog->created_at)->format('Y-m-d');
+                                    $currentDate = \Carbon\Carbon::parse($log->created_at)->format('Y-m-d');
+                                    if ($prevDate != $currentDate) {
+                                        $isDateChange = true;
+                                    }
+                                }
+                            }
+                            
+                            $logTypeClass = $isDateChange ? 'date-change' : 'status-change';
+                            $logTypeLabel = $isDateChange ? '📅 Hari Baru' : '🔄 Status Berubah';
+                            $logTypeIndicator = $isDateChange ? '<span class="log-type-indicator date-change">📅</span>' : '<span class="log-type-indicator status-change">🔄</span>';
                         @endphp
-                        <tr data-log-id="{{ $log->id }}" data-log-status="{{ $log->status }}" class="status-change">
+                        <tr data-log-id="{{ $log->id }}" data-log-status="{{ $log->status }}" class="{{ $logTypeClass }}">
                             <td style="text-align: center;">
                                 <span class="row-number">{{ $rowNumber }}</span>
                             </td>
@@ -1538,10 +1812,14 @@
                                 <span class="status-badge {{ $statusClass }}">
                                     {{ $statusIcon }} {{ $log->status ?? 'NORMAL' }}
                                 </span>
+                                {!! $logTypeIndicator !!}
                             </td>
                             <td>
-                                <div class="message-cell" title="{{ $logMessage }}">
+                                <div class="message-cell" title="{{ $logMessage }}{{ $isDateChange ? ' (Log karena pergantian hari)' : '' }}">
                                     {{ $logMessage }}
+                                    @if($isDateChange)
+                                        <span style="font-size: 11px; color: var(--border-date-change); margin-left: 4px;">(hari baru)</span>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -1646,15 +1924,36 @@
     </div>
 </div>
 
-<!-- ========== AUTO REFRESH TIMER ========== -->
-<div class="auto-refresh-timer" id="autoRefreshTimer">
-    <span class="icon">🔄</span>
-    <span class="label">Refresh</span>
-    <span class="countdown" id="countdownTimer">0:05</span>
-</div>
+<!-- ========== FIREBASE SDK ========== -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <!-- ========== SCRIPT ========== -->
 <script>
+    // ========== FIREBASE CONFIGURATION ==========
+    const firebaseConfig = {
+        apiKey: "{{ env('FIREBASE_API_KEY', 'AIzaSyDummyKeyExample123456789') }}",
+        authDomain: "{{ env('FIREBASE_PROJECT_ID', 'laravel-monitoring-305d6') }}.firebaseapp.com",
+        databaseURL: "{{ env('FIREBASE_DATABASE_URL', 'https://laravel-monitoring-305d6-default-rtdb.asia-southeast1.firebasedatabase.app/') }}",
+        projectId: "{{ env('FIREBASE_PROJECT_ID', 'laravel-monitoring-305d6') }}",
+        storageBucket: "{{ env('FIREBASE_PROJECT_ID', 'laravel-monitoring-305d6') }}.appspot.com",
+        messagingSenderId: "117350041114929788398",
+        appId: "1:117350041114929788398:web:default"
+    };
+
+    // Initialize Firebase
+    let firebaseInitialized = false;
+    try {
+        firebase.initializeApp(firebaseConfig);
+        firebaseInitialized = true;
+        console.log('🔥 Firebase initialized successfully!');
+    } catch (e) {
+        console.warn('⚠️ Firebase already initialized or error:', e.message);
+        firebaseInitialized = true;
+    }
+
+    const database = firebase.database();
+
     // ========== SORTING FUNCTION ==========
     function sortTable(column) {
         let currentSort = '{{ request('sort', 'id') }}';
@@ -1673,22 +1972,34 @@
     }
 
     // ========== KONFIGURASI ==========
-    const REFRESH_INTERVAL = 5;
-    let countdownSeconds = REFRESH_INTERVAL;
-    let countdownElement = document.getElementById('countdownTimer');
     let totalLogsCount = {{ $smokeLogs->total() }};
     let isFetching = false;
-    let lastLogId = null;
     let isFirstLoad = true;
-    
+    let existingLogIds = new Set();
+
     let currentStatus = '{{ strtoupper($smokeStatus) }}';
     let currentAdc = {{ $smokeValue }};
+    let latestLogId = null;
+
+    // ========== LOAD EXISTING LOG IDs ==========
+    function loadExistingLogIds() {
+        const rows = document.querySelectorAll('#logTableBody tr[data-log-id]');
+        rows.forEach(row => {
+            const logId = row.dataset.logId;
+            if (logId) {
+                existingLogIds.add(logId);
+            }
+        });
+        console.log('📋 Loaded ' + existingLogIds.size + ' existing log IDs');
+    }
 
     // ========== UPDATE TOTAL LOGS ==========
     function updateTotalLogs(count) {
         totalLogsCount = count;
-        document.getElementById('totalLogs').textContent = count;
-        document.getElementById('logCount').textContent = count;
+        const totalEl = document.getElementById('totalLogs');
+        const countEl = document.getElementById('logCount');
+        if (totalEl) totalEl.textContent = count;
+        if (countEl) countEl.textContent = count;
     }
 
     // ========== FORMAT NUMBER ==========
@@ -1730,183 +2041,11 @@
         return '✅ Kondisi dalam status aman';
     }
 
-    // ========== FETCH ESP STATUS ==========
-    function fetchEspStatus() {
-        if (isFetching) return;
-        isFetching = true;
-        
-        const url = '/api/smoke/status?_=' + Date.now();
-        
-        fetch(url, {
-            headers: {
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const esp = data.data;
-                const isOnline = esp.device_status === 'ONLINE';
-                const adc = esp.adc || 0;
-                const status = esp.status || 'NORMAL';
-                const isStatusChanged = esp.is_status_changed || false;
-                const isAdcUpdated = esp.is_adc_updated || false;
-                const latestLog = esp.latest_log || null;
-                const serverLogId = latestLog ? latestLog.id : null;
-                
-                // UPDATE ESP STATUS
-                const dot = document.getElementById('espDot');
-                const statusText = document.getElementById('espStatusText');
-                if (dot && statusText) {
-                    dot.className = 'dot ' + (isOnline ? 'online' : 'offline');
-                    statusText.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
-                    statusText.style.color = isOnline ? '#10b981' : '#ef4444';
-                }
-                
-                // UPDATE TAMPILAN SMOKE
-                updateSmokeDisplay(esp);
-                
-                // LOGIKA DETEKSI PERUBAHAN
-                const oldStatus = currentStatus;
-                const oldAdc = currentAdc;
-                
-                if (isStatusChanged || status !== oldStatus) {
-                    console.log('📝 STATUS BERUBAH!', oldStatus, '→', status);
-                    addNewLog(esp, latestLog);
-                    lastLogId = serverLogId;
-                    currentStatus = status;
-                    currentAdc = adc;
-                }
-                else if ((isAdcUpdated || adc !== oldAdc) && status === oldStatus) {
-                    console.log('🔄 ADC UPDATED:', oldAdc, '→', adc);
-                    updateLastLogAdc(esp);
-                    currentAdc = adc;
-                }
-                
-                if (isFirstLoad) {
-                    lastLogId = serverLogId;
-                    currentStatus = status;
-                    currentAdc = adc;
-                    isFirstLoad = false;
-                }
-            }
-            isFetching = false;
-        })
-        .catch(error => {
-            console.error('Error fetching ESP status:', error);
-            isFetching = false;
-        });
-    }
-
-    // ========== TAMBAHKAN LOG BARU ==========
-    function addNewLog(data, logData) {
-        const tbody = document.getElementById('logTableBody');
-        if (!tbody) return;
-        
-        const status = data.status || 'NORMAL';
-        const adc = data.adc || 0;
+    // ========== UPDATE TAMPILAN SMOKE ==========
+    function updateSmokeDisplay(adc, status, timestamp) {
         const statusClass = getStatusClass(status);
         const statusIcon = getStatusIcon(status);
-        const logMessage = logData ? logData.message : getStatusMessage(status);
-        const createdAt = logData ? logData.created_at : new Date().toISOString();
-        const logId = logData ? logData.id : Date.now();
-        
-        const existingRows = tbody.querySelectorAll('tr[data-log-id="' + logId + '"]');
-        if (existingRows.length > 0) {
-            console.log('⚠️ Log sudah ada, skip duplicate');
-            return;
-        }
-        
-        totalLogsCount++;
-        updateTotalLogs(totalLogsCount);
-        
-        const firstRow = tbody.querySelector('tr');
-        let rowNumber = 1;
-        if (firstRow) {
-            const firstNumberSpan = firstRow.querySelector('.row-number');
-            if (firstNumberSpan) {
-                rowNumber = parseInt(firstNumberSpan.textContent) + 1;
-            }
-        }
-        
-        const currentTime = formatDate(createdAt);
-        
-        const row = document.createElement('tr');
-        row.dataset.logId = logId;
-        row.dataset.logStatus = status;
-        row.className = 'status-change new-log-flash';
-        
-        row.innerHTML = `
-            <td style="text-align: center;">
-                <span class="row-number">${rowNumber}</span>
-            </td>
-            <td><span class="time-cell" data-updated-at="${createdAt}">${currentTime}</span></td>
-            <td><span class="value-cell ${statusClass}">${numberFormat(adc)}</span></td>
-            <td><span class="status-badge ${statusClass}">${statusIcon} ${status}</span></td>
-            <td><div class="message-cell" title="${logMessage}">${logMessage}</div></td>
-        `;
-        
-        tbody.insertBefore(row, tbody.firstChild);
-        updateRowNumbers();
-        
-        const perPage = parseInt(document.getElementById('perPage')?.value || 10);
-        while (tbody.children.length > perPage && tbody.children.length > 1) {
-            const lastRow = tbody.lastChild;
-            if (lastRow) {
-                tbody.removeChild(lastRow);
-            }
-        }
-        
-        setTimeout(() => {
-            row.classList.remove('new-log-flash');
-        }, 600);
-        
-        lastLogId = logId;
-        console.log('✅ Log baru ditambahkan:', status, adc, 'ID:', logId);
-    }
-
-    // ========== UPDATE ADC DI LOG TERAKHIR ==========
-    function updateLastLogAdc(data) {
-        const tbody = document.getElementById('logTableBody');
-        if (!tbody) return;
-        
-        const rows = tbody.querySelectorAll('tr[data-log-id]');
-        if (rows.length === 0) return;
-        
-        const targetRow = rows[0];
-        if (!targetRow) return;
-        
-        const currentTime = formatDate(new Date().toISOString());
-        const statusClass = getStatusClass(data.status || 'NORMAL');
-        const adc = data.adc || 0;
-        
-        const valueCell = targetRow.querySelector('.value-cell');
-        if (valueCell) {
-            valueCell.textContent = numberFormat(adc);
-            valueCell.className = 'value-cell ' + statusClass;
-        }
-        
-        const timeCell = targetRow.querySelector('.time-cell');
-        if (timeCell) {
-            timeCell.textContent = currentTime;
-            timeCell.dataset.updatedAt = new Date().toISOString();
-        }
-        
-        targetRow.classList.add('new-log-flash');
-        setTimeout(() => {
-            targetRow.classList.remove('new-log-flash');
-        }, 600);
-        
-        console.log('✅ Log diupdate ADC:', adc);
-    }
-
-    // ========== UPDATE TAMPILAN SMOKE ==========
-    function updateSmokeDisplay(data) {
-        const adc = data.adc || 0;
-        const status = data.status || 'NORMAL';
-        const statusClass = getStatusClass(status);
+        const statusText = status === 'DANGER' ? 'BAHAYA' : (status === 'WARNING' ? 'WARNING' : 'NORMAL');
 
         const smokeValueElement = document.getElementById('smokeValue');
         if (smokeValueElement) {
@@ -1916,8 +2055,6 @@
 
         const statusLabelElement = document.getElementById('statusLabel');
         if (statusLabelElement) {
-            const statusIcon = getStatusIcon(status);
-            const statusText = status === 'DANGER' ? 'BAHAYA' : (status === 'WARNING' ? 'WARNING' : 'NORMAL');
             statusLabelElement.textContent = statusIcon + ' ' + statusText;
             statusLabelElement.className = 'status-label ' + statusClass;
         }
@@ -1944,48 +2081,293 @@
         }
     }
 
+    // ========== TAMBAHKAN LOG BARU ==========
+    function addNewLog(adc, status, timestamp, logId, message) {
+        const tbody = document.getElementById('logTableBody');
+        if (!tbody) return;
+        
+        // 🔥 CEK APAKAH LOG SUDAH ADA
+        if (existingLogIds.has(logId)) {
+            console.log('⏭️ Log already exists, skip:', logId);
+            return;
+        }
+        
+        const statusClass = getStatusClass(status);
+        const statusIcon = getStatusIcon(status);
+        const logMessage = message || getStatusMessage(status);
+        const createdAt = timestamp || new Date().toISOString();
+        
+        // 🔥 CEK APAKAH INI LOG KARENA PERUBAHAN TANGGAL
+        let isDateChange = false;
+        const firstRow = tbody.querySelector('tr');
+        if (firstRow) {
+            const firstStatus = firstRow.dataset.logStatus;
+            const firstTimeCell = firstRow.querySelector('.time-cell');
+            if (firstTimeCell && firstStatus === status) {
+                const firstDateStr = firstTimeCell.dataset.updatedAt || firstTimeCell.textContent;
+                const firstDate = new Date(firstDateStr);
+                const currentDate = new Date(createdAt);
+                if (firstDate.toDateString() !== currentDate.toDateString()) {
+                    isDateChange = true;
+                }
+            }
+        }
+        
+        totalLogsCount++;
+        updateTotalLogs(totalLogsCount);
+        
+        let rowNumber = 1;
+        if (firstRow) {
+            const firstNumberSpan = firstRow.querySelector('.row-number');
+            if (firstNumberSpan) {
+                rowNumber = parseInt(firstNumberSpan.textContent) + 1;
+            }
+        }
+        
+        const currentTime = formatDate(createdAt);
+        
+        // 🔥 TENTUKAN CLASS DAN LABEL
+        const logTypeClass = isDateChange ? 'date-change' : 'status-change';
+        const logTypeIndicator = isDateChange ? 
+            '<span class="log-type-indicator date-change">📅</span>' : 
+            '<span class="log-type-indicator status-change">🔄</span>';
+        const logTypeText = isDateChange ? '<span style="font-size: 11px; color: var(--border-date-change); margin-left: 4px;">(hari baru)</span>' : '';
+        
+        const row = document.createElement('tr');
+        row.dataset.logId = logId;
+        row.dataset.logStatus = status;
+        row.className = logTypeClass + ' new-log-flash';
+        
+        row.innerHTML = `
+            <td style="text-align: center;">
+                <span class="row-number">${rowNumber}</span>
+            </td>
+            <td><span class="time-cell" data-updated-at="${createdAt}">${currentTime}</span></td>
+            <td><span class="value-cell ${statusClass}">${numberFormat(adc)}</span></td>
+            <td>
+                <span class="status-badge ${statusClass}">${statusIcon} ${status}</span>
+                ${logTypeIndicator}
+            </td>
+            <td>
+                <div class="message-cell" title="${logMessage}${isDateChange ? ' (Log karena pergantian hari)' : ''}">
+                    ${logMessage} ${logTypeText}
+                </div>
+            </td>
+        `;
+        
+        tbody.insertBefore(row, tbody.firstChild);
+        updateRowNumbers();
+        
+        // 🔥 TANDAI SEBAGAI SUDAH ADA
+        existingLogIds.add(logId);
+        
+        const perPage = parseInt(document.getElementById('perPage')?.value || 10);
+        while (tbody.children.length > perPage && tbody.children.length > 1) {
+            const lastRow = tbody.lastChild;
+            if (lastRow) {
+                tbody.removeChild(lastRow);
+            }
+        }
+        
+        setTimeout(() => {
+            row.classList.remove('new-log-flash');
+        }, 600);
+        
+        console.log('✅ Log baru ditambahkan:', status, adc, 'ID:', logId, isDateChange ? '(Hari baru)' : '(Status berubah)');
+    }
+
     // ========== UPDATE NOMOR URUT ==========
     function updateRowNumbers() {
         const rows = document.querySelectorAll('#logTableBody tr');
         const firstItem = {{ $smokeLogs->firstItem() ?? 1 }};
         rows.forEach((row, index) => {
-            const firstCell = row.querySelector('td:first-child');
-            if (firstCell) {
-                const numberSpan = firstCell.querySelector('.row-number');
-                if (numberSpan) {
-                    numberSpan.textContent = firstItem + index;
-                }
+            const numberSpan = row.querySelector('.row-number');
+            if (numberSpan) {
+                numberSpan.textContent = firstItem + index;
             }
         });
     }
 
-    // ========== COUNTDOWN TIMER ==========
-    function updateCountdown() {
-        countdownSeconds--;
-        if (countdownElement) {
-            const secs = countdownSeconds.toString().padStart(2, '0');
-            countdownElement.textContent = '0:' + secs;
-            countdownElement.className = 'countdown';
-            if (countdownSeconds < 3) {
-                countdownElement.classList.add('danger');
-            } else if (countdownSeconds < 8) {
-                countdownElement.classList.add('warning');
+    // ========== UPDATE LOG YANG SUDAH ADA ==========
+    function updateExistingLog(key, adc, status, timestamp) {
+        const tbody = document.getElementById('logTableBody');
+        if (!tbody) return;
+        
+        const rows = tbody.querySelectorAll('tr[data-log-id="' + key + '"]');
+        if (rows.length === 0) return;
+        
+        const row = rows[0];
+        const statusClass = getStatusClass(status);
+        const currentTime = formatDate(timestamp);
+        
+        const valueCell = row.querySelector('.value-cell');
+        if (valueCell) {
+            valueCell.textContent = numberFormat(adc);
+            valueCell.className = 'value-cell ' + statusClass;
+        }
+        
+        const statusBadge = row.querySelector('.status-badge');
+        if (statusBadge) {
+            const statusIcon = getStatusIcon(status);
+            statusBadge.textContent = statusIcon + ' ' + status;
+            statusBadge.className = 'status-badge ' + statusClass;
+        }
+        
+        const timeCell = row.querySelector('.time-cell');
+        if (timeCell) {
+            timeCell.textContent = currentTime;
+            timeCell.dataset.updatedAt = timestamp;
+        }
+        
+        const messageCell = row.querySelector('.message-cell');
+        if (messageCell) {
+            const message = getStatusMessage(status);
+            // Ambil teks asli tanpa label tambahan
+            const cleanMessage = message;
+            messageCell.textContent = cleanMessage;
+            messageCell.title = cleanMessage;
+        }
+        
+        // 🔥 UPDATE CLASS JIKA STATUS BERUBAH
+        if (row.dataset.logStatus !== status) {
+            const isDateChange = row.classList.contains('date-change');
+            row.className = (isDateChange ? 'date-change' : 'status-change') + ' new-log-flash';
+            row.dataset.logStatus = status;
+        }
+        
+        row.classList.add('new-log-flash');
+        setTimeout(() => {
+            row.classList.remove('new-log-flash');
+        }, 600);
+        
+        console.log('✅ Log diupdate:', status, adc, 'ID:', key);
+    }
+
+    // ========== 🔥 FIREBASE LISTENER (REAL-TIME) ==========
+    function setupFirebaseListener() {
+        if (!firebaseInitialized) {
+            console.warn('⚠️ Firebase not initialized, skipping listener');
+            return;
+        }
+
+        const smokeRef = database.ref('sensor_data/smoke');
+
+        // 🔥 LISTENER: Data baru ditambahkan
+        smokeRef.limitToLast(1).on('child_added', function(snapshot) {
+            const data = snapshot.val();
+            const key = snapshot.key;
+            
+            if (!data) return;
+            
+            // 🔥 SKIP JIKA FIRST LOAD (data lama)
+            if (isFirstLoad) {
+                console.log('⏭️ First load, skipping existing data:', key);
+                existingLogIds.add(key);
+                return;
             }
-        }
-        if (countdownSeconds <= 0) {
-            countdownSeconds = REFRESH_INTERVAL;
-            fetchEspStatus();
-        }
+            
+            // 🔥 CEK APAKAH SUDAH ADA
+            if (existingLogIds.has(key)) {
+                console.log('⏭️ Data already exists, skip:', key);
+                return;
+            }
+            
+            console.log('🔥 [Firebase] New data:', data);
+            
+            latestLogId = key;
+            
+            const adc = data.smoke_level || 0;
+            const status = (data.status || 'normal').toUpperCase();
+            const timestamp = data.timestamp || new Date().toISOString();
+            const message = data.message || getStatusMessage(status);
+            
+            // Update tampilan
+            updateSmokeDisplay(adc, status, timestamp);
+            
+            // Tambahkan log ke tabel
+            addNewLog(adc, status, timestamp, key, message);
+            
+            // 🔥 UPDATE ESP STATUS
+            updateEspStatus();
+            
+            currentStatus = status;
+            currentAdc = adc;
+        });
+
+        // 🔥 LISTENER: Data diupdate
+        smokeRef.limitToLast(1).on('child_changed', function(snapshot) {
+            const data = snapshot.val();
+            const key = snapshot.key;
+            
+            if (!data) return;
+            
+            console.log('🔄 [Firebase] Data updated:', data);
+            
+            const adc = data.smoke_level || 0;
+            const status = (data.status || 'normal').toUpperCase();
+            const timestamp = data.timestamp || new Date().toISOString();
+            
+            // Update tampilan
+            updateSmokeDisplay(adc, status, timestamp);
+            
+            // Update log yang sudah ada
+            if (existingLogIds.has(key)) {
+                updateExistingLog(key, adc, status, timestamp);
+            }
+            
+            // 🔥 UPDATE ESP STATUS
+            updateEspStatus();
+            
+            currentStatus = status;
+            currentAdc = adc;
+        });
+
+        console.log('🔥 Firebase real-time listener aktif!');
+        
+        // 🔥 SETELAH 2 DETIK, FIRST LOAD SELESAI
+        setTimeout(() => {
+            isFirstLoad = false;
+            console.log('✅ First load complete, now accepting new data');
+        }, 2000);
+    }
+
+    // ========== 🔥 UPDATE ESP STATUS ==========
+    function updateEspStatus() {
+        const dot = document.getElementById('espDot');
+        const statusText = document.getElementById('espStatusText');
+        
+        if (!dot || !statusText) return;
+        
+        fetch('/api/smoke/status?_=' + Date.now())
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const esp = data.data;
+                    const isOnline = esp.device_status === 'ONLINE';
+                    
+                    dot.className = 'dot ' + (isOnline ? 'online' : 'offline');
+                    statusText.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
+                    statusText.style.color = isOnline ? '#10b981' : '#ef4444';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching ESP status:', error);
+            });
     }
 
     // ========== INITIAL ==========
     document.addEventListener('DOMContentLoaded', function() {
+        // 🔥 LOAD EXISTING LOG IDs
+        loadExistingLogIds();
+        
+        // Ambil log ID terakhir dari tabel
         const firstRow = document.querySelector('#logTableBody tr[data-log-id]');
         if (firstRow) {
-            lastLogId = firstRow.dataset.logId;
+            latestLogId = firstRow.dataset.logId;
             currentStatus = firstRow.dataset.logStatus || 'NORMAL';
         }
         
+        // Ambil nilai ADC terakhir
         const firstValue = document.querySelector('#logTableBody tr:first-child .value-cell');
         if (firstValue) {
             const adcText = firstValue.textContent.trim();
@@ -1995,11 +2377,20 @@
             }
         }
         
-        fetchEspStatus();
+        // 🔥 Setup Firebase Listener
+        setTimeout(setupFirebaseListener, 500);
+        
+        // 🔥 UPDATE ESP STATUS PERTAMA KALI
+        setTimeout(updateEspStatus, 1000);
+        
+        // 🔥 UPDATE ESP STATUS SETIAP 30 DETIK (CADANGAN)
+        setInterval(updateEspStatus, 30000);
+        
+        // Update row numbers
         setTimeout(updateRowNumbers, 100);
         
-        setInterval(fetchEspStatus, 3000);
-        setInterval(updateCountdown, 1000);
+        console.log('✅ Smoke Monitoring loaded!');
+        console.log('🔥 Firebase real-time: AKTIF');
     });
 
     // ========== PERPAGE ==========

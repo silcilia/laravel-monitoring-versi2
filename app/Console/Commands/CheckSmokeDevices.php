@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Http\Controllers\SmokeController;
+use App\Http\Controllers\Api\SmokeApiController; // 🔥 PAKAI INI!
 use Illuminate\Support\Facades\Log;
 
 class CheckSmokeDevices extends Command
@@ -20,8 +20,8 @@ class CheckSmokeDevices extends Command
         $this->line('📡 Waktu: ' . now()->format('Y-m-d H:i:s'));
 
         try {
-            // 🔥 PAKAI SMOKE CONTROLLER, BUKAN ESP MONITOR SERVICE
-            $controller = app(SmokeController::class);
+            // 🔥 PAKAI SMOKE API CONTROLLER (BUKAN SMOKE CONTROLLER!)
+            $controller = app(SmokeApiController::class);
             $controller->checkEspStatus();
 
             $this->info('✅ Monitoring smoke devices selesai');

@@ -82,6 +82,7 @@ Route::middleware('auth')->group(function () {
     Route::delete('/services/bulk-delete', [ServiceController::class, 'bulkDelete'])->name('services.bulk-delete');
     Route::get('/services/{id}/health', [ServiceController::class, 'health'])->name('services.health');
     Route::get('/services/{id}/download-report', [ServiceController::class, 'downloadReport'])->name('services.download-report');
+    Route::post('/services/download-multi-report', [ServiceController::class, 'downloadMultiReport'])->name('services.download-multi-report');
 
     // Interval WhatsApp
     Route::post('/services/{id}/wa-interval', [ServiceController::class, 'updateWaInterval'])->name('services.wa-interval');
@@ -107,7 +108,7 @@ Route::middleware('auth')->group(function () {
     // SMOKE DETECTOR - Monitoring ESP32 (Web)
     // ==========================================================
     Route::get('/smoke-detector', [SmokeController::class, 'index'])->name('smoke');
-    Route::get('/smoke-detector/export', [SmokeController::class, 'export'])->name('smoke.export');
+    //Route::get('/smoke-detector/export', [SmokeController::class, 'export'])->name('smoke.export');
 
     // ==========================================================
     // SMOKE DETECTOR - API Receive (Untuk ESP32, Tanpa Auth)

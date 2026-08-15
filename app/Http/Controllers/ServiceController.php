@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class ServiceController extends Controller
 {
@@ -1176,5 +1177,219 @@ class ServiceController extends Controller
                 'message' => 'Gagal mengambil status: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    // ================================================================
+    // 🔥🔥🔥 DOWNLOAD MULTI REPORT (BARU)
+    // ================================================================
+
+    /**
+     * 📥 DOWNLOAD MULTI REPORT (PDF / EXCEL)
+     * 🔗 POST /services/download-multi-report
+     */
+    public function downloadMultiReport(Request $request)
+    {
+        try {
+            // 🔥 Ambil data dari request
+            $servicesData = json_decode($request->input('services'), true);
+            $format = $request->input('format', 'pdf');
+
+            if (empty($servicesData)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada service yang dipilih'
+                ], 400);
+            }
+
+            // 🔥 Kumpulkan data per service
+            $reportData = [];
+            $totalServices = count($servicesData);
+
+            foreach ($servicesData as $serviceData) {
+                $serviceId = $serviceData['id'];
+                $period = $serviceData['period'];
+                $serviceName = $serviceData['name'];
+
+                // Ambil service dari database
+                $service = Service::find($serviceId);
+                if (!$service) {
+                    continue;
+                }
+
+                // Tentukan tanggal mulai
+                $endDate = Carbon::now()->endOfDay();
+                $startDate = Carbon::now()->startOfDay();
+
+                if ($period === 'all') {
+                    // Semua data dari tanggal service dibuat
+                    $startDate = Carbon::parse($service->created_at)->startOfDay();
+                } else {
+                    // Periode tertentu (7, 14, 30, 60, 90 hari)
+                    $days = (int) $period;
+                    $startDate = Carbon::now()->subDays($days)->startOfDay();
+                }
+
+                // Ambil logs service
+                $logs = ServiceLog::where('service_id', $service->id)
+                    ->where('created_at', '>=', $startDate)
+                    ->where('created_at', '<=', $endDate)
+                    ->orderBy('created_at', 'asc')
+                    ->get();
+
+                // Hitung statistik
+                $totalLogs = $logs->count();
+                $upCount = $logs->where('status', 'UP')->count();
+                $downCount = $logs->where('status', 'DOWN')->count();
+                $warningCount = $logs->where('status', 'WARNING')->count();
+
+                $uptime = $totalLogs > 0 ? round(($upCount / $totalLogs) * 100, 2) : 0;
+
+                $reportData[] = [
+                    'service' => $service,
+                    'logs' => $logs,
+                    'stats' => [
+                        'total' => $totalLogs,
+                        'up' => $upCount,
+                        'down' => $downCount,
+                        'warning' => $warningCount,
+                        'uptime' => $uptime,
+                    ],
+                    'period' => [
+                        'start' => $startDate->format('d/m/Y'),
+                        'end' => $endDate->format('d/m/Y'),
+                        'days' => $startDate->diffInDays($endDate) + 1,
+                    ]
+                ];
+            }
+
+            // 🔥 Generate berdasarkan format
+            if ($format === 'excel') {
+                return $this->exportMultiExcel($reportData);
+            }
+
+            // Default: PDF
+            return $this->exportMultiPdf($reportData);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error download multi report: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal download laporan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * 📄 EXPORT MULTI PDF
+     */
+    private function exportMultiPdf($reportData)
+    {
+        if (!class_exists('Barryvdh\DomPDF\Facade\Pdf') && !class_exists('Barryvdh\DomPDF\PDF')) {
+            throw new \Exception('DomPDF tidak terinstall. Jalankan: composer require barryvdh/laravel-dompdf');
+        }
+
+        $data = [
+            'reportData' => $reportData,
+            'totalServices' => count($reportData),
+            'generatedAt' => Carbon::now()->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s'),
+        ];
+
+        $pdf = Pdf::loadView('reports.multi-report', $data);
+        $pdf->setPaper('A4', 'portrait');
+
+        $filename = 'laporan_service_' . date('Y-m-d_H-i-s') . '.pdf';
+        return $pdf->download($filename);
+    }
+
+    /**
+     * 📊 EXPORT MULTI EXCEL (CSV)
+     */
+    private function exportMultiExcel($reportData)
+    {
+        $filename = 'laporan_service_' . date('Y-m-d_H-i-s') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0'
+        ];
+
+        $callback = function() use ($reportData) {
+            $file = fopen('php://output', 'w');
+            fputs($file, "\xEF\xBB\xBF"); // BOM untuk UTF-8
+
+            // Header utama
+            fputcsv($file, [
+                'LAPORAN SERVICE',
+                'Tanggal: ' . Carbon::now()->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s'),
+                'Total Service: ' . count($reportData),
+                '',
+            ]);
+
+            fputcsv($file, []); // Baris kosong
+
+            foreach ($reportData as $data) {
+                $service = $data['service'];
+                $stats = $data['stats'];
+                $period = $data['period'];
+
+                // Header per service
+                fputcsv($file, [
+                    '==================================================',
+                ]);
+                fputcsv($file, [
+                    'SERVICE: ' . $service->name,
+                ]);
+                fputcsv($file, [
+                    'Target: ' . $service->target,
+                    'Tipe: ' . strtoupper($service->type ?? 'HTTP'),
+                    'Status Terakhir: ' . ($service->last_status ?? 'UNKNOWN'),
+                    'Uptime: ' . $stats['uptime'] . '%',
+                ]);
+                fputcsv($file, [
+                    'Periode: ' . $period['start'] . ' - ' . $period['end'],
+                    'Total Hari: ' . $period['days'] . ' hari',
+                ]);
+                fputcsv($file, [
+                    'Total Check: ' . $stats['total'],
+                    'UP: ' . $stats['up'],
+                    'WARNING: ' . $stats['warning'],
+                    'DOWN: ' . $stats['down'],
+                ]);
+                fputcsv($file, []);
+
+                // Detail logs
+                fputcsv($file, [
+                    'Waktu',
+                    'Status',
+                    'Response Code',
+                    'Response Time (s)',
+                    'Message'
+                ]);
+
+                if ($data['logs']->isEmpty()) {
+                    fputcsv($file, ['Tidak ada data log untuk periode ini', '', '', '', '']);
+                } else {
+                    foreach ($data['logs'] as $log) {
+                        fputcsv($file, [
+                            $log->created_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s'),
+                            $log->status ?? 'UNKNOWN',
+                            $log->response_code ?? '-',
+                            $log->response_time ? number_format($log->response_time, 2) : '-',
+                            $log->message ?? '-',
+                        ]);
+                    }
+                }
+
+                fputcsv($file, []); // Baris kosong antar service
+                fputcsv($file, []); // Baris kosong antar service
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

@@ -36,7 +36,7 @@
         --shadow-hover-service: rgba(0, 0, 0, 0.08);
     }
 
-    /* Dark mode override dari layout utama */
+    /* Dark mode override */
     [data-theme="dark"] {
         --bg-service: #0f172a;
         --bg-card-service: #1e293b;
@@ -254,6 +254,28 @@
     .btn-primary svg {
         width: 18px;
         height: 18px;
+    }
+
+    /* 🔥 TOMBOL DOWNLOAD MULTI */
+    .btn-download-multi {
+        background: linear-gradient(135deg, #059669, #10b981);
+        color: white;
+        padding: 11px 24px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+    }
+
+    .btn-download-multi:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(5, 150, 105, 0.35);
     }
 
     .btn-archive {
@@ -1224,7 +1246,7 @@
     .custom-modal {
         background: var(--bg-delete-modal-service);
         border-radius: 20px;
-        max-width: 450px;
+        max-width: 550px;
         width: 92%;
         overflow: hidden;
         box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
@@ -1297,6 +1319,8 @@
 
     .custom-modal-body {
         padding: 0 28px 20px;
+        max-height: 50vh;
+        overflow-y: auto;
     }
 
     .custom-modal-body .highlight-name {
@@ -1314,10 +1338,6 @@
         margin-top: 8px;
         line-height: 1.8;
         text-align: left;
-    }
-
-    .custom-modal-body .info-text .icon {
-        margin-right: 6px;
     }
 
     .custom-modal-footer {
@@ -1360,12 +1380,23 @@
     }
 
     .custom-modal-footer .btn-confirm {
+        background: #059669;
+        color: white;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+    }
+
+    .custom-modal-footer .btn-confirm:hover {
+        background: #047857;
+        box-shadow: 0 6px 20px rgba(5, 150, 105, 0.35);
+    }
+
+    .custom-modal-footer .btn-confirm-danger {
         background: #dc2626;
         color: white;
         box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
     }
 
-    .custom-modal-footer .btn-confirm:hover {
+    .custom-modal-footer .btn-confirm-danger:hover {
         background: #b91c1c;
         box-shadow: 0 6px 20px rgba(220, 38, 38, 0.35);
     }
@@ -1695,7 +1726,6 @@
         color: #6ee7b7;
     }
 
-    /* 🔥 STYLE UNTUK PERIODE DISABLED */
     .period-btn.disabled {
         opacity: 0.4 !important;
         cursor: not-allowed !important;
@@ -1746,7 +1776,6 @@
         --date-picker-filter: invert(1);
     }
 
-    /* 🔥 STYLE UNTUK VALIDASI DATE */
     .download-date-range .date-group input.error {
         border-color: #dc2626 !important;
         background: #fef2f2 !important;
@@ -2007,11 +2036,144 @@
         color: #0f172a;
     }
 
+    /* ================= 🔥 MULTI DOWNLOAD MODAL ================= */
+    .multi-download-body {
+        max-height: 65vh;
+        overflow-y: auto;
+    }
+    .multi-download-body::-webkit-scrollbar { width: 5px; }
+    .multi-download-body::-webkit-scrollbar-track {
+        background: var(--bg-hover-service);
+        border-radius: 10px;
+    }
+    .multi-download-body::-webkit-scrollbar-thumb {
+        background: var(--text-muted-service);
+        border-radius: 10px;
+    }
+
+    .service-list-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 2px solid var(--border-service);
+        gap: 12px;
+        flex-wrap: wrap;
+        transition: all 0.2s ease;
+        background: var(--bg-card-service);
+        margin-bottom: 6px;
+        cursor: pointer;
+    }
+    .service-list-item:hover {
+        background: var(--bg-hover-service);
+        border-color: var(--text-muted-service);
+    }
+    .service-list-item.selected {
+        border-color: #059669;
+        background: #ecfdf5;
+    }
+    [data-theme="dark"] .service-list-item.selected {
+        background: #064e3b;
+        border-color: #059669;
+    }
+    .service-list-item .service-info-multi {
+        flex: 1;
+        min-width: 150px;
+    }
+    .service-list-item .service-info-multi .name {
+        font-weight: 600;
+        color: var(--text-service);
+        font-size: 14px;
+    }
+    .service-list-item .service-info-multi .meta {
+        font-size: 11px;
+        color: var(--text-muted-service);
+    }
+    .service-list-item .period-select-multi {
+        padding: 4px 10px;
+        border: 1px solid var(--border-service);
+        border-radius: 6px;
+        background: var(--bg-input-service);
+        color: var(--text-service);
+        font-size: 12px;
+        min-width: 150px;
+        cursor: pointer;
+    }
+    .service-list-item .period-select-multi:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .service-list-item .period-select-multi option:disabled {
+        color: #6b7280;
+    }
+
+    .checkbox-custom {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #059669;
+        flex-shrink: 0;
+    }
+
+    .checkbox-custom:checked + .service-info-multi .name {
+        color: #059669;
+    }
+
+    .selected-check {
+        display: none;
+        color: #059669;
+        font-size: 18px;
+        margin-left: 4px;
+    }
+
+    .service-list-item.selected .selected-check {
+        display: inline-block;
+    }
+
+    .format-group {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+    }
+
+    .format-group label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        padding: 8px 18px;
+        border: 2px solid var(--border-service);
+        border-radius: 8px;
+        background: var(--bg-card-service);
+        transition: all 0.2s ease;
+        font-weight: 500;
+        font-size: 13px;
+    }
+    .format-group label:hover {
+        border-color: #059669;
+    }
+    .format-group label.active-format {
+        border-color: #059669;
+        background: #ecfdf5;
+        color: #065f46;
+    }
+    [data-theme="dark"] .format-group label.active-format {
+        background: #064e3b;
+        color: #6ee7b7;
+    }
+    .format-group label input[type="radio"] {
+        accent-color: #059669;
+        width: 16px;
+        height: 16px;
+    }
+
     /* ================= RESPONSIVE ================= */
     @media (max-width: 1024px) {
         .stats-bar { grid-template-columns: repeat(3, 1fr); }
         .detail-grid { grid-template-columns: 1fr; }
         .search-wrapper { max-width: 100%; }
+        .service-list-item { flex-wrap: wrap; }
     }
 
     @media (max-width: 768px) {
@@ -2091,6 +2253,31 @@
             font-size: 12px;
             padding: 6px 12px;
         }
+        .btn-download-multi {
+            font-size: 12px;
+            padding: 8px 16px;
+            width: 100%;
+            justify-content: center;
+        }
+        .service-list-item {
+            padding: 6px 10px;
+            gap: 8px;
+        }
+        .service-list-item .service-info-multi .name {
+            font-size: 12px;
+        }
+        .service-list-item .service-info-multi .meta {
+            font-size: 10px;
+        }
+        .service-list-item .period-select-multi {
+            font-size: 11px;
+            min-width: 120px;
+            padding: 3px 8px;
+        }
+        .format-group label {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
     }
 
     @media (max-width: 480px) {
@@ -2138,6 +2325,17 @@
             font-size: 11px;
             padding: 5px 10px;
         }
+        .service-list-item .period-select-multi {
+            font-size: 10px;
+            min-width: 100px;
+        }
+        .format-group {
+            gap: 8px;
+        }
+        .format-group label {
+            font-size: 11px;
+            padding: 4px 10px;
+        }
     }
 </style>
 
@@ -2153,7 +2351,6 @@
             'is_archived' => (bool) $service->is_archived
         ]) !!};
     @endforeach
-    
 </script>
 
 <div class="service-container">
@@ -2209,6 +2406,14 @@
                 </select>
             </div>
 
+            <!-- 🔥 TOMBOL DOWNLOAD MULTI SERVICE -->
+            <button class="btn-download-multi" onclick="openMultiDownloadModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-linecap="round"/>
+                </svg>
+                📥 Download Laporan
+            </button>
+
             <button class="btn-primary" onclick="openCreateModal()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                     <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
@@ -2253,7 +2458,6 @@
                         📋 Daftar Service
                     @endif
                 </h2>
-                <!-- 🔥 Toggle Archive Button -->
                 <button class="btn-toggle-archive {{ ($showArchived ?? false) ? 'active' : '' }}" 
                         onclick="toggleArchive()">
                     @if($showArchived ?? false)
@@ -2268,12 +2472,7 @@
             <div class="search-wrapper">
                 <div class="search-input-wrap">
                     <span class="search-icon">🔍</span>
-                    <input 
-                        type="text" 
-                        id="searchService" 
-                        placeholder="Cari service berdasarkan nama atau target..." 
-                        autocomplete="off"
-                    >
+                    <input type="text" id="searchService" placeholder="Cari service berdasarkan nama atau target..." autocomplete="off">
                 </div>
                 <button onclick="searchServices()" class="btn-search" id="btnSearch">🔍 Cari</button>
                 <button onclick="resetSearch()" class="btn-reset">↺ Reset</button>
@@ -2296,7 +2495,6 @@
             </div>
         </div>
 
-        <!-- ================= SEARCH STATUS BAR ================= -->
         <div class="search-status" id="searchStatus">
             <div class="status-spinner"></div>
             <span class="status-text" id="searchStatusText">🔍 Sedang mencari...</span>
@@ -2365,7 +2563,7 @@
                             $uptimeColor = $uptime >= 70 ? 'green' : ($uptime >= 50 ? 'yellow' : 'red');
                             $isArchived = $service->is_archived ?? 0;
                         @endphp
-                        <tr data-service-id="{{ $service->id }}" data-archived="{{ $isArchived }}">
+                        <tr data-service-id="{{ $service->id }}" data-archived="{{ $isArchived }}" data-service-name="{{ $service->name }}" data-service-created="{{ $service->created_at }}">
                             <td><span class="service-no">{{ $no }}</span></td>
                             <td>
                                 <div class="service-info">
@@ -2419,11 +2617,9 @@
                             <td>
                                 <div class="action-buttons">
                                     @if($isArchived)
-                                        <!-- 🔥 TOMBOL UNTUK SERVICE ARSIP -->
                                         <button onclick="confirmRestore({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-restore" title="Pulihkan">🔄 Pulihkan</button>
                                         <button onclick="confirmDeletePermanent({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-delete-permanent" title="Hapus Permanen">🗑️ Hapus</button>
                                     @else
-                                        <!-- 🔥 TOMBOL UNTUK SERVICE AKTIF -->
                                         <button onclick="openDetailModal({{ $service->id }})" class="btn-action btn-detail" title="Detail">👁️</button>
                                         <button onclick="openDownloadModal({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-action btn-download" title="Download PDF">📥</button>
                                         <button onclick="confirmArchive({{ $service->id }}, '{{ addslashes($service->name) }}')" class="btn-archive" title="Arsipkan">📦 Arsip</button>
@@ -2555,7 +2751,7 @@
     </div>
 </div>
 
-<!-- ================= MODAL DOWNLOAD (DIPERBAIKI) ================= -->
+<!-- ================= MODAL DOWNLOAD SINGLE ================= -->
 <div class="modal-overlay" id="downloadModal" onclick="if(event.target === this) closeDownloadModal()">
     <div class="modal-content">
         <div class="modal-header">
@@ -2574,7 +2770,6 @@
                 </div>
             </div>
 
-            <!-- 🔥 NOTICE INFO SERVICE -->
             <div id="downloadNotice" style="background: var(--bg-info-box-service); border: 1px solid var(--border-info-box-service); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; color: var(--text-info-box-service);">
                 📌 <strong>Info:</strong> Memuat informasi service...
             </div>
@@ -2593,43 +2788,23 @@
 
             <div class="form-group">
                 <label>Tanggal Kustom</label>
-                
-                <!-- 🔥 INFO UMUR SERVICE -->
                 <div id="serviceAgeInfo" style="background: var(--bg-info-box-service); border: 1px solid var(--border-info-box-service); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: var(--text-info-box-service); display: none;">
                     <span id="serviceAgeText">Memuat informasi service...</span>
                 </div>
-                
                 <div class="download-date-range">
                     <div class="date-group">
                         <label>Dari Tanggal <span class="required" style="color: #dc2626;">*</span></label>
-                        <input 
-                            type="date" 
-                            id="dateFrom" 
-                            class="date-input"
-                            min="" 
-                            max=""
-                            required
-                        >
+                        <input type="date" id="dateFrom" class="date-input" min="" max="" required>
                         <div class="date-error-message" style="display: none; color: #dc2626; font-size: 12px; margin-top: 4px;"></div>
                     </div>
                     <div class="date-group">
                         <label>Sampai Tanggal <span class="required" style="color: #dc2626;">*</span></label>
-                        <input 
-                            type="date" 
-                            id="dateTo" 
-                            class="date-input"
-                            min="" 
-                            max=""
-                            required
-                        >
+                        <input type="date" id="dateTo" class="date-input" min="" max="" required>
                         <div class="date-error-message" style="display: none; color: #dc2626; font-size: 12px; margin-top: 4px;"></div>
                     </div>
                 </div>
                 <div class="helper-text">
-                    📅 Pilih rentang tanggal sesuai kebutuhan. 
-                    <span style="color: var(--text-secondary-service);">
-                        <strong>Catatan:</strong> Tanggal otomatis dibatasi sesuai umur service (tidak bisa sebelum service dibuat).
-                    </span>
+                    📅 Pilih rentang tanggal sesuai kebutuhan. Tanggal otomatis dibatasi sesuai umur service.
                 </div>
             </div>
 
@@ -2641,6 +2816,157 @@
         <div class="modal-footer">
             <button class="btn-cancel-modal" onclick="closeDownloadModal()">✕ Batal</button>
             <button class="btn-download-modal" id="btnDownloadNow" onclick="downloadReport()">📥 Download PDF</button>
+        </div>
+    </div>
+</div>
+
+<!-- ================= 🔥🔥🔥 MODAL DOWNLOAD MULTI SERVICE ================= -->
+<div class="modal-overlay" id="multiDownloadModal" onclick="if(event.target === this) closeMultiDownloadModal()">
+    <div class="modal-content" style="max-width: 850px;">
+        <div class="modal-header">
+            <h2>
+                <span class="modal-icon" style="background: linear-gradient(135deg, #059669, #10b981);">📥</span>
+                <span>Download Laporan Service</span>
+            </h2>
+            <button class="modal-close" onclick="closeMultiDownloadModal()">&times;</button>
+        </div>
+        <div class="modal-body multi-download-body" id="multiDownloadBody">
+            
+            <!-- ================= PANDUAN ================= -->
+            <div style="background: var(--bg-info-box-service); border: 1px solid var(--border-info-box-service); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--text-info-box-service);">
+                📌 <strong>Panduan:</strong>
+                <ul style="margin: 6px 0 0 18px; padding-left: 0;">
+                    <li>Pilih <strong>satu atau lebih</strong> service yang ingin di-download</li>
+                    <li>Setiap service bisa memilih periode <strong>sesuai umurnya</strong></li>
+                    <li>Hasil laporan <strong>1 file</strong> (PDF atau Excel) berisi SEMUA service</li>
+                    <li>Periode yang tidak tersedia <strong>otomatis dinonaktifkan</strong></li>
+                </ul>
+            </div>
+
+            <!-- ================= TOMBOL AKSI CEPAT ================= -->
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                <button type="button" onclick="selectAllMulti(true)" class="btn-action" style="background: #4f46e5; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                    ✅ Pilih Semua
+                </button>
+                <button type="button" onclick="selectAllMulti(false)" class="btn-action" style="background: #6b7280; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                    ✖ Batal Pilih
+                </button>
+                <button type="button" onclick="selectByStatusMulti('UP')" class="btn-action" style="background: #059669; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                    📊 Aktif (UP)
+                </button>
+                <button type="button" onclick="selectByStatusMulti('DOWN')" class="btn-action" style="background: #dc2626; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
+                    🔴 DOWN
+                </button>
+            </div>
+
+            <!-- ================= LIST SERVICE ================= -->
+            <div class="form-group">
+                <label>
+                    Pilih Service & Atur Periode
+                    <span class="required">*</span>
+                    <span style="font-weight: 400; font-size: 12px; color: var(--text-muted-service); margin-left: 8px;">
+                        (pilih minimal 1)
+                    </span>
+                </label>
+                
+                <div id="multiServiceList" style="max-height: 350px; overflow-y: auto; border: 1px solid var(--border-service); border-radius: 8px; padding: 8px; background: var(--bg-hover-service);">
+                    @foreach($services as $service)
+                        @if(!($service->is_archived ?? false))
+                            @php
+                                $createdAt = \Carbon\Carbon::parse($service->created_at);
+                                $now = \Carbon\Carbon::now();
+                                $ageInDays = $createdAt->diffInDays($now);
+                                $availableDays = $ageInDays + 1;
+                                $statusLabel = $service->last_status ?? 'UNKNOWN';
+                            @endphp
+                            <div class="service-list-item" data-service-id="{{ $service->id }}" onclick="toggleCheckbox(this)">
+                                <input type="checkbox" 
+                                       class="multi-service-checkbox checkbox-custom" 
+                                       data-id="{{ $service->id }}"
+                                       data-name="{{ $service->name }}"
+                                       data-created="{{ $service->created_at }}"
+                                       data-age="{{ $ageInDays }}"
+                                       data-available="{{ $availableDays }}"
+                                       data-status="{{ $statusLabel }}"
+                                       onchange="updateMultiSelection(event)"
+                                       onclick="event.stopPropagation();">
+                                
+                                <div class="service-info-multi">
+                                    <div class="name">
+                                        {{ $service->name }}
+                                        <span class="selected-check">✅</span>
+                                    </div>
+                                    <div class="meta">
+                                        🕐 {{ $ageInDays }} hari | 
+                                        📅 {{ $createdAt->format('d M Y') }} - {{ $now->format('d M Y') }}
+                                        <span style="margin-left: 8px; background: var(--bg-card-service); padding: 1px 8px; border-radius: 10px; border: 1px solid var(--border-service);">
+                                            📊 {{ $availableDays }} hari data
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <span class="status-badge {{ strtolower($statusLabel) }}" style="font-size: 10px; padding: 2px 10px;">
+                                    {{ $statusLabel }}
+                                </span>
+                                
+                                <select class="period-select-multi" data-id="{{ $service->id }}" onclick="event.stopPropagation();">
+                                    <option value="all">📚 Semua Data ({{ $availableDays }} hari)</option>
+                                    @php
+                                        $periodOptions = [7, 14, 30, 60, 90];
+                                    @endphp
+                                    @foreach($periodOptions as $days)
+                                        @if($availableDays >= $days)
+                                            <option value="{{ $days }}">{{ $days }} Hari Terakhir</option>
+                                        @endif
+                                    @endforeach
+                                    @foreach($periodOptions as $days)
+                                        @if($availableDays < $days)
+                                            <option value="{{ $days }}" disabled>❌ {{ $days }} Hari (tidak cukup)</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
+                
+                <div class="helper-text" id="multiSelectionInfo">
+                    <span id="multiSelectedCount">0</span> service dipilih
+                </div>
+            </div>
+
+            <!-- ================= FORMAT LAPORAN ================= -->
+            <div class="form-group">
+                <label>Format Laporan <span class="required">*</span></label>
+                <div class="format-group">
+                    <label class="active-format" id="formatPdfLabel">
+                        <input type="radio" name="multi_report_format" value="pdf" checked onchange="updateMultiFormat(this)">
+                        📄 PDF
+                    </label>
+                    <label id="formatExcelLabel">
+                        <input type="radio" name="multi_report_format" value="excel" onchange="updateMultiFormat(this)">
+                        📊 Excel (CSV)
+                    </label>
+                </div>
+                <div class="helper-text">
+                    📄 PDF untuk laporan rapi dengan detail per service (1 file)<br>
+                    📊 Excel untuk data mentah yang bisa diolah lebih lanjut (1 file, multiple sheets)
+                </div>
+            </div>
+
+            <!-- ================= LOADING ================= -->
+            <div id="multiDownloadLoading" style="display: none; text-align: center; padding: 20px;">
+                <span style="font-size: 24px; display: block; margin-bottom: 8px;">⏳</span>
+                <p style="color: var(--text-secondary-service);">Sedang memproses laporan...</p>
+                <p style="font-size: 13px; color: var(--text-muted-service);" id="multiDownloadProgress">Mengumpulkan data...</p>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn-cancel-modal" onclick="closeMultiDownloadModal()">✕ Batal</button>
+            <button class="btn-download-modal" id="btnMultiDownload" onclick="downloadMultiReport()" disabled>
+                📥 Download Laporan
+            </button>
         </div>
     </div>
 </div>
@@ -2662,42 +2988,19 @@
                 <input type="hidden" name="service_id" id="serviceId" value="">
 
                 <div class="form-group">
-                    <label for="modal_name">
-                        Nama Service
-                        <span class="required">*</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        name="name" 
-                        id="modal_name"
-                        class="form-control"
-                        placeholder="Contoh: Website Utama, API Gateway"
-                        required
-                    >
+                    <label for="modal_name">Nama Service <span class="required">*</span></label>
+                    <input type="text" name="name" id="modal_name" class="form-control" placeholder="Contoh: Website Utama, API Gateway" required>
                     <div class="helper-text">Nama yang mudah diingat untuk service ini</div>
                 </div>
 
                 <div class="form-group">
-                    <label for="modal_target">
-                        Target URL / IP
-                        <span class="required">*</span>
-                    </label>
-                    <input 
-                        type="text" 
-                        name="target" 
-                        id="modal_target"
-                        class="form-control"
-                        placeholder="Contoh: https://example.com atau 192.168.1.1"
-                        required
-                    >
+                    <label for="modal_target">Target URL / IP <span class="required">*</span></label>
+                    <input type="text" name="target" id="modal_target" class="form-control" placeholder="Contoh: https://example.com atau 192.168.1.1" required>
                     <div class="helper-text">URL lengkap dengan protocol (http:// atau https://) atau alamat IP</div>
                 </div>
 
                 <div class="form-group">
-                    <label for="modal_type">
-                        Tipe Monitoring
-                        <span class="required">*</span>
-                    </label>
+                    <label for="modal_type">Tipe Monitoring <span class="required">*</span></label>
                     <select name="type" id="modal_type" class="form-control" required>
                         <option value="http">HTTP / HTTPS</option>
                         <option value="ping">PING</option>
@@ -3161,6 +3464,210 @@
     let searchTimeout = null;
     let isSearching = false;
     let downloadServiceData = null;
+    let multiFormat = 'pdf';
+
+    // ================= 🔥 MULTI DOWNLOAD FUNCTIONS =================
+    let selectedServices = new Set();
+
+    function toggleCheckbox(element) {
+        const checkbox = element.querySelector('.multi-service-checkbox');
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            updateMultiSelection(event);
+        }
+    }
+
+    function openMultiDownloadModal() {
+        const modal = document.getElementById('multiDownloadModal');
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        document.dispatchEvent(new Event('modalOpened'));
+        
+        // Reset semua checkbox
+        document.querySelectorAll('.multi-service-checkbox').forEach(cb => {
+            cb.checked = false;
+            cb.closest('.service-list-item').classList.remove('selected');
+        });
+        updateMultiSelection();
+        
+        // Reset button
+        document.getElementById('btnMultiDownload').disabled = true;
+        document.getElementById('btnMultiDownload').textContent = '📥 Download Laporan';
+        document.getElementById('multiDownloadLoading').style.display = 'none';
+        
+        // Reset format ke PDF
+        document.getElementById('formatPdfLabel').classList.add('active-format');
+        document.getElementById('formatExcelLabel').classList.remove('active-format');
+        multiFormat = 'pdf';
+        
+        // Auto select active services
+        setTimeout(() => {
+            selectByStatusMulti('UP');
+        }, 300);
+    }
+
+    function closeMultiDownloadModal() {
+        document.getElementById('multiDownloadModal').classList.remove('active');
+        document.body.style.overflow = '';
+        document.dispatchEvent(new Event('modalClosed'));
+    }
+
+    function selectAllMulti(select) {
+        document.querySelectorAll('.multi-service-checkbox').forEach(cb => {
+            cb.checked = select;
+            cb.closest('.service-list-item').classList.toggle('selected', select);
+        });
+        updateMultiSelection();
+    }
+
+    function selectByStatusMulti(status) {
+        document.querySelectorAll('.multi-service-checkbox').forEach(cb => {
+            const item = cb.closest('.service-list-item');
+            const statusBadge = item?.querySelector('.status-badge');
+            if (statusBadge) {
+                const text = statusBadge.textContent.trim().toUpperCase();
+                cb.checked = (text === status);
+                item.classList.toggle('selected', cb.checked);
+            }
+        });
+        updateMultiSelection();
+    }
+
+    function updateMultiSelection(event) {
+        // Jika event ada, update class selected pada parent
+        if (event && event.target) {
+            const item = event.target.closest('.service-list-item');
+            if (item) {
+                const checkbox = item.querySelector('.multi-service-checkbox');
+                if (checkbox) {
+                    item.classList.toggle('selected', checkbox.checked);
+                }
+            }
+        }
+
+        // Hitung semua checkbox yang tercentang
+        const checked = document.querySelectorAll('.multi-service-checkbox:checked');
+        const count = checked.length;
+        document.getElementById('multiSelectedCount').textContent = count;
+        
+        const btn = document.getElementById('btnMultiDownload');
+        if (count === 0) {
+            btn.disabled = true;
+            btn.title = '❌ Pilih minimal 1 service';
+        } else {
+            btn.disabled = false;
+            btn.title = '📥 Download laporan untuk ' + count + ' service';
+        }
+    }
+
+    function updateMultiFormat(element) {
+        multiFormat = element.value;
+        const labels = document.querySelectorAll('.format-group label');
+        labels.forEach(label => label.classList.remove('active-format'));
+        if (multiFormat === 'pdf') {
+            document.getElementById('formatPdfLabel').classList.add('active-format');
+        } else {
+            document.getElementById('formatExcelLabel').classList.add('active-format');
+        }
+    }
+
+    function downloadMultiReport() {
+        const checked = document.querySelectorAll('.multi-service-checkbox:checked');
+        if (checked.length === 0) {
+            showToast('warning', 'Peringatan!', 'Pilih minimal 1 service');
+            return;
+        }
+        
+        // Kumpulkan data per service
+        const servicesData = [];
+        checked.forEach(cb => {
+            const item = cb.closest('.service-list-item');
+            const periodSelect = item?.querySelector('.period-select-multi');
+            
+            servicesData.push({
+                id: parseInt(cb.dataset.id),
+                name: cb.dataset.name,
+                period: periodSelect ? periodSelect.value : 'all',
+                age: parseInt(cb.dataset.age),
+                available: parseInt(cb.dataset.available)
+            });
+        });
+
+        // 🔥 TAMPILKAN MODAL KONFIRMASI CUSTOM
+        const names = servicesData.map(s => s.name).join(', ');
+        const formatLabel = multiFormat === 'pdf' ? 'PDF' : 'Excel (CSV)';
+        
+        let detailMessage = '<strong>' + servicesData.length + ' service</strong> akan di-download:\n\n';
+        servicesData.forEach((s, i) => {
+            const periodLabel = s.period === 'all' ? '📚 Semua Data (' + s.available + ' hari)' : s.period + ' Hari Terakhir';
+            detailMessage += (i+1) + '. ' + s.name + ' → ' + periodLabel + '\n';
+        });
+        detailMessage += '\n📄 Format: ' + formatLabel + ' (1 file)';
+
+        // 🔥 GANTI CONFIRM BAWAAN BROWSER DENGAN CUSTOM MODAL
+        showConfirmModal(
+            'info',
+            '📥 Download Laporan Service',
+            'Yakin ingin mendownload laporan untuk ' + servicesData.length + ' service?',
+            detailMessage.replace(/\n/g, '<br>'),
+            '📥 Download',
+            'btn-confirm',
+            function() {
+                // Proses download
+                const btn = document.getElementById('btnMultiDownload');
+                const loading = document.getElementById('multiDownloadLoading');
+                const progress = document.getElementById('multiDownloadProgress');
+                
+                btn.disabled = true;
+                btn.textContent = '⏳ Memproses...';
+                loading.style.display = 'block';
+                progress.textContent = 'Memproses ' + servicesData.length + ' service...';
+                
+                // Kirim request ke server
+                const formData = new FormData();
+                formData.append('_token', '{{ csrf_token() }}');
+                formData.append('services', JSON.stringify(servicesData));
+                formData.append('format', multiFormat);
+                
+                fetch('{{ route("services.download-multi-report") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.message || 'Gagal download');
+                        });
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const ext = multiFormat === 'pdf' ? 'pdf' : 'csv';
+                    a.download = 'laporan_service_' + new Date().toISOString().slice(0,10) + '.' + ext;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    
+                    showToast('success', 'Berhasil!', '📄 Laporan berhasil diunduh');
+                    closeMultiDownloadModal();
+                })
+                .catch(error => {
+                    showToast('error', 'Gagal!', 'Terjadi kesalahan: ' + error.message);
+                    btn.disabled = false;
+                    btn.textContent = '📥 Download Laporan';
+                    loading.style.display = 'none';
+                });
+            }
+        );
+    }
 
     // ================= SEARCH SERVICES =================
     function searchServices() {
@@ -3418,6 +3925,7 @@
                 closeModal();
                 closeDetailModal();
                 closeDownloadModal();
+                closeMultiDownloadModal();
                 closeConfirmModal();
                 hideSearchStatus();
             }
@@ -3639,7 +4147,7 @@
         return new Date(parts[0], parts[1] - 1, parts[2]);
     }
 
-    // ================= DOWNLOAD MODAL (DIPERBAIKI) =================
+    // ================= DOWNLOAD MODAL =================
     function openDownloadModal(id, name) {
         currentDownloadId = id;
         var modal = document.getElementById('downloadModal');
@@ -4183,6 +4691,7 @@
             closeModal();
             closeDetailModal();
             closeDownloadModal();
+            closeMultiDownloadModal();
             closeConfirmModal();
             hideSearchStatus();
         }
