@@ -37,6 +37,295 @@ class ServiceMonitorService
         return $this->checkHttp($service);
     }
 
+    // ============================================================
+    // 📊 PAGESPEED STATUS DETERMINATION
+    // ============================================================
+
+    /**
+     * Tentukan status berdasarkan PageSpeed thresholds
+     * 
+     * @param string $metric Nama metrik (response_time, lcp, dll)
+     * @param float $value Nilai metrik
+     * @return string 'UP' | 'WARNING' | 'DOWN'
+     */
+    private function determineStatusByPageSpeed(string $metric, float $value): string
+    {
+        $thresholds = config('pagespeed.thresholds', []);
+        
+        // Cari threshold untuk metrik
+        $metricThreshold = $thresholds[$metric] ?? $thresholds['response_time'] ?? null;
+        
+        if (!$metricThreshold) {
+            // Fallback ke response_time jika metrik tidak ditemukan
+            $metricThreshold = [
+                'good' => 2000,
+                'warning' => 4000,
+                'down' => 8000,
+            ];
+        }
+        
+        if ($value <= $metricThreshold['good']) {
+            return 'UP';
+        } elseif ($value <= $metricThreshold['warning']) {
+            return 'WARNING';
+        } else {
+            return 'DOWN';
+        }
+    }
+
+    /**
+     * Dapatkan rekomendasi berdasarkan response time
+     */
+    private function getRecommendationsByTime($timeMs): array
+    {
+        if ($timeMs <= 2000) {
+            return [
+                '✅ Service dalam kondisi optimal',
+                '💡 Pertahankan performa dengan monitoring rutin',
+            ];
+        } elseif ($timeMs <= 2500) {
+            return [
+                '📌 Pertimbangkan caching (Redis/Memcached)',
+                '📌 Optimasi query database yang sering dipanggil',
+                '📌 Aktifkan kompresi Gzip/Brotli',
+            ];
+        } elseif ($timeMs <= 3000) {
+            return [
+                '⚠️ Implementasi Full Page Cache',
+                '⚠️ Optimasi gambar (lazy loading, WebP)',
+                '⚠️ Minifikasi CSS/JS',
+                '⚠️ Periksa external API calls',
+            ];
+        } elseif ($timeMs <= 4000) {
+            return [
+                '🚨 Upgrade spesifikasi server (RAM/CPU)',
+                '🚨 Implementasi load balancer jika traffic tinggi',
+                '🚨 Refactoring kode aplikasi',
+                '🚨 Optimasi koneksi database (connection pool)',
+                '🚨 Gunakan CDN untuk konten statis',
+            ];
+        } elseif ($timeMs <= 6000) {
+            return [
+                '🚨 Periksa status server (CPU/Memory/Disk)',
+                '🚨 Cek log error untuk indikasi masalah',
+                '🚨 Restart service jika diperlukan',
+                '🚨 Scale up resource segera',
+                '🚨 Hubungi tim infrastruktur',
+            ];
+        } else {
+            return [
+                '🚨 TINDAKAN DARURAT! Service tidak responsif',
+                '🚨 Periksa server dan jaringan segera',
+                '🚨 Cek log error dan sistem monitoring',
+                '🚨 Restart server/service',
+                '🚨 Hubungi tim on-call',
+            ];
+        }
+    }
+
+    /**
+     * Analisis response dengan PageSpeed standar (DIPERBAIKI - LEBIH INFORMATIF)
+     */
+    private function analyzeResponseWithPageSpeed($code, $time): array
+    {
+        // Konversi ke milidetik untuk threshold PageSpeed
+        $timeMs = $time * 1000;
+        
+        // Gunakan threshold response_time dari PageSpeed
+        $status = $this->determineStatusByPageSpeed('response_time', $timeMs);
+        
+        // Cek base status dari kode HTTP
+        $baseStatus = $this->analyzeResponse($code, $time);
+        
+        // Jika base status DOWN, tetap DOWN (prioritas lebih tinggi)
+        if ($baseStatus['status'] === 'DOWN') {
+            return $baseStatus;
+        }
+        
+        // Format response time
+        $formattedTime = number_format($time, 2) . 's';
+        $formattedTimeMs = number_format($timeMs, 0) . 'ms';
+        $diffMs = $timeMs - 2000;
+        
+        // ============================================================
+        // TENTUKAN KATEGORI DAN REKOMENDASI
+        // ============================================================
+        
+        if ($timeMs <= 2000) {
+            $category = '⚡ SANGAT CEPAT';
+            $impact = '✅ Pengalaman pengguna optimal. Service berjalan sangat baik.';
+            $recommendations = [
+                '✅ Pertahankan performa ini',
+                '💡 Lakukan monitoring rutin untuk deteksi dini',
+            ];
+        } elseif ($timeMs <= 2500) {
+            $category = '🟡 CUKUP CEPAT';
+            $impact = '🟡 Masih OK, tapi mulai mendekati batas. Perhatikan trend ke depannya.';
+            $recommendations = [
+                '📌 Pertimbangkan caching (Redis/Memcached)',
+                '📌 Optimasi query database yang sering dipanggil',
+                '📌 Aktifkan kompresi Gzip/Brotli',
+            ];
+        } elseif ($timeMs <= 3000) {
+            $category = '🟡 LAMBAT';
+            $impact = '🟡 Pengguna mulai merasakan lambat. Risiko bounce rate meningkat 15-20%.';
+            $recommendations = [
+                '⚠️ Implementasi Full Page Cache',
+                '⚠️ Optimasi gambar (lazy loading, WebP)',
+                '⚠️ Minifikasi CSS/JS',
+                '⚠️ Periksa external API calls',
+            ];
+        } elseif ($timeMs <= 4000) {
+            $category = '🟠 SANGAT LAMBAT';
+            $impact = '🟠 Pengalaman pengguna buruk. Bounce rate meningkat 30-40%. Konversi menurun.';
+            $recommendations = [
+                '🚨 Upgrade spesifikasi server (RAM/CPU)',
+                '🚨 Implementasi load balancer jika traffic tinggi',
+                '🚨 Refactoring kode aplikasi',
+                '🚨 Optimasi koneksi database (connection pool)',
+                '🚨 Gunakan CDN untuk konten statis',
+            ];
+        } elseif ($timeMs <= 6000) {
+            $category = '🔴 KRITIS';
+            $impact = '🔴 Service hampir tidak bisa diakses. Dampak bisnis signifikan.';
+            $recommendations = [
+                '🚨 Periksa status server (CPU/Memory/Disk)',
+                '🚨 Cek log error untuk indikasi masalah',
+                '🚨 Restart service jika diperlukan',
+                '🚨 Scale up resource segera',
+                '🚨 Hubungi tim infrastruktur',
+            ];
+        } else {
+            $category = '🔴 SANGAT KRITIS';
+            $impact = '🔴 Service DOWN! Pengguna tidak bisa mengakses sama sekali.';
+            $recommendations = [
+                '🚨 TINDAKAN DARURAT! Service tidak responsif',
+                '🚨 Periksa server dan jaringan segera',
+                '🚨 Cek log error dan sistem monitoring',
+                '🚨 Restart server/service',
+                '🚨 Hubungi tim on-call',
+            ];
+        }
+        
+        // ============================================================
+        // STATUS WARNING
+        // ============================================================
+        
+        if ($status === 'WARNING') {
+            // 🔥 PESAN UTAMA TETAP ADA: "Response time 2.22s melewati threshold PageSpeed (good: ≤2s)"
+            $mainMessage = "Response time {$formattedTime} ({$formattedTimeMs}) melewati threshold PageSpeed (good: ≤2s)";
+            
+            // Tambahan informasi yang informatif
+            $detail = $mainMessage . "\n\n";
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "📊 DETAIL ANALISIS:\n";
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "⏱️  Response Time: {$formattedTime} ({$formattedTimeMs})\n";
+            $detail .= "📈  Kategori: {$category}\n";
+            $detail .= "🎯  Threshold: ≤ 2 detik (standar PageSpeed)\n";
+            $detail .= "📊  Selisih: +" . number_format($diffMs, 0) . "ms (melewati batas)\n";
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "💥  Dampak:\n";
+            $detail .= "{$impact}\n";
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "🔧  Rekomendasi Optimasi:\n";
+            foreach ($recommendations as $rec) {
+                $detail .= "• {$rec}\n";
+            }
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "📌  Status: WARNING - Perlu perbaikan performa";
+            
+            return [
+                'status' => 'WARNING',
+                'reason' => 'PAGESPEED_SLOW',
+                'detail' => $detail,
+                'action' => "Optimasi performa server: " . implode("; ", $recommendations),
+                'metrics' => [
+                    'response_time_ms' => $timeMs,
+                    'response_time_sec' => $time,
+                    'category' => $category,
+                    'impact' => $impact,
+                    'diff_ms' => $diffMs,
+                ]
+            ];
+        }
+        
+        // ============================================================
+        // STATUS DOWN
+        // ============================================================
+        
+        if ($status === 'DOWN') {
+            $mainMessage = "🚨 RESPONSE TIME TERLALU LAMBAT! {$formattedTime} ({$formattedTimeMs}) - SERVICE DOWN!";
+            
+            $detail = $mainMessage . "\n\n";
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "📊 DETAIL ANALISIS:\n";
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "⏱️  Response Time: {$formattedTime} ({$formattedTimeMs})\n";
+            $detail .= "📈  Kategori: {$category}\n";
+            $detail .= "🎯  Threshold: ≤ 2 detik (standar PageSpeed)\n";
+            $detail .= "📊  Selisih: +" . number_format($diffMs, 0) . "ms (sangat melewati batas)\n";
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "💥  Dampak Bisnis:\n";
+            $detail .= "{$impact}\n";
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "🔧  TINDAKAN DARURAT:\n";
+            foreach ($recommendations as $rec) {
+                $detail .= "• {$rec}\n";
+            }
+            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+            $detail .= "🚨  Status: DOWN - Segera perbaiki!";
+            
+            return [
+                'status' => 'DOWN',
+                'reason' => 'PAGESPEED_DOWN',
+                'detail' => $detail,
+                'action' => "Segera perbaiki server! " . implode("; ", $recommendations),
+                'metrics' => [
+                    'response_time_ms' => $timeMs,
+                    'response_time_sec' => $time,
+                    'category' => $category,
+                    'impact' => $impact,
+                    'diff_ms' => $diffMs,
+                ]
+            ];
+        }
+        
+        // ============================================================
+        // STATUS UP
+        // ============================================================
+        
+        $mainMessage = "✅ Response time {$formattedTime} ({$formattedTimeMs}) dalam batas aman (good: ≤2s)";
+        
+        $detail = $mainMessage . "\n\n";
+        $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $detail .= "📊 DETAIL ANALISIS:\n";
+        $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $detail .= "⏱️  Response Time: {$formattedTime} ({$formattedTimeMs})\n";
+        $detail .= "📈  Kategori: {$category}\n";
+        $detail .= "🎯  Threshold: ≤ 2 detik (standar PageSpeed)\n";
+        $detail .= "📊  Selisih: -" . number_format(abs($diffMs), 0) . "ms (dalam batas aman)\n";
+        $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $detail .= "💚  Dampak:\n";
+        $detail .= "{$impact}\n";
+        $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
+        $detail .= "✅  Status: UP - Service berjalan dengan baik";
+        
+        return [
+            'status' => 'UP',
+            'reason' => 'PAGESPEED_GOOD',
+            'detail' => $detail,
+            'action' => 'Service dalam kondisi baik. Pertahankan performa.',
+            'metrics' => [
+                'response_time_ms' => $timeMs,
+                'response_time_sec' => $time,
+                'category' => $category,
+                'impact' => $impact,
+                'diff_ms' => $diffMs,
+            ]
+        ];
+    }
+
     /**
      * ============================================================
      * 🌐 CHECK NETWORK CONNECTION
@@ -95,12 +384,28 @@ class ServiceMonitorService
         return false;
     }
 
+    /**
+     * 🔥🔥🔥 PING HOST - DIPERBAIKI UNTUK WINDOWS
+     */
     private function pingHost($host)
     {
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $command = $isWindows 
-            ? "ping -n 1 -w 3000 " . escapeshellarg($host) . " 2>&1"
-            : "ping -c 1 -W 3 " . escapeshellarg($host) . " 2>&1";
+        
+        if ($isWindows) {
+            // 🔥 PAKAI FULL PATH PING DI WINDOWS
+            $pingPath = 'C:\\Windows\\System32\\ping.exe';
+            
+            // Cek apakah file exists
+            if (!file_exists($pingPath)) {
+                // Fallback: coba cari di PATH
+                $pingPath = 'ping';
+                Log::warning("⚠️ ping.exe tidak ditemukan di C:\\Windows\\System32\\, menggunakan 'ping' dari PATH");
+            }
+            
+            $command = $pingPath . " -n 1 -w 3000 " . escapeshellarg($host) . " 2>&1";
+        } else {
+            $command = "ping -c 1 -W 3 " . escapeshellarg($host) . " 2>&1";
+        }
         
         exec($command, $output, $resultCode);
         return $resultCode === 0;
@@ -116,11 +421,27 @@ class ServiceMonitorService
         Log::info("🔍 Checking SSL certificate for {$host}:{$port}");
 
         try {
+            // 🔥 CEK APAKAH OPENSSL TERSEDIA DI WINDOWS
+            $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+            $opensslCmd = 'openssl';
+            
+            if ($isWindows) {
+                // Cek apakah openssl ada di PATH
+                $checkOpenssl = shell_exec('where openssl 2>nul');
+                if (empty($checkOpenssl)) {
+                    Log::warning("⚠️ OpenSSL tidak ditemukan di Windows, skip SSL check untuk {$host}");
+                    // Fallback ke PHP stream
+                    return $this->checkSSLviaStream($service, $host, $port);
+                }
+            }
+
             $command = sprintf(
-                'echo | openssl s_client -servername %s -connect %s:%d 2>/dev/null | openssl x509 -noout -dates 2>/dev/null',
+                'echo | %s s_client -servername %s -connect %s:%d 2>/dev/null | %s x509 -noout -dates 2>/dev/null',
+                $opensslCmd,
                 escapeshellarg($host),
                 escapeshellarg($host),
-                $port
+                $port,
+                $opensslCmd
             );
             
             $output = shell_exec($command);
@@ -136,18 +457,22 @@ class ServiceMonitorService
                     $daysRemaining = (int)ceil($now->diffInDays($validTo, false));
                 
                     $subjectCommand = sprintf(
-                        'echo | openssl s_client -servername %s -connect %s:%d 2>/dev/null | openssl x509 -noout -subject 2>/dev/null',
+                        'echo | %s s_client -servername %s -connect %s:%d 2>/dev/null | %s x509 -noout -subject 2>/dev/null',
+                        $opensslCmd,
                         escapeshellarg($host),
                         escapeshellarg($host),
-                        $port
+                        $port,
+                        $opensslCmd
                     );
                     $subjectOutput = shell_exec($subjectCommand);
                     
                     $issuerCommand = sprintf(
-                        'echo | openssl s_client -servername %s -connect %s:%d 2>/dev/null | openssl x509 -noout -issuer 2>/dev/null',
+                        'echo | %s s_client -servername %s -connect %s:%d 2>/dev/null | %s x509 -noout -issuer 2>/dev/null',
+                        $opensslCmd,
                         escapeshellarg($host),
                         escapeshellarg($host),
-                        $port
+                        $port,
+                        $opensslCmd
                     );
                     $issuerOutput = shell_exec($issuerCommand);
                     
@@ -187,7 +512,27 @@ class ServiceMonitorService
             
             // ALTERNATIF: PHP Stream dengan SNI
             Log::info("⚠️ OpenSSL command failed, using PHP stream with SNI for {$host}");
+            return $this->checkSSLviaStream($service, $host, $port);
             
+        } catch (\Exception $e) {
+            Log::error("❌ SSL Check error untuk {$host}:{$port} - " . $e->getMessage());
+            
+            // Fallback ke PHP stream
+            try {
+                return $this->checkSSLviaStream($service, $host, $port);
+            } catch (\Exception $e2) {
+                Log::error("❌ SSL Stream fallback juga gagal: " . $e2->getMessage());
+                return null;
+            }
+        }
+    }
+
+    /**
+     * 🔥 CHECK SSL VIA PHP STREAM (FALLBACK)
+     */
+    private function checkSSLviaStream($service, $host, $port = 443)
+    {
+        try {
             $context = stream_context_create([
                 'ssl' => [
                     'capture_peer_cert' => true,
@@ -255,7 +600,7 @@ class ServiceMonitorService
             return $this->processSSLResult($service, $host, $validFrom, $validTo, $daysRemaining, $commonName, $organization, $issuerCN);
             
         } catch (\Exception $e) {
-            Log::error("❌ SSL Check error untuk {$host}:{$port} - " . $e->getMessage());
+            Log::error("❌ SSL Stream error untuk {$host}:{$port} - " . $e->getMessage());
             return null;
         }
     }
@@ -587,7 +932,7 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * 🔍 CHECK HTTP 
+     * 🔍 CHECK HTTP (DIMODIFIKASI DENGAN PAGESPEED)
      * ============================================================
      */
     private function checkHttp(Service $service)
@@ -692,7 +1037,40 @@ class ServiceMonitorService
                 return;
             }
 
-            $analysis = $this->analyzeResponseByCode($code, $response->body(), $time);
+            // 🔥🔥🔥 MODIFIKASI: Gunakan PageSpeed untuk analisis
+            $analysis = $this->analyzeResponseWithPageSpeed($code, $time);
+            
+            // Tambahan: cek konten error jika status UP
+            if ($analysis['status'] === 'UP') {
+                $body = $response->body();
+                if (!empty($body)) {
+                    $errorKeywords = ['fatal error', 'parse error', 'syntax error', 'exception', 'stack trace', 'database error'];
+                    $bodyLower = strtolower($body);
+                    
+                    foreach ($errorKeywords as $keyword) {
+                        if (str_contains($bodyLower, $keyword)) {
+                            $analysis = [
+                                'status' => 'WARNING',
+                                'reason' => 'PAGESPEED_CONTENT_ERROR',
+                                'detail' => "Response cepat tapi konten error: '{$keyword}'",
+                                'action' => 'Periksa log server dan perbaiki error aplikasi',
+                            ];
+                            break;
+                        }
+                    }
+                }
+                
+                // Cek response kosong
+                if (empty($body) || trim($body) === '') {
+                    $analysis = [
+                        'status' => 'WARNING',
+                        'reason' => 'PAGESPEED_EMPTY_RESPONSE',
+                        'detail' => 'Response cepat tapi konten kosong',
+                        'action' => 'Periksa apakah halaman memang kosong atau ada error',
+                    ];
+                }
+            }
+            
             Log::info("Analysis {$service->name}: " . json_encode($analysis));
 
             if ($analysis['status'] === 'UP') {
@@ -876,7 +1254,7 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * 📡 CHECK PING
+     * 📡 CHECK PING - DIPERBAIKI UNTUK WINDOWS
      * ============================================================
      */
     private function checkPing(Service $service)
@@ -929,11 +1307,25 @@ class ServiceMonitorService
                 return;
             }
         }
-        // 2 kali proses ping
+
+        // 🔥🔥🔥 PERBAIKAN UNTUK WINDOWS - PAKAI FULL PATH
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        $command = $isWindows 
-            ? "ping -n 2 -w 10000 " . escapeshellarg($host) . " 2>&1"
-            : "ping -c 2 -W 10 " . escapeshellarg($host) . " 2>&1";
+        
+        if ($isWindows) {
+            // 🔥 PAKAI FULL PATH PING DI WINDOWS
+            $pingPath = 'C:\\Windows\\System32\\ping.exe';
+            
+            // Cek apakah file exists
+            if (!file_exists($pingPath)) {
+                // Fallback: coba cari di PATH
+                $pingPath = 'ping';
+                Log::warning("⚠️ ping.exe tidak ditemukan di C:\\Windows\\System32\\, menggunakan 'ping' dari PATH");
+            }
+            
+            $command = $pingPath . " -n 2 -w 10000 " . escapeshellarg($host) . " 2>&1";
+        } else {
+            $command = "ping -c 2 -W 10 " . escapeshellarg($host) . " 2>&1";
+        }
         
         exec($command, $output, $resultCode);
         $outputString = implode("\n", $output);
@@ -1056,49 +1448,9 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * 📊 ANALISIS RESPONSE
+     * 📊 ANALISIS RESPONSE (TETAP)
      * ============================================================
      */
-    private function analyzeResponseByCode($code, $body, $time)
-    {
-        if (empty($body) || trim($body) === '') {
-            Log::warning("Response kosong: code={$code}, service body empty");
-            
-            if ($code >= 200 && $code < 300) {
-                return [
-                    'status' => 'WARNING',
-                    'reason' => 'EMPTY_RESPONSE',
-                    'detail' => 'Halaman merespon tapi konten kosong',
-                    'action' => 'Periksa apakah halaman memang kosong atau ada error'
-                ];
-            }
-            
-            return [
-                'status' => 'DOWN',
-                'reason' => 'EMPTY_RESPONSE_ERROR',
-                'detail' => "Server error ({$code}) dengan response kosong",
-                'action' => 'Cek log server, periksa error di aplikasi'
-            ];
-        }
-
-        $errorKeywords = ['fatal error', 'parse error', 'syntax error', 'exception', 'stack trace', 'database error'];
-        $bodyLower = strtolower($body);
-        
-        foreach ($errorKeywords as $keyword) {
-            if (str_contains($bodyLower, $keyword)) {
-                Log::warning("Konten mengandung error: '{$keyword}'");
-                return [
-                    'status' => 'WARNING',
-                    'reason' => 'ERROR_IN_CONTENT',
-                    'detail' => "Konten error: '{$keyword}' - Service masih berjalan tapi ada error",
-                    'action' => 'Periksa log server dan perbaiki error aplikasi'
-                ];
-            }
-        }
-
-        return $this->analyzeResponse($code, $time);
-    }
-
     private function analyzeResponse($code, $time)
     {
         if ($code >= 200 && $code < 300) {
@@ -1453,23 +1805,59 @@ class ServiceMonitorService
         }
 
         $newline = "\n";
+        $line = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+        
+        $formattedTime = number_format($time, 2) . ' detik';
+        $timeMs = $time * 1000;
+        $formattedTimeMs = number_format($timeMs, 0) . ' ms';
+        
         $statusText = $oldStatus == 'DOWN' ? 'DOWN' : 'WARNING';
 
-        $message = "🟢 SERVICE NORMAL KEMBALI" . $newline . $newline;
-        $message .= "Nama   : " . $service->name . $newline;
-        $message .= "Target : " . $service->target . $newline;
-        $message .= $newline;
-        $message .= "Status : 🟢 UP (sebelumnya " . $statusText . ")" . $newline;
-        $message .= "Kode   : " . $code . $newline;
-        $message .= "Waktu  : " . $time . " detik" . $newline;
+        $message = "🟢✅ SERVICE NORMAL KEMBALI - SELAMAT!" . $newline;
+        $message .= $line;
+        $message .= "📌 INFORMASI SERVICE" . $newline;
+        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+        $message .= "Nama    : " . $service->name . $newline;
+        $message .= "Target  : " . $service->target . $newline;
+        $message .= "Tipe    : " . strtoupper($service->type ?? 'HTTP') . $newline;
+        $message .= $line;
+        $message .= "📊 STATUS PEMULIHAN" . $newline;
+        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+        $message .= "Status  : 🟢 UP (sebelumnya " . $statusText . ")" . $newline;
+        $message .= "Kode    : " . $code . $newline;
+        $message .= "Waktu   : " . $formattedTime . " (" . $formattedTimeMs . ")" . $newline;
         
-        if (!empty($detail) && $detail != '-') {
-            $message .= $newline . "Detail:" . $newline;
-            $message .= $detail . $newline;
+        if ($timeMs <= 2000) {
+            $message .= "Kategori: ⚡ Optimal (≤ 2 detik)" . $newline;
+        } elseif ($timeMs <= 3000) {
+            $message .= "Kategori: 🟡 Cukup cepat (2-3 detik)" . $newline;
+        } elseif ($timeMs <= 4000) {
+            $message .= "Kategori: 🟠 Lambat (3-4 detik) - perlu optimasi" . $newline;
+        } else {
+            $message .= "Kategori: 🔴 Sangat lambat (>4 detik) - perlu perbaikan" . $newline;
         }
         
-        $message .= $newline . "✅ Service telah kembali normal dan dapat diakses." . $newline;
-        $message .= $newline . "🕐 " . now()->format('d-m-Y H:i:s') . " WIB";
+        $message .= $line;
+        $message .= "✅ Kondisi Service" . $newline;
+        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+        $message .= "✅ Service telah kembali normal" . $newline;
+        $message .= "✅ Dapat diakses oleh pengguna" . $newline;
+        
+        // Tambahkan saran jika masih lambat
+        if ($timeMs > 2000) {
+            $message .= $line;
+            $message .= "⚠️ SARAN PERBAIKAN" . $newline;
+            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+            $recs = $this->getRecommendationsByTime($timeMs);
+            foreach (array_slice($recs, 0, 3) as $rec) {
+                $message .= "• " . $rec . $newline;
+            }
+        }
+        
+        $message .= $line;
+        $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB" . $newline;
+        $message .= $line;
+        $message .= "📱 Service siap digunakan kembali!" . $newline;
 
         foreach ($contacts as $contact) {
             $result = FonnteService::send($contact->phone, $message);
@@ -1479,7 +1867,7 @@ class ServiceMonitorService
 
     /**
      * ============================================================
-     * ⚠️ KIRIM WHATSAPP (DOWN / WARNING)
+     * ⚠️ KIRIM WHATSAPP (DOWN / WARNING) - DIPERBAIKI LEBIH INFORMATIF
      * ============================================================
      */
     private function sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action)
@@ -1491,37 +1879,114 @@ class ServiceMonitorService
         }
 
         $newline = "\n";
+        $line = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+
+        // Format response time
+        $formattedTime = number_format($time, 2) . ' detik';
+        $timeMs = $time * 1000;
+        $formattedTimeMs = number_format($timeMs, 0) . ' ms';
 
         if ($status == 'DOWN') {
-            $judul = "🔴 SERVICE DOWN";
+            $judul = "🔴🚨 SERVICE DOWN - SEGERA PERBAIKI!";
             $statusIcon = "🔴";
             $statusText = "DOWN";
+            $urgency = "🚨 URGENT!";
         } else {
-            $judul = "🟡 SERVICE WARNING";
+            $judul = "🟡⚠️ SERVICE WARNING - PERLU OPTIMASI!";
             $statusIcon = "🟡";
             $statusText = "WARNING";
+            $urgency = "⚠️ PERHATIAN!";
         }
 
-        $message = $judul . $newline . $newline;
-        $message .= "Nama   : " . $service->name . $newline;
-        $message .= "Target : " . $service->target . $newline;
-        $message .= $newline;
-        $message .= "Status : " . $statusIcon . " " . $statusText . $newline;
-        $message .= "Kode   : " . $code . $newline;
-        $message .= "Waktu  : " . $time . " detik" . $newline;
+        // Build pesan yang informatif
+        $message = $judul . $newline;
+        $message .= $line;
+        $message .= "📌 INFORMASI SERVICE" . $newline;
+        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+        $message .= "Nama    : " . $service->name . $newline;
+        $message .= "Target  : " . $service->target . $newline;
+        $message .= "Tipe    : " . strtoupper($service->type ?? 'HTTP') . $newline;
+        $message .= $line;
+        $message .= "📊 STATUS MONITORING" . $newline;
+        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+        $message .= "Status  : " . $statusIcon . " " . $statusText . $newline;
+        $message .= "Kode    : " . $code . $newline;
+        $message .= "Waktu   : " . $formattedTime . " (" . $formattedTimeMs . ")" . $newline;
+        $message .= "Threshold: ≤ 2 detik (standar PageSpeed)" . $newline;
         
+        // Hitung selisih
+        if ($timeMs > 2000) {
+            $diff = $timeMs - 2000;
+            $message .= "Selisih : +" . number_format($diff, 0) . " ms (melewati batas)" . $newline;
+        } else {
+            $diff = 2000 - $timeMs;
+            $message .= "Selisih : -" . number_format($diff, 0) . " ms (dalam batas aman)" . $newline;
+        }
+        
+        $message .= $line;
+        
+        // Dampak
+        if ($status == 'DOWN') {
+            $message .= "💥 DAMPAK BISNIS" . $newline;
+            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+            $message .= "❌ Service tidak dapat diakses oleh pengguna" . $newline;
+            $message .= "❌ Potensi kehilangan pendapatan" . $newline;
+            $message .= "❌ Reputasi perusahaan terpengaruh" . $newline;
+            $message .= "❌ SEO dan peringkat Google menurun" . $newline;
+            $message .= $line;
+            $message .= "🔧 TINDAKAN DARURAT" . $newline;
+            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+        } else {
+            $message .= "💥 DAMPAK" . $newline;
+            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+            
+            if ($timeMs <= 2500) {
+                $message .= "🟡 Pengalaman pengguna mulai terganggu" . $newline;
+                $message .= "🟡 Risiko bounce rate meningkat 10-15%" . $newline;
+            } elseif ($timeMs <= 3000) {
+                $message .= "🟠 Pengguna mulai tidak sabar" . $newline;
+                $message .= "🟠 Risiko bounce rate meningkat 20-30%" . $newline;
+                $message .= "🟠 Konversi menurun 10-15%" . $newline;
+            } elseif ($timeMs <= 4000) {
+                $message .= "🔴 Pengalaman pengguna sangat buruk" . $newline;
+                $message .= "🔴 Risiko bounce rate meningkat 40-50%" . $newline;
+                $message .= "🔴 Konversi menurun 20-30%" . $newline;
+                $message .= "🔴 SEO terpengaruh signifikan" . $newline;
+            } else {
+                $message .= "🔴 SERVICE SANGAT LAMBAT!" . $newline;
+                $message .= "🔴 Risiko bounce rate meningkat >60%" . $newline;
+                $message .= "🔴 Konversi menurun >40%" . $newline;
+                $message .= "🔴 SEO sangat terpengaruh" . $newline;
+                $message .= "🔴 Hampir tidak bisa diakses" . $newline;
+            }
+            $message .= $line;
+            $message .= "🔧 REKOMENDASI OPTIMASI" . $newline;
+            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
+        }
+        
+        // Tambahkan rekomendasi spesifik
+        $recommendations = $this->getRecommendationsByTime($timeMs);
+        foreach ($recommendations as $rec) {
+            $message .= "• " . $rec . $newline;
+        }
+        
+        $message .= $line;
+        
+        // Detail tambahan dari system (ambil bagian penting)
         if (!empty($detail) && $detail != '-') {
-            $message .= $newline . "Detail:" . $newline;
-            $message .= $detail . $newline;
+            // Ambil hanya kalimat pertama dari detail
+            $firstLine = strtok($detail, "\n");
+            if ($firstLine) {
+                $message .= "📝 " . $firstLine . $newline;
+            }
         }
         
-        if (!empty($action) && $action != '-' && $action != 'Service dalam kondisi baik, tidak perlu tindakan') {
-            $message .= $newline . "Tindakan:" . $newline;
-            $message .= $action . $newline;
-        }
-        
-        $message .= $newline . "🕐 " . now()->format('d-m-Y H:i:s') . " WIB";
+        $message .= $line;
+        $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB" . $newline;
+        $message .= $line;
+        $message .= "📱 " . $urgency . " Segera tindak lanjuti!" . $newline;
 
+        // Kirim ke semua kontak
         foreach ($contacts as $contact) {
             $result = FonnteService::send($contact->phone, $message);
             Log::info($result ? "✅ WA ke: {$contact->phone} - {$status}" : "❌ Gagal WA ke: {$contact->phone}");

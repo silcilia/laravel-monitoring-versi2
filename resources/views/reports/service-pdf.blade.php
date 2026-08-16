@@ -24,13 +24,14 @@
             border: 1px solid #e2e8f0;
         }
 
-        /* ==================== HEADER ==================== */
+        /* ==================== HEADER - BIRU MUDA ==================== */
         .header {
             text-align: center;
-            background: #1a202c;
+            background: linear-gradient(135deg, #0a2e5c 0%, #1a4d7a 50%, #1e5f8e 100%);
             border-radius: 10px 10px 0 0;
             margin: -20px -24px 16px -24px;
             padding: 22px 24px 18px 24px;
+            border-bottom: 3px solid #3b82f6;
         }
         .header .title {
             font-size: 22px;
@@ -38,11 +39,13 @@
             color: #ffffff;
             text-transform: uppercase;
             letter-spacing: 2px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .header .subtitle {
             font-size: 11px;
-            color: #a0aec0;
+            color: #93c5fd;
             margin-top: 6px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .header .subtitle strong {
             color: #ffffff;
@@ -50,19 +53,21 @@
         }
         .header .subtitle .badge-header {
             display: inline-block;
-            background: #234a37;
-            color: #48bb78;
+            background: #1a365d;
+            color: #60a5fa;
             padding: 2px 12px;
             border-radius: 10px;
             font-size: 8px;
             font-weight: 700;
             margin-left: 6px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .header .subtitle .printed {
             display: block;
             font-size: 9px;
-            color: #718096;
+            color: #94a3b8;
             margin-top: 4px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         /* ==================== SECTION ==================== */
@@ -73,8 +78,9 @@
             color: #1a202c;
             padding: 6px 14px;
             margin-bottom: 10px;
-            background: #ebf8ff;
-            border-left: 5px solid #3498db;
+            background: #dbeafe;
+            border-left: 5px solid #3b82f6;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .section-title-sm {
             font-size: 11px;
@@ -82,8 +88,9 @@
             color: #1a202c;
             padding: 5px 14px;
             margin-bottom: 8px;
-            background: #fff5f5;
-            border-left: 5px solid #fc8181;
+            background: #fee2e2;
+            border-left: 5px solid #ef4444;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         /* ==================== DIVIDER ==================== */
@@ -101,6 +108,7 @@
             border-bottom: 1px solid #f0f4f8;
             font-size: 10px;
             vertical-align: middle;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .info-label {
             font-weight: 700;
@@ -109,24 +117,39 @@
             font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.3px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
-        .info-value { color: #1a202c; font-weight: 500; }
-        .info-value strong { color: #2c3e50; font-weight: 700; }
+        .info-value { 
+            color: #1a202c; 
+            font-weight: 500; 
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        .info-value strong { 
+            color: #0a2e5c; 
+            font-weight: 700; 
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        
+        /* ==================== STATUS BADGE ==================== */
         .status-down {
             color: #9b2c2c; font-weight: 700; background: #fed7d7;
             padding: 2px 10px; border-radius: 10px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .status-up {
             color: #22543d; font-weight: 700; background: #c6f6d5;
             padding: 2px 10px; border-radius: 10px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .status-warning {
             color: #744210; font-weight: 700; background: #fefcbf;
             padding: 2px 10px; border-radius: 10px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .status-unknown {
             color: #2d3748; font-weight: 700; background: #e2e8f0;
             padding: 2px 10px; border-radius: 10px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         /* ==================== RINGKASAN EKSEKUTIF - BAR CHART ==================== */
@@ -150,7 +173,13 @@
         .bar-warning { background: #f6ad55; }
 
         .legend-table { width: 100%; margin-top: 10px; border-collapse: collapse; }
-        .legend-table td { padding: 4px 6px; font-size: 10px; font-weight: 500; vertical-align: middle; }
+        .legend-table td { 
+            padding: 4px 6px; 
+            font-size: 10px; 
+            font-weight: 500; 
+            vertical-align: middle;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
         .color-box {
             display: inline-block;
             width: 14px; height: 14px; border-radius: 4px; margin-right: 8px;
@@ -158,9 +187,26 @@
         .color-box.up { background: #38a169; }
         .color-box.down { background: #e53e3e; }
         .color-box.warning { background: #dd6b20; }
-        .legend-percent { font-weight: 700; color: #2d3748; font-size: 11px; text-align: right; }
-        .legend-rt-row td { border-top: 2px solid #e2e8f0; padding-top: 8px; font-size: 10px; color: #718096; }
-        .legend-rt-row .legend-percent { font-size: 12px; color: #2c3e50; font-weight: 800; }
+        .legend-percent { 
+            font-weight: 700; 
+            color: #2d3748; 
+            font-size: 11px; 
+            text-align: right;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        .legend-rt-row td { 
+            border-top: 2px solid #e2e8f0; 
+            padding-top: 8px; 
+            font-size: 10px; 
+            color: #718096;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        .legend-rt-row .legend-percent { 
+            font-size: 12px; 
+            color: #0a2e5c; 
+            font-weight: 800;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
 
         /* ==================== BADGE ==================== */
         .badge {
@@ -171,6 +217,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .badge-up { background: #c6f6d5; color: #22543d; }
         .badge-warning { background: #fefcbf; color: #744210; }
@@ -183,11 +230,22 @@
             padding: 5px 14px;
             font-size: 10px;
             border-left: 5px solid;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         .critical-item.danger td { background: #fff5f5; border-color: #fc8181; }
         .critical-item.warning td { background: #fffbeb; border-color: #f6ad55; }
-        .critical-item .date { font-weight: 700; font-size: 10px; color: #2d3748; width: 30%; }
-        .critical-item .status { font-size: 10px; color: #4a5568; }
+        .critical-item .date { 
+            font-weight: 700; 
+            font-size: 10px; 
+            color: #2d3748; 
+            width: 30%;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        .critical-item .status { 
+            font-size: 10px; 
+            color: #4a5568;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
 
         /* ==================== TABLE (log) ==================== */
         .table-responsive {
@@ -197,7 +255,7 @@
         }
         table.log-table { width: 100%; border-collapse: collapse; font-size: 8.5px; }
         table.log-table thead th {
-            background: #1a202c;
+            background: #0a2e5c;
             color: #ffffff;
             padding: 6px 10px;
             text-align: left;
@@ -205,19 +263,32 @@
             font-size: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         table.log-table tbody td {
             padding: 5px 10px;
             border-bottom: 1px solid #f0f4f8;
             font-size: 8.5px;
             color: #2d3748;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
         table.log-table tbody tr:last-child td { border-bottom: none; }
         table.log-table tbody tr.even-row { background: #fafcfd; }
 
         /* ==================== TEXT ==================== */
-        .text-muted { color: #718096; font-size: 8.5px; }
-        .no-data { text-align: center; padding: 24px; color: #718096; font-style: italic; font-size: 10px; }
+        .text-muted { 
+            color: #718096; 
+            font-size: 8.5px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        .no-data { 
+            text-align: center; 
+            padding: 24px; 
+            color: #718096; 
+            font-style: italic; 
+            font-size: 10px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
 
         /* ==================== FOOTER ==================== */
         .footer {
@@ -226,11 +297,57 @@
             padding-top: 12px;
             border-top: 2px solid #e2e8f0;
             font-size: 8.5px;
-            color: #a0aec0;
+            color: #94a3b8;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
-        .footer strong { color: #718096; font-weight: 700; }
+        .footer strong { 
+            color: #0a2e5c; 
+            font-weight: 700;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
 
         .page-break { page-break-before: always; }
+        
+        /* ==================== TOMBOL INFO ==================== */
+        .info-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            padding: 4px 0;
+        }
+        .info-row .item {
+            font-size: 10px;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        .info-row .item .label {
+            font-weight: 700;
+            color: #4a5568;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        .info-row .item .value {
+            color: #1a202c;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+        
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 600px) {
+            .info-table td {
+                display: block;
+                width: 100%;
+                padding: 3px 8px;
+            }
+            .info-label {
+                width: 100%;
+                font-size: 8px;
+            }
+            .critical-item .date {
+                width: 100%;
+                display: block;
+            }
+            .critical-item td {
+                padding: 5px 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -244,7 +361,7 @@
                 {{ $reportData['period']['date_from'] }} &rarr; {{ $reportData['period']['date_to'] }}
                 &bull; <strong>{{ number_format($reportData['statistics']['total_checks']) }}</strong> data
                 <span class="badge-header">LIVE</span>
-                <span class="printed">Dicetak: {{ now()->format('d/m/Y H:i:s') }}</span>
+                <span class="printed">Dicetak: {{ now()->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s') }} WIB</span>
             </div>
         </div>
 
@@ -311,7 +428,7 @@
                                 <td class="bar-warning" style="width: {{ $warnPct }}%;"></td>
                             @endif
                             @if($upPct <= 0 && $downPct <= 0 && $warnPct <= 0)
-                                <td style="width: 100%; background: #e2e8f0; text-align: center; color: #718096; font-size: 9px;">Tidak ada data</td>
+                                <td style="width: 100%; background: #e2e8f0; text-align: center; color: #718096; font-size: 9px; font-family: 'DejaVu Sans', 'Arial', sans-serif;">Tidak ada data</td>
                             @endif
                         </tr>
                     </table>
@@ -399,9 +516,9 @@
                                     <td style="text-align:center;">
                                         <span class="badge badge-{{ strtolower($log['status']) }}">{{ $log['status'] }}</span>
                                     </td>
-                                    <td style="text-align:center; font-weight:700;">{{ $log['response_code'] }}</td>
-                                    <td style="text-align:center; font-weight:600;">{{ $log['response_time'] }}</td>
-                                    <td style="font-size:8px;">{{ Str::limit($log['message'] ?? '-', 55) }}</td>
+                                    <td style="text-align:center; font-weight:700; font-family: 'DejaVu Sans', 'Arial', sans-serif;">{{ $log['response_code'] }}</td>
+                                    <td style="text-align:center; font-weight:600; font-family: 'DejaVu Sans', 'Arial', sans-serif;">{{ $log['response_time'] }}</td>
+                                    <td style="font-size:8px; font-family: 'DejaVu Sans', 'Arial', sans-serif;">{{ Str::limit($log['message'] ?? '-', 55) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

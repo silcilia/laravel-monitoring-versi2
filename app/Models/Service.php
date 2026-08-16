@@ -30,11 +30,16 @@ class Service extends Model
         'interval_wa_sent_in_this_cycle',
         'is_archived',
         'archived_at',
-        // 🔥 SSL FIELDS (HANYA YANG ADA DI DATABASE)
         'ssl_status',
         'ssl_days_remaining',
         'ssl_expiry_date',
         'ssl_checked_at',
+        'pagespeed_score',
+        'pagespeed_lcp',
+        'pagespeed_fcp',
+        'pagespeed_tti',
+        'pagespeed_cls',
+        'pagespeed_checked_at',
     ];
 
     /**
@@ -53,10 +58,15 @@ class Service extends Model
         'interval_wa_sent_in_this_cycle' => 'boolean',
         'is_archived' => 'boolean',
         'archived_at' => 'datetime',
-        // 🔥 SSL CASTS (HANYA YANG ADA DI DATABASE)
         'ssl_expiry_date' => 'datetime',
         'ssl_days_remaining' => 'integer',
         'ssl_checked_at' => 'datetime',
+        'pagespeed_score' => 'integer',
+        'pagespeed_lcp' => 'float',
+        'pagespeed_fcp' => 'float',
+        'pagespeed_tti' => 'float',
+        'pagespeed_cls' => 'float',
+        'pagespeed_checked_at' => 'datetime',
     ];
 
     /**

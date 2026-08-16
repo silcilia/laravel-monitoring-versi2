@@ -1629,6 +1629,98 @@
     .detail-item .detail-value .response-time.slow { color: #dc2626; }
     .detail-item .detail-value .response-time.medium { color: #d97706; }
 
+    /* 🔥🔥🔥 DETAIL MESSAGE - DIPERBAIKI */
+    .detail-message-wrapper {
+        background: var(--bg-detail-service);
+        border-radius: 10px;
+        padding: 16px 18px;
+        border: 1px solid var(--border-service);
+        transition: all 0.3s ease;
+        grid-column: 1 / -1;
+    }
+
+    .detail-message-wrapper .detail-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted-service);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+        transition: color 0.3s ease;
+    }
+
+    .detail-message-wrapper .detail-message {
+        background: var(--bg-hover-service);
+        border-radius: 8px;
+        padding: 14px 18px;
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--text-service);
+        border-left: 4px solid #4f46e5;
+        word-break: break-word;
+        max-height: 200px;
+        overflow-y: auto;
+        font-weight: 400;
+        white-space: pre-wrap;
+        transition: all 0.3s ease;
+        font-family: 'SF Mono', 'Courier New', monospace;
+    }
+
+    .detail-message-wrapper .detail-message::-webkit-scrollbar {
+        width: 4px;
+    }
+    .detail-message-wrapper .detail-message::-webkit-scrollbar-track {
+        background: var(--bg-hover-service);
+        border-radius: 10px;
+    }
+    .detail-message-wrapper .detail-message::-webkit-scrollbar-thumb {
+        background: var(--text-muted-service);
+        border-radius: 10px;
+    }
+
+    .detail-message-wrapper .detail-message.empty-message {
+        border-left-color: #f59e0b;
+        background: var(--bg-info-box-service);
+        color: var(--text-info-box-service);
+    }
+    .detail-message-wrapper .detail-message.empty-message::before {
+        content: '📄 ';
+        font-size: 16px;
+    }
+
+    .detail-message-wrapper .detail-message .msg-line {
+        display: block;
+        padding: 2px 0;
+    }
+    .detail-message-wrapper .detail-message .msg-line.warning {
+        color: #d97706;
+    }
+    .detail-message-wrapper .detail-message .msg-line.danger {
+        color: #dc2626;
+    }
+    .detail-message-wrapper .detail-message .msg-line.success {
+        color: #059669;
+    }
+    .detail-message-wrapper .detail-message .msg-line.info {
+        color: #2563eb;
+    }
+    .detail-message-wrapper .detail-message .msg-label {
+        font-weight: 700;
+        color: var(--text-secondary-service);
+    }
+    .detail-message-wrapper .detail-message .msg-divider {
+        display: block;
+        border-top: 1px dashed var(--border-service);
+        margin: 6px 0;
+    }
+
+    [data-theme="dark"] .detail-message-wrapper .detail-message {
+        background: var(--bg-detail-alt-service);
+    }
+    [data-theme="dark"] .detail-message-wrapper .detail-message .msg-label {
+        color: var(--text-muted-service);
+    }
+
     .detail-timestamp {
         font-size: 13px;
         color: var(--text-secondary-service);
@@ -1638,34 +1730,6 @@
         border-radius: 6px;
         display: inline-block;
         transition: all 0.3s ease;
-    }
-
-    .detail-message {
-        background: var(--bg-hover-service);
-        border-radius: 8px;
-        padding: 12px 16px;
-        font-size: 14px;
-        color: var(--text-service);
-        border-left: 4px solid #4f46e5;
-        word-break: break-word;
-        max-height: 80px;
-        overflow-y: auto;
-        font-weight: 400;
-        transition: all 0.3s ease;
-    }
-
-    .detail-message.empty-message {
-        border-left-color: #f59e0b;
-        background: var(--bg-info-box-service);
-        color: var(--text-info-box-service);
-    }
-    .detail-message.empty-message::before {
-        content: '📄 ';
-        font-size: 16px;
-    }
-
-    [data-theme="dark"] .detail-message {
-        background: var(--bg-detail-alt-service);
     }
 
     /* ================= DOWNLOAD MODAL ================= */
@@ -4081,6 +4145,7 @@
         });
     }
 
+    // 🔥🔥🔥 RENDER DETAIL - DIPERBAIKI
     function renderDetail(service) {
         const body = document.getElementById('detailModalBody');
         document.getElementById('detailModalTitle').textContent = `📊 Detail Service: ${service.name}`;
@@ -4094,9 +4159,66 @@
         const timeClass = responseTime < 1 ? 'fast' : (responseTime < 3 ? 'medium' : 'slow');
         const codeClass = responseCode < 400 ? 'success' : (responseCode < 500 ? 'warning' : 'error');
         
-        const message = service.last_message || '-';
-        const isEmptyPage = message.includes('konten kosong') || message.includes('EMPTY_RESPONSE');
-        const messageClass = isEmptyPage ? 'empty-message' : '';
+        // 🔥 FORMAT PESAN LEBIH RAPI
+        let messageHtml = '';
+        const rawMessage = service.last_message || '-';
+        
+        if (rawMessage === '-' || rawMessage === '') {
+            messageHtml = '<span style="color: var(--text-muted-service);">Tidak ada pesan</span>';
+        } else {
+            // Pisahkan berdasarkan baris
+            const lines = rawMessage.split('\n');
+            let isWarning = false;
+            let isDanger = false;
+            let isSuccess = false;
+            
+            // Deteksi status dari pesan
+            if (rawMessage.includes('WARNING') || rawMessage.includes('⚠️') || rawMessage.includes('PERLU OPTIMASI')) {
+                isWarning = true;
+            }
+            if (rawMessage.includes('DOWN') || rawMessage.includes('🔴') || rawMessage.includes('SERVICE DOWN') || rawMessage.includes('🚨')) {
+                isDanger = true;
+            }
+            if (rawMessage.includes('UP') || rawMessage.includes('✅') || rawMessage.includes('berhasil') || rawMessage.includes('normal')) {
+                isSuccess = true;
+            }
+            
+            // Bangun HTML dengan format rapi
+            let lineClass = 'msg-line';
+            if (isDanger) lineClass += ' danger';
+            else if (isWarning) lineClass += ' warning';
+            else if (isSuccess) lineClass += ' success';
+            else lineClass += ' info';
+            
+            messageHtml = lines.map(line => {
+                let trimmed = line.trim();
+                if (trimmed === '') {
+                    return '<span class="msg-divider"></span>';
+                }
+                
+                // Format bold untuk label
+                let formattedLine = trimmed;
+                
+                const labelPatterns = ['Status:', 'Kategori:', 'Dampak:', 'Rekomendasi:', 'Tindakan:', 'Detail:', 'Response Time:', 'Threshold:', 'Selisih:', 'Kode:'];
+                labelPatterns.forEach(label => {
+                    if (trimmed.startsWith(label)) {
+                        const parts = trimmed.split(':');
+                        if (parts.length >= 2) {
+                            const labelPart = parts[0] + ':';
+                            const valuePart = parts.slice(1).join(':').trim();
+                            formattedLine = `<span class="msg-label">${labelPart}</span> ${valuePart}`;
+                        }
+                    }
+                });
+                
+                return `<span class="${lineClass}">${formattedLine}</span>`;
+            }).join('');
+        }
+
+        // 🔥 CEK APAKAH PESAN MENGANDUNG PAGESPEED DETAIL
+        const isPageSpeedMessage = rawMessage.includes('Response time') && rawMessage.includes('threshold PageSpeed');
+        const isEmptyPage = rawMessage.includes('konten kosong') || rawMessage.includes('EMPTY_RESPONSE');
+        const emptyClass = isEmptyPage ? 'empty-message' : '';
 
         body.innerHTML = `
             <div class="detail-grid">
@@ -4106,8 +4228,32 @@
                 <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value"><span class="status-badge ${statusClass}"><span class="status-dot"></span> ${statusBadge}</span></div></div>
                 <div class="detail-item"><div class="detail-label">Response Code</div><div class="detail-value"><span class="response-code ${codeClass}">${responseCode}</span></div></div>
                 <div class="detail-item"><div class="detail-label">Response Time</div><div class="detail-value"><span class="response-time ${timeClass}">${Number(responseTime).toFixed(2)} <span style="font-size: 12px; color: var(--text-muted-service);">s</span></span></div></div>
-                <div class="detail-item full-width"><div class="detail-label">Pesan</div><div class="detail-message ${messageClass}">${message}</div></div>
-                <div class="detail-item full-width" style="background: var(--bg-detail-alt-service); border-color: var(--border-service);"><div class="detail-label">Informasi Tambahan</div><div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; font-size: 13px; color: var(--text-secondary-service);"><span><strong>ID:</strong> ${service.id}</span><span><strong>Terakhir Check:</strong> ${service.last_check_at || '-'}</span><span><strong>Dibuat:</strong> ${service.created_at || '-'}</span><span><strong>Diupdate:</strong> ${service.updated_at || '-'}</span></div></div>
+                
+                <!-- 🔥🔥🔥 PESAN - DIPERBAIKI -->
+                <div class="detail-message-wrapper">
+                    <div class="detail-label">📝 Pesan</div>
+                    <div class="detail-message ${emptyClass}">
+                        ${messageHtml}
+                    </div>
+                    ${isPageSpeedMessage ? `
+                    <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted-service); display: flex; gap: 12px; flex-wrap: wrap; padding: 6px 10px; background: var(--bg-hover-service); border-radius: 6px;">
+                        <span>📊 <strong>PageSpeed</strong></span>
+                        <span>🎯 Threshold: ≤ 2s</span>
+                        <span>⏱️ ${Number(responseTime).toFixed(2)}s</span>
+                        ${responseTime > 2 ? `<span style="color: #dc2626;">⚠️ Melewati batas</span>` : `<span style="color: #059669;">✅ Dalam batas aman</span>`}
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="detail-item full-width" style="background: var(--bg-detail-alt-service); border-color: var(--border-service);">
+                    <div class="detail-label">Informasi Tambahan</div>
+                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; font-size: 13px; color: var(--text-secondary-service);">
+                        <span><strong>ID:</strong> ${service.id}</span>
+                        <span><strong>Terakhir Check:</strong> ${service.last_check_at || '-'}</span>
+                        <span><strong>Dibuat:</strong> ${service.created_at || '-'}</span>
+                        <span><strong>Diupdate:</strong> ${service.updated_at || '-'}</span>
+                    </div>
+                </div>
             </div>
         `;
     }
