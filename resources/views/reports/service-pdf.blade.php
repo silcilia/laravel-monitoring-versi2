@@ -5,431 +5,459 @@
     <title>Laporan Monitoring Service - {{ $reportData['service']['name'] }}</title>
     <style>
         /* ============================================================
-                   RESET & BASE
-                   ============================================================ */
+           RESET & BASE
+           Catatan render PDF (dompdf):
+           - Semua teks WAJIB dibungkus tag inline sendiri (<span>/<strong>),
+             jangan taruh font-weight langsung di <td>. dompdf kadang
+             fallback ke font serif (Times) kalau teks polos di dalam <td>
+             diberi style lewat class pada <td> itu sendiri.
+           - Hindari CSS gradient utk background; dompdf tidak konsisten
+             merendernya -> pakai warna solid.
+           - Hanya pakai font-weight 400 / 700 (bukan 500/600/800) supaya
+             pasti dipetakan ke varian Regular/Bold font yang di-embed.
+           ============================================================ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         body {
             font-family: 'DejaVu Sans', 'Arial', sans-serif;
             font-size: 11px;
-            padding: 20px 25px;
-            color: #1a202c;
-            background: #f8fafc;
-            line-height: 1.5;
+            font-weight: 400;
+            padding: 22px 28px;
+            color: #263449;
+            background: #eef1f6;
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* ============================================================
-                   CARD
-                   ============================================================ */
+           CARD
+           ============================================================ */
         .card {
             background: #ffffff;
-            border-radius: 10px;
-            padding: 20px 24px;
+            border-radius: 12px;
+            padding: 0 0 22px 0;
             margin-bottom: 16px;
-            border: 1px solid #e2e8f0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #dce3ee;
+            box-shadow: 0 4px 14px rgba(10, 35, 66, 0.06);
+            overflow: hidden;
         }
 
         /* ============================================================
-                   KOP SURAT / HEADER
-                   ============================================================ */
+           KOP SURAT / HEADER
+           Warna SOLID (bukan gradient) - dominan biru tua, senada web
+           ============================================================ */
         .kop-surat {
             text-align: center;
-            padding: 8px 0 12px 0;
-            border-bottom: 4px double #1a4d7a;
-            margin-bottom: 14px;
+            padding: 26px 24px 22px 24px;
+            margin-bottom: 20px;
+            background-color: #0b2545;
+            border-bottom: 4px solid #2f6fb3;
         }
 
         .kop-surat .logo-title {
-            font-size: 28px;
-            font-weight: 900;
-            color: #0a2e5c;
-            letter-spacing: 4px;
+            font-size: 25px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 3.5px;
             text-transform: uppercase;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         .kop-surat .logo-title span {
-            color: #3b82f6;
+            color: #6fb1ff;
         }
 
         .kop-surat .sub-logo {
-            font-size: 12px;
-            color: #4a5568;
-            letter-spacing: 2px;
+            font-size: 10.5px;
+            color: #a9c3e4;
+            letter-spacing: 2.5px;
             font-weight: 400;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            margin-top: 3px;
         }
 
         .kop-surat .sub-logo strong {
-            color: #1a4d7a;
+            color: #dce9fb;
             font-weight: 700;
         }
 
         .kop-surat .info-periode {
             font-size: 11px;
-            color: #2d3748;
-            margin-top: 6px;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            color: #e4edfa;
+            font-weight: 400;
+            margin-top: 14px;
         }
 
         .kop-surat .info-periode strong {
-            color: #0a2e5c;
+            color: #ffffff;
             font-weight: 700;
         }
 
         .kop-surat .info-periode .badge-header {
             display: inline-block;
-            background: #1a365d;
-            color: #60a5fa;
+            background-color: #16406e;
+            color: #8fd4a8;
             padding: 2px 12px;
             border-radius: 12px;
             font-size: 8px;
             font-weight: 700;
+            letter-spacing: 0.5px;
             margin-left: 6px;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            border: 1px solid #2f6fb3;
         }
 
         .kop-surat .info-periode .printed {
             display: block;
-            font-size: 9px;
-            color: #94a3b8;
-            margin-top: 2px;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-size: 8.5px;
+            color: #7d9ac2;
+            font-weight: 400;
+            margin-top: 6px;
         }
 
         /* ============================================================
-                   SECTION TITLE
-                   ============================================================ */
+           BODY WRAPPER
+           ============================================================ */
+        .card-body {
+            padding: 0 24px;
+        }
+
+        /* ============================================================
+           SECTION TITLE
+           ============================================================ */
         .section {
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
         .section-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
-            color: #1a202c;
-            padding: 6px 14px;
+            color: #0b2545;
+            padding: 7px 14px;
             margin-bottom: 10px;
-            background: #dbeafe;
-            border-left: 5px solid #3b82f6;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            background-color: #e8f0fc;
+            border-left: 4px solid #164a86;
+            letter-spacing: 0.4px;
         }
 
         .section-title-sm {
-            font-size: 11px;
+            font-size: 10.5px;
             font-weight: 700;
-            color: #1a202c;
-            padding: 5px 14px;
+            color: #7a2020;
+            padding: 6px 14px;
             margin-bottom: 8px;
-            background: #fee2e2;
-            border-left: 5px solid #ef4444;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            background-color: #fdeceb;
+            border-left: 4px solid #c0392b;
+            letter-spacing: 0.4px;
         }
 
         /* ============================================================
-                   DIVIDER
-                   ============================================================ */
+           DIVIDER
+           ============================================================ */
         .divider-gradient {
             border: none;
             height: 1px;
-            background: linear-gradient(to right, transparent, #e2e8f0, transparent);
-            margin: 12px 0;
+            background-color: #dce3ee;
+            margin: 14px 0;
         }
 
         /* ============================================================
-                   INFO TABLE
-                   ============================================================ */
+           INFO TABLE
+           Font-weight HANYA di span di dalamnya, td cuma utk layout
+           ============================================================ */
         .info-table {
             width: 100%;
             border-collapse: collapse;
         }
 
         .info-table td {
-            padding: 5px 8px;
-            border-bottom: 1px solid #f0f4f8;
-            font-size: 10px;
+            padding: 6px 8px;
+            border-bottom: 1px solid #f1f4f9;
             vertical-align: middle;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         .info-label {
-            font-weight: 700;
-            color: #4a5568;
             width: 120px;
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
-        .info-value {
-            color: #1a202c;
-            font-weight: 500;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        .info-label .txt-label {
+            font-weight: 700;
+            color: #7383a0;
+            font-size: 8.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .info-value .txt-value {
+            color: #263449;
+            font-weight: 400;
+            font-size: 9.5px;
         }
 
         .info-value strong {
-            color: #0a2e5c;
+            color: #0b2545;
             font-weight: 700;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-size: 9.5px;
         }
 
         /* ============================================================
-                   STATUS BADGE
-                   ============================================================ */
+           STATUS BADGE
+           ============================================================ */
         .status-down {
-            color: #9b2c2c;
+            color: #7a2020;
             font-weight: 700;
-            background: #fed7d7;
+            background-color: #fbd9d6;
             padding: 2px 12px;
             border-radius: 12px;
             display: inline-block;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-size: 9.5px;
         }
 
         .status-up {
-            color: #22543d;
+            color: #1c5c3a;
             font-weight: 700;
-            background: #c6f6d5;
+            background-color: #cdf0da;
             padding: 2px 12px;
             border-radius: 12px;
             display: inline-block;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-size: 9.5px;
         }
 
         .status-warning {
-            color: #744210;
+            color: #7a5a10;
             font-weight: 700;
-            background: #fefcbf;
+            background-color: #fdf0c4;
             padding: 2px 12px;
             border-radius: 12px;
             display: inline-block;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-size: 9.5px;
         }
 
         .status-unknown {
-            color: #2d3748;
+            color: #45536b;
             font-weight: 700;
-            background: #e2e8f0;
+            background-color: #e4e9f1;
             padding: 2px 12px;
             border-radius: 12px;
             display: inline-block;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-size: 9.5px;
         }
 
         /* ============================================================
-                   CHART / RINGKASAN EKSEKUTIF
-                   ============================================================ */
+           CHART / RINGKASAN EKSEKUTIF
+           ============================================================ */
         .chart-container {
-            padding: 14px 16px;
-            background: #f7fafc;
+            padding: 16px 18px;
+            background-color: #f6f8fc;
             border-radius: 10px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #dce3ee;
         }
 
         .bar-track {
             width: 100%;
-            height: 26px;
+            height: 24px;
             border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            background: #edf2f7;
+            border: 1px solid #dce3ee;
+            background-color: #e4e9f1;
             overflow: hidden;
         }
 
         .bar-track table {
             width: 100%;
-            height: 26px;
+            height: 24px;
             border-collapse: collapse;
         }
 
         .bar-track td {
-            height: 26px;
+            height: 24px;
             padding: 0;
         }
 
         .bar-up {
-            background: #48bb78;
+            background-color: #2e9e5b;
         }
 
         .bar-down {
-            background: #fc8181;
+            background-color: #d9534f;
         }
 
         .bar-warning {
-            background: #f6ad55;
+            background-color: #e8a33d;
         }
 
         .legend-table {
             width: 100%;
-            margin-top: 10px;
+            margin-top: 12px;
             border-collapse: collapse;
         }
 
         .legend-table td {
-            padding: 4px 6px;
-            font-size: 10px;
-            font-weight: 500;
+            padding: 5px 6px;
             vertical-align: middle;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+
+        .legend-table .txt-legend-label {
+            font-weight: 700;
+            color: #45536b;
+            font-size: 9.5px;
         }
 
         .color-box {
             display: inline-block;
-            width: 14px;
-            height: 14px;
+            width: 12px;
+            height: 12px;
             border-radius: 4px;
             margin-right: 8px;
             vertical-align: middle;
         }
 
         .color-box.up {
-            background: #38a169;
+            background-color: #2e9e5b;
         }
 
         .color-box.down {
-            background: #e53e3e;
+            background-color: #d9534f;
         }
 
         .color-box.warning {
-            background: #dd6b20;
+            background-color: #e8a33d;
         }
 
         .legend-percent {
-            font-weight: 700;
-            color: #2d3748;
-            font-size: 11px;
             text-align: right;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+
+        .legend-percent strong {
+            font-weight: 700;
+            color: #263449;
+            font-size: 10.5px;
         }
 
         .legend-rt-row td {
-            border-top: 2px solid #e2e8f0;
-            padding-top: 8px;
-            font-size: 10px;
-            color: #718096;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            border-top: 2px solid #dce3ee;
+            padding-top: 9px;
         }
 
-        .legend-rt-row .legend-percent {
+        .legend-rt-row .txt-legend-label {
+            color: #7383a0;
+            font-size: 9.5px;
+        }
+
+        .legend-rt-row .legend-percent strong {
             font-size: 12px;
-            color: #0a2e5c;
-            font-weight: 800;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            color: #0b2545;
         }
 
         /* ============================================================
-                   BADGE
-                   ============================================================ */
+           BADGE
+           ============================================================ */
         .badge {
             display: inline-block;
             padding: 1px 10px;
             border-radius: 10px;
-            font-size: 8px;
+            font-size: 7.5px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         .badge-up {
-            background: #c6f6d5;
-            color: #22543d;
+            background-color: #cdf0da;
+            color: #1c5c3a;
         }
 
         .badge-warning {
-            background: #fefcbf;
-            color: #744210;
+            background-color: #fdf0c4;
+            color: #7a5a10;
         }
 
         .badge-down {
-            background: #fed7d7;
-            color: #9b2c2c;
+            background-color: #fbd9d6;
+            color: #7a2020;
         }
 
         .badge-unknown {
-            background: #e2e8f0;
-            color: #2d3748;
+            background-color: #e4e9f1;
+            color: #45536b;
         }
 
         /* ============================================================
-                   CRITICAL DATES
-                   ============================================================ */
+           CRITICAL DATES
+           ============================================================ */
         .critical-table {
             width: 100%;
             border-collapse: separate;
-            border-spacing: 0 4px;
+            border-spacing: 0 5px;
         }
 
         .critical-item td {
-            padding: 6px 14px;
-            font-size: 10px;
-            border-left: 5px solid;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            padding: 7px 14px;
+            border-left: 4px solid;
+            border-radius: 4px;
         }
 
         .critical-item.danger td {
-            background: #fff5f5;
-            border-color: #fc8181;
+            background-color: #fdf2f1;
+            border-color: #d9534f;
         }
 
         .critical-item.warning td {
-            background: #fffbeb;
-            border-color: #f6ad55;
+            background-color: #fdf8ec;
+            border-color: #e8a33d;
         }
 
         .critical-item .date {
-            font-weight: 700;
-            font-size: 10px;
-            color: #2d3748;
             width: 30%;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+        }
+
+        .critical-item .date strong {
+            font-weight: 700;
+            font-size: 9.5px;
+            color: #263449;
         }
 
         .critical-item .status {
-            font-size: 10px;
-            color: #4a5568;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-size: 9.5px;
+            color: #45536b;
+            font-weight: 400;
+        }
+
+        .critical-item .status strong {
+            font-weight: 700;
         }
 
         /* ============================================================
-                   LOG TABLE
-                   ============================================================ */
+           LOG TABLE
+           ============================================================ */
         .table-responsive {
             border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            background: #ffffff;
+            border: 1px solid #dce3ee;
+            background-color: #ffffff;
             overflow: hidden;
         }
 
         table.log-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 8.5px;
         }
 
         table.log-table thead th {
-            background: #0a2e5c;
+            background-color: #0b2545;
             color: #ffffff;
-            padding: 6px 10px;
+            padding: 7px 10px;
             text-align: left;
             font-weight: 700;
             font-size: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         table.log-table tbody td {
-            padding: 5px 10px;
-            border-bottom: 1px solid #f0f4f8;
-            font-size: 8.5px;
-            color: #2d3748;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            padding: 6px 10px;
+            border-bottom: 1px solid #f1f4f9;
+            vertical-align: middle;
         }
 
         table.log-table tbody tr:last-child td {
@@ -437,25 +465,52 @@
         }
 
         table.log-table tbody tr.even-row {
-            background: #fafcfd;
+            background-color: #f6f8fc;
+        }
+
+        .txt-cell {
+            font-size: 8.5px;
+            color: #364157;
+            font-weight: 400;
+        }
+
+        .txt-cell-strong {
+            font-size: 8.5px;
+            color: #263449;
+            font-weight: 700;
+        }
+
+        .txt-cell-center {
+            font-size: 8.5px;
+            color: #364157;
+            font-weight: 400;
+            text-align: center;
+            display: block;
+        }
+
+        .txt-cell-strong-center {
+            font-size: 8.5px;
+            color: #263449;
+            font-weight: 700;
+            text-align: center;
+            display: block;
         }
 
         /* ============================================================
-                   TEXT
-                   ============================================================ */
+           TEXT
+           ============================================================ */
         .text-muted {
-            color: #718096;
+            color: #8695ae;
             font-size: 8.5px;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-weight: 400;
         }
 
         .no-data {
             text-align: center;
-            padding: 24px;
-            color: #718096;
+            padding: 26px;
+            color: #8695ae;
             font-style: italic;
             font-size: 10px;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         .text-center {
@@ -463,34 +518,33 @@
         }
 
         /* ============================================================
-                   FOOTER
-                   ============================================================ */
+           FOOTER
+           ============================================================ */
         .footer {
             text-align: center;
-            margin-top: 20px;
-            padding-top: 12px;
-            border-top: 2px solid #e2e8f0;
+            margin-top: 22px;
+            padding: 14px 24px 0 24px;
+            border-top: 2px solid #dce3ee;
             font-size: 8.5px;
-            color: #94a3b8;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            color: #a3aec4;
+            font-weight: 400;
         }
 
         .footer strong {
-            color: #0a2e5c;
+            color: #0b2545;
             font-weight: 700;
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
         }
 
         /* ============================================================
-                   PAGE BREAK
-                   ============================================================ */
+           PAGE BREAK
+           ============================================================ */
         .page-break {
             page-break-before: always;
         }
 
         /* ============================================================
-                   RESPONSIVE
-                   ============================================================ */
+           RESPONSIVE
+           ============================================================ */
         @media (max-width: 600px) {
             .info-table td {
                 display: block;
@@ -500,7 +554,6 @@
 
             .info-label {
                 width: 100%;
-                font-size: 8px;
             }
 
             .critical-item .date {
@@ -532,7 +585,7 @@
                 <strong>{{ $reportData['service']['name'] }}</strong>
                 &bull;
                 {{ $reportData['period']['date_from'] }}
-                &rarr;
+                s/d
                 {{ $reportData['period']['date_to'] }}
                 &bull;
                 <strong>{{ number_format($reportData['statistics']['total_checks']) }}</strong> data
@@ -543,6 +596,8 @@
             </div>
         </div>
 
+        <div class="card-body">
+
         <!-- ============================================================
         INFORMASI SERVICE
         ============================================================ -->
@@ -550,26 +605,28 @@
             <div class="section-title">INFORMASI SERVICE</div>
             <table class="info-table">
                 <tr>
-                    <td class="info-label">Nama Service</td>
+                    <td class="info-label"><span class="txt-label">Nama Service</span></td>
                     <td class="info-value"><strong>{{ $reportData['service']['name'] }}</strong></td>
-                    <td class="info-label">Service Dibuat</td>
-                    <td class="info-value">{{ $reportData['service']['created_at'] ?? 'N/A' }}</td>
+                    <td class="info-label"><span class="txt-label">Service Dibuat</span></td>
+                    <td class="info-value"><span class="txt-value">{{ $reportData['service']['created_at'] ?? 'N/A' }}</span></td>
                 </tr>
                 <tr>
-                    <td class="info-label">Target</td>
-                    <td class="info-value">{{ $reportData['service']['target'] }}</td>
-                    <td class="info-label">Periode Laporan</td>
+                    <td class="info-label"><span class="txt-label">Target</span></td>
+                    <td class="info-value"><span class="txt-value">{{ $reportData['service']['target'] }}</span></td>
+                    <td class="info-label"><span class="txt-label">Periode Laporan</span></td>
                     <td class="info-value">
-                        {{ $reportData['period']['date_from'] }}
-                        &rarr;
-                        {{ $reportData['period']['date_to'] }}
+                        <span class="txt-value">
+                            {{ $reportData['period']['date_from'] }}
+                            s/d
+                            {{ $reportData['period']['date_to'] }}
+                        </span>
                         <span class="text-muted">({{ $reportData['period']['total_days'] }} hari)</span>
                     </td>
                 </tr>
                 <tr>
-                    <td class="info-label">Tipe</td>
+                    <td class="info-label"><span class="txt-label">Tipe</span></td>
                     <td class="info-value"><strong>{{ strtoupper($reportData['service']['type']) }}</strong></td>
-                    <td class="info-label">Status Terakhir</td>
+                    <td class="info-label"><span class="txt-label">Status Terakhir</span></td>
                     <td class="info-value">
                         <span class="status-{{ strtolower($reportData['service']['last_status']) }}">
                             {{ $reportData['service']['last_status'] }}
@@ -615,8 +672,8 @@
                                 <td class="bar-warning" style="width: {{ $warnPct }}%;"></td>
                             @endif
                             @if($upPct <= 0 && $downPct <= 0 && $warnPct <= 0)
-                                <td style="width: 100%; background: #e2e8f0; text-align: center; color: #718096; font-size: 9px; font-family: 'DejaVu Sans', 'Arial', sans-serif;">
-                                    Tidak ada data
+                                <td style="width: 100%; background-color: #e4e9f1; text-align: center;">
+                                    <span class="text-muted">Tidak ada data</span>
                                 </td>
                             @endif
                         </tr>
@@ -626,20 +683,20 @@
                 <!-- LEGEND -->
                 <table class="legend-table">
                     <tr>
-                        <td><span class="color-box up"></span>UP</td>
-                        <td class="legend-percent">{{ number_format($upPct, 2) }}%</td>
+                        <td><span class="color-box up"></span><span class="txt-legend-label">UP</span></td>
+                        <td class="legend-percent"><strong>{{ number_format($upPct, 2) }}%</strong></td>
                     </tr>
                     <tr>
-                        <td><span class="color-box down"></span>DOWN</td>
-                        <td class="legend-percent">{{ number_format($downPct, 2) }}%</td>
+                        <td><span class="color-box down"></span><span class="txt-legend-label">DOWN</span></td>
+                        <td class="legend-percent"><strong>{{ number_format($downPct, 2) }}%</strong></td>
                     </tr>
                     <tr>
-                        <td><span class="color-box warning"></span>WARNING</td>
-                        <td class="legend-percent">{{ number_format($warnPct, 2) }}%</td>
+                        <td><span class="color-box warning"></span><span class="txt-legend-label">WARNING</span></td>
+                        <td class="legend-percent"><strong>{{ number_format($warnPct, 2) }}%</strong></td>
                     </tr>
                     <tr class="legend-rt-row">
-                        <td><strong>Avg Response Time</strong></td>
-                        <td class="legend-percent">{{ $reportData['statistics']['avg_response_time'] ?? 0 }}s</td>
+                        <td><span class="txt-legend-label">Avg Response Time</span></td>
+                        <td class="legend-percent"><strong>{{ $reportData['statistics']['avg_response_time'] ?? 0 }}s</strong></td>
                     </tr>
                 </table>
             </div>
@@ -660,7 +717,7 @@
                         $statusText = ($data['down_count'] ?? 0) > 0 ? 'DOWN' : 'WARNING';
                     @endphp
                     <tr class="critical-item {{ $level }}">
-                        <td class="date">{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</td>
+                        <td class="date"><strong>{{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}</strong></td>
                         <td class="status">
                             <strong>{{ $statusText }}</strong>
                             &bull;
@@ -701,31 +758,34 @@
                     <table class="log-table">
                         <thead>
                             <tr>
-                                <th style="width:18%;">Waktu</th>
-                                <th style="width:11%; text-align:center;">Status</th>
-                                <th style="width:11%; text-align:center;">Code</th>
-                                <th style="width:12%; text-align:center;">RT (s)</th>
-                                <th style="width:48%;">Message</th>
+                                <th style="width:16%;">Waktu</th>
+                                <th style="width:10%; text-align:center;">Status</th>
+                                <th style="width:10%; text-align:center;">Code</th>
+                                <th style="width:10%; text-align:center;">RT (s)</th>
+                                <th style="width:54%;">Message</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($reportData['logs'] as $index => $log)
+                                @php
+                                    // Bersihkan pesan dari emoji/simbol yang tidak punya
+                                    // glyph di font PDF, supaya tidak tampil '???' / kotak.
+                                    // Ini murni pembersihan tampilan, tidak mengubah data asli.
+                                    $rawMessage = $log['message'] ?? '-';
+                                    $cleanMessage = preg_replace('/[^\x{0020}-\x{024F}\x{2010}-\x{2015}\x{2018}-\x{201F}\x{2022}]/u', ' ', $rawMessage);
+                                    $cleanMessage = trim(preg_replace('/\s+/', ' ', $cleanMessage ?? ''));
+                                    $cleanMessage = $cleanMessage !== '' ? $cleanMessage : '-';
+                                @endphp
                                 <tr class="{{ $index % 2 == 1 ? 'even-row' : '' }}">
-                                    <td>{{ $log['date'] }}</td>
+                                    <td><span class="txt-cell">{{ $log['date'] }}</span></td>
                                     <td style="text-align:center;">
                                         <span class="badge badge-{{ strtolower($log['status']) }}">
                                             {{ $log['status'] }}
                                         </span>
                                     </td>
-                                    <td style="text-align:center; font-weight:700; font-family: 'DejaVu Sans', 'Arial', sans-serif;">
-                                        {{ $log['response_code'] }}
-                                    </td>
-                                    <td style="text-align:center; font-weight:600; font-family: 'DejaVu Sans', 'Arial', sans-serif;">
-                                        {{ $log['response_time'] }}
-                                    </td>
-                                    <td style="font-size:8px; font-family: 'DejaVu Sans', 'Arial', sans-serif;">
-                                        {{ Str::limit($log['message'] ?? '-', 55) }}
-                                    </td>
+                                    <td><span class="txt-cell-strong-center">{{ $log['response_code'] }}</span></td>
+                                    <td><span class="txt-cell-strong-center">{{ $log['response_time'] }}</span></td>
+                                    <td><span class="txt-cell">{{ Str::limit($cleanMessage, 80) }}</span></td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -745,15 +805,17 @@
             Laporan dibuat otomatis oleh <strong>Sistem Monitoring</strong>
             &bull;
             {{ $reportData['period']['date_from'] }}
-            &rarr;
+            s/d
             {{ $reportData['period']['date_to'] }}
             &bull;
             Total <strong>{{ number_format($reportData['statistics']['total_checks'] ?? 0) }}</strong> data
             <br>
-            <span style="font-size: 7px; color: #a0aec0;">
+            <span style="font-size: 7px; color: #b7c0d1;">
                 Dokumen ini dicetak secara otomatis dan tidak memerlukan tanda tangan
             </span>
         </div>
+
+        </div><!-- /.card-body -->
 
     </div>
 

@@ -16,14 +16,17 @@ class ServiceMonitorService
 {
     private $networkAlertSent = false;
 
-    private const TIMEOUT_FAST = 5;
-    private const TIMEOUT_SLOW = 10;
-    private const SSL_WARNING_DAYS = 30;
-    private const SSL_CRITICAL_DAYS = 7;
+    // 🔥 KONSTANTA TIMEOUT
+    private const TIMEOUT_FAST = 5;      // 5 detik - langsung DOWN
+    private const TIMEOUT_SLOW = 10;     // 10 detik - pakai consecutive
 
-    /**
-     * Check single service
-     */
+    // 🔥 KONSTANTA SSL
+    private const SSL_WARNING_DAYS = 30;     // Peringatan ssl 30 hari
+    private const SSL_CRITICAL_DAYS = 7;     // peringatan ssl 7 hari
+
+    // ============================================================
+    // 🔍 CHECK SINGLE SERVICE
+    // ============================================================
     public function check(Service $service)
     {
         if ($service->type === 'ping') {
@@ -31,6 +34,170 @@ class ServiceMonitorService
         }
         return $this->checkHttp($service);
     }
+
+    // ============================================================
+    // 📊 PAGESPEED STATUS - UNTUK WEBSITE
+    // ============================================================
+    //
+    // REFERENSI THRESHOLD:
+    // 1. Standar Kementerian Komunikasi dan Informatika Yordania (MODEE)
+    //    - LCP: ≤ 3 detik (lebih longgar dari standar Google 2.5 detik)
+    //    - FID: ≤ 200 ms
+    //    - TTLB: ≤ 6-9 detik
+    //
+    // 2. Studi Kasus Website Pemerintah Kabupaten Labuhanbatu
+    //    - LCP aktual: 4300 ms (4.3 detik) - masih "tidak direkomendasikan"
+    //    - Menunjukkan website pemerintah sering beroperasi di luar standar ideal
+    //
+    // 3. Analisis 25 Website Pemerintah Global (Semrush)
+    //    - Performa sangat bervariasi antar negara
+    //    - India: LCP 4.60 detik (kategori poor)
+    //    - Membuktikan standar global untuk website pemerintah sangat beragam
+    //
+    // SUMBER:
+    // - https://web.dev/defining-core-web-vitals-thresholds/
+    // - https://www.researchgate.net/publication/374885367_E-Government_Website_Performance_Analysis_Using_GTmetrix
+    // - https://www.semrush.com/blog/government-website-performance/
+    // ============================================================
+
+    /**
+     * 
+     * @param string $metric Nama metrik (response_time, lcp, dll)
+     * @param float $value Nilai metrik (dalam milidetik)
+     * @return string 'UP' | 'WARNING' | 'DOWN'
+     */
+    private function determineStatusByPageSpeed(string $metric, float $value): string
+    {
+        $thresholds = config('pagespeed.thresholds', []);
+        
+        // Cari threshold untuk metrik
+        $metricThreshold = $thresholds[$metric] ?? $thresholds['response_time'] ?? null;
+        
+        if (!$metricThreshold) {
+            // Fallback - threshold untuk website
+            $metricThreshold = [
+                'good' => 3000,      // ≤ 3 detik → UP (berdasarkan standar LCP e-government)
+                'warning' => 6000,   // 3 - 6 detik → WARNING (masih dalam toleransi)
+                'down' => 10000,     // > 6 - 10 detik → DOWN (melewati batas TTLB)
+            ];
+        }
+        
+        if ($value <= $metricThreshold['good']) {
+            return 'UP';
+        } elseif ($value <= $metricThreshold['warning']) {
+            return 'WARNING';
+        } else {
+            return 'DOWN';
+        }
+    }
+
+    /**
+     * Dapatkan rekomendasi berdasarkan response time
+     * (Disesuaikan untuk website)
+     */
+    private function getShortRecommendation($timeMs): string
+    {
+        if ($timeMs <= 2000) {
+            return '✅ Performa sangat baik';
+        }
+        if ($timeMs <= 3000) {
+            return '✅ Masih dalam batas wajar (≤3 detik)';
+        }
+        if ($timeMs <= 4000) {
+            return '📌 Cukup cepat, pertimbangkan caching jika traffic meningkat';
+        }
+        if ($timeMs <= 5000) {
+            return '⚠️ Mulai lambat, optimasi gambar & query database';
+        }
+        if ($timeMs <= 6000) {
+            return '⚠️ Perlu evaluasi performa, optimasi server & cache';
+        }
+        if ($timeMs <= 8000) {
+            return '🚨 Sangat lambat, upgrade server atau optimasi kode';
+        }
+        if ($timeMs <= 10000) {
+            return '🔴 KRITIS! Cek server load & scale up resource';
+        }
+        return '🔴 DARURAT! Service tidak responsif! Hubungi tim IT!';
+    }
+
+    /**
+     * Analisis response dengan PageSpeed standar 
+     */
+    private function analyzeResponseWithPageSpeed($code, $time): array
+    {
+        // Konversi ke milidetik untuk threshold PageSpeed
+        $timeMs = $time * 1000;
+        
+        // Gunakan threshold response_time dari PageSpeed
+        $status = $this->determineStatusByPageSpeed('response_time', $timeMs);
+        
+        // Cek base status dari kode HTTP
+        $baseStatus = $this->analyzeResponse($code, $time);
+        
+        // Jika base status DOWN, tetap DOWN (prioritas lebih tinggi)
+        if ($baseStatus['status'] === 'DOWN') {
+            return $baseStatus;
+        }
+        
+        // Format response time
+        $formattedTime = number_format($time, 2) . 's';
+        $formattedTimeMs = number_format($timeMs, 0) . 'ms';
+        $shortRec = $this->getShortRecommendation($timeMs);
+        
+        // ============================================================
+        // STATUS WARNING
+        // ============================================================
+        
+        if ($status === 'WARNING') {
+            return [
+                'status' => 'WARNING',
+                'reason' => 'PAGESPEED_SLOW',
+                'detail' => "Response time {$formattedTime} ({$formattedTimeMs}) melewati threshold untuk website (good: ≤3 detik)",
+                'action' => $shortRec,
+                'metrics' => [
+                    'response_time_ms' => $timeMs,
+                    'response_time_sec' => $time,
+                ]
+            ];
+        }
+        
+        // ============================================================
+        // STATUS DOWN
+        // ============================================================
+        
+        if ($status === 'DOWN') {
+            return [
+                'status' => 'DOWN',
+                'reason' => 'PAGESPEED_DOWN',
+                'detail' => "🚨 Response time {$formattedTime} ({$formattedTimeMs}) - SERVICE DOWN! (threshold >6 detik)",
+                'action' => '🔴 DARURAT! ' . $shortRec,
+                'metrics' => [
+                    'response_time_ms' => $timeMs,
+                    'response_time_sec' => $time,
+                ]
+            ];
+        }
+        
+        // ============================================================
+        // STATUS UP
+        // ============================================================
+        
+        return [
+            'status' => 'UP',
+            'reason' => 'PAGESPEED_GOOD',
+            'detail' => "✅ Response time {$formattedTime} ({$formattedTimeMs}) dalam batas aman untuk website (≤3 detik)",
+            'action' => '✅ Service dalam kondisi baik',
+            'metrics' => [
+                'response_time_ms' => $timeMs,
+                'response_time_sec' => $time,
+            ]
+        ];
+    }
+
+    // ============================================================
+    // 🔍 GET SSL INFORMATION
+    // ============================================================
 
     /**
      * Get SSL information for a service
@@ -186,95 +353,7 @@ class ServiceMonitorService
     }
 
     // ============================================================
-    // PAGESPEED STATUS
-    // ============================================================
-
-    private function determineStatusByPageSpeed(string $metric, float $value): string
-    {
-        $thresholds = config('pagespeed.thresholds', []);
-
-        $metricThreshold = $thresholds[$metric] ?? $thresholds['response_time'] ?? null;
-
-        if (!$metricThreshold) {
-            $metricThreshold = [
-                'good' => 2000,
-                'warning' => 4000,
-                'down' => 8000,
-            ];
-        }
-
-        if ($value <= $metricThreshold['good']) {
-            return 'UP';
-        } elseif ($value <= $metricThreshold['warning']) {
-            return 'WARNING';
-        } else {
-            return 'DOWN';
-        }
-    }
-
-    private function getShortRecommendation($timeMs): string
-    {
-        if ($timeMs <= 2000) return '✅ Performa optimal';
-        if ($timeMs <= 2500) return '📌 Cukup cepat, pertimbangkan caching';
-        if ($timeMs <= 3000) return '⚠️ Mulai lambat, optimasi gambar & cache';
-        if ($timeMs <= 4000) return '🚨 Sangat lambat, upgrade server';
-        if ($timeMs <= 6000) return '🔴 KRITIS! Cek server & scale up';
-        return '🔴 DARURAT! Service tidak responsif!';
-    }
-
-    private function analyzeResponseWithPageSpeed($code, $time): array
-    {
-        $timeMs = $time * 1000;
-        $status = $this->determineStatusByPageSpeed('response_time', $timeMs);
-        $baseStatus = $this->analyzeResponse($code, $time);
-
-        if ($baseStatus['status'] === 'DOWN') {
-            return $baseStatus;
-        }
-
-        $formattedTime = number_format($time, 2) . 's';
-        $shortRec = $this->getShortRecommendation($timeMs);
-
-        if ($status === 'WARNING') {
-            return [
-                'status' => 'WARNING',
-                'reason' => 'PAGESPEED_SLOW',
-                'detail' => "Response {$formattedTime} melewati threshold",
-                'action' => $shortRec,
-                'metrics' => [
-                    'response_time_ms' => $timeMs,
-                    'response_time_sec' => $time,
-                ]
-            ];
-        }
-
-        if ($status === 'DOWN') {
-            return [
-                'status' => 'DOWN',
-                'reason' => 'PAGESPEED_DOWN',
-                'detail' => "Response {$formattedTime} - SERVICE DOWN!",
-                'action' => '🔴 DARURAT! ' . $shortRec,
-                'metrics' => [
-                    'response_time_ms' => $timeMs,
-                    'response_time_sec' => $time,
-                ]
-            ];
-        }
-
-        return [
-            'status' => 'UP',
-            'reason' => 'PAGESPEED_GOOD',
-            'detail' => "Response {$formattedTime} dalam batas aman",
-            'action' => '✅ Service dalam kondisi baik',
-            'metrics' => [
-                'response_time_ms' => $timeMs,
-                'response_time_sec' => $time,
-            ]
-        ];
-    }
-
-    // ============================================================
-    // NETWORK CHECK
+    // 🌐 CHECK NETWORK CONNECTION
     // ============================================================
 
     public function checkNetworkConnection()
@@ -320,6 +399,9 @@ class ServiceMonitorService
         return false;
     }
 
+    /**
+     * 🔥 PING HOST - DIPERBAIKI UNTUK WINDOWS
+     */
     private function pingHost($host)
     {
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
@@ -339,7 +421,7 @@ class ServiceMonitorService
     }
 
     // ============================================================
-    // SSL CHECK
+    // 🔍 CHECK SSL CERTIFICATE
     // ============================================================
 
     private function checkSSL($service, $host, $port = 443)
@@ -754,8 +836,47 @@ class ServiceMonitorService
         }
     }
 
+    private function handleSSLInterval($service, $sslResult)
+    {
+        $interval = $service->wa_interval_minutes ?? 0;
+        $status = $sslResult['status'];
+
+        $shouldSendWa = false;
+
+        if ($sslResult['send_alert'] === true) {
+            $lastIntervalCheck = $service->last_interval_checked_at;
+            $lastIntervalStatus = $service->last_interval_status;
+
+            if ($interval == 0) {
+                $shouldSendWa = true;
+            } elseif (empty($lastIntervalCheck) || $lastIntervalStatus !== $status) {
+                $shouldSendWa = true;
+            }
+        }
+
+        if ($shouldSendWa) {
+            $this->sendSSLAlert($service, $sslResult);
+            $service->update([
+                'last_wa_sent_at' => now(),
+                'last_interval_status' => $status,
+                'last_interval_checked_at' => now(),
+                'last_interval_value' => $interval,
+                'interval_wa_sent_in_this_cycle' => 1,
+            ]);
+        } else {
+            $service->update([
+                'last_interval_status' => $status,
+                'last_interval_checked_at' => now(),
+                'last_interval_value' => $interval,
+                'interval_wa_sent_in_this_cycle' => 0,
+            ]);
+        }
+
+        $service->refresh();
+    }
+
     // ============================================================
-    // CHECK HTTP
+    // 🔍 CHECK HTTP (DIMODIFIKASI DENGAN PAGESPEED)
     // ============================================================
 
     private function checkHttp(Service $service)
@@ -841,8 +962,10 @@ class ServiceMonitorService
                 return;
             }
 
+            // 🔥 Gunakan PageSpeed untuk analisis
             $analysis = $this->analyzeResponseWithPageSpeed($code, $time);
 
+            // Tambahan: cek konten error jika status UP
             if ($analysis['status'] === 'UP') {
                 $body = $response->body();
                 if (!empty($body)) {
@@ -884,12 +1007,12 @@ class ServiceMonitorService
                 $service->update(['consecutive_failures' => 0]);
                 $this->saveResult($service, $oldStatus, 'DOWN', $code, $time,
                     'CONNECTION_TIMEOUT_FAST',
-                    "Koneksi timeout cepat ({$time}s)",
+                    "Koneksi timeout cepat ({$time}s) - Server tidak merespon",
                     'Server kemungkinan mati, periksa segera');
             } else {
                 $this->handleTimeoutFailure($service, $oldStatus, $time,
                     'CONNECTION_TIMEOUT_SLOW',
-                    "Koneksi timeout lambat ({$time}s)",
+                    "Koneksi timeout lambat ({$time}s) - Server lambat merespon",
                     'Periksa performa server dan koneksi jaringan');
             }
             return;
@@ -909,45 +1032,6 @@ class ServiceMonitorService
             $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time,
                 $analysis['reason'], $analysis['detail'], $analysis['action']);
         }
-    }
-
-    private function handleSSLInterval($service, $sslResult)
-    {
-        $interval = $service->wa_interval_minutes ?? 0;
-        $status = $sslResult['status'];
-
-        $shouldSendWa = false;
-
-        if ($sslResult['send_alert'] === true) {
-            $lastIntervalCheck = $service->last_interval_checked_at;
-            $lastIntervalStatus = $service->last_interval_status;
-
-            if ($interval == 0) {
-                $shouldSendWa = true;
-            } elseif (empty($lastIntervalCheck) || $lastIntervalStatus !== $status) {
-                $shouldSendWa = true;
-            }
-        }
-
-        if ($shouldSendWa) {
-            $this->sendSSLAlert($service, $sslResult);
-            $service->update([
-                'last_wa_sent_at' => now(),
-                'last_interval_status' => $status,
-                'last_interval_checked_at' => now(),
-                'last_interval_value' => $interval,
-                'interval_wa_sent_in_this_cycle' => 1,
-            ]);
-        } else {
-            $service->update([
-                'last_interval_status' => $status,
-                'last_interval_checked_at' => now(),
-                'last_interval_value' => $interval,
-                'interval_wa_sent_in_this_cycle' => 0,
-            ]);
-        }
-
-        $service->refresh();
     }
 
     private function checkRedirectTarget($url, $service)
@@ -1008,7 +1092,7 @@ class ServiceMonitorService
     }
 
     // ============================================================
-    // CHECK PING
+    // 📡 CHECK PING - DIPERBAIKI UNTUK WINDOWS
     // ============================================================
 
     private function checkPing(Service $service)
@@ -1062,6 +1146,7 @@ class ServiceMonitorService
             }
         }
 
+        // 🔥 PERBAIKAN UNTUK WINDOWS
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
 
         if ($isWindows) {
@@ -1158,7 +1243,7 @@ class ServiceMonitorService
     }
 
     // ============================================================
-    // HELPERS
+    // HANDLE TIMEOUT FAILURE
     // ============================================================
 
     private function handleTimeoutFailure($service, $oldStatus, $time, $reason, $detail, $action)
@@ -1178,6 +1263,10 @@ class ServiceMonitorService
                 'Timeout akan diabaikan sampai terjadi 2x berturut-turut', false);
         }
     }
+
+    // ============================================================
+    // 📊 ANALISIS RESPONSE (TETAP)
+    // ============================================================
 
     private function analyzeResponse($code, $time)
     {
@@ -1324,6 +1413,10 @@ class ServiceMonitorService
         ];
     }
 
+    // ============================================================
+    // 💾 SAVE RESULT
+    // ============================================================
+
     private function saveResult($service, $oldStatus, $status, $code, $time, $reason, $detail, $action)
     {
         if ($code === 'TIMEOUT_SLOW_1') {
@@ -1375,6 +1468,10 @@ class ServiceMonitorService
 
         $this->handleIntervalLogic($service, $oldStatus, $status, $code, $time, $reason, $detail, $action, $isFirstCheck);
     }
+
+    // ============================================================
+    // 🔄 HANDLE INTERVAL LOGIC
+    // ============================================================
 
     private function handleIntervalLogic($service, $oldStatus, $status, $code, $time, $reason, $detail, $action, $isFirstCheck = false)
     {
@@ -1480,6 +1577,10 @@ class ServiceMonitorService
         }
     }
 
+    // ============================================================
+    // 🟢 KIRIM WA SERVICE NORMAL KEMBALI (RESTORED)
+    // ============================================================
+
     private function sendRestoredAlert($service, $oldStatus, $code, $time, $detail)
     {
         $contacts = Contact::where('is_active', true)->get();
@@ -1490,6 +1591,7 @@ class ServiceMonitorService
         $formattedTime = number_format($time, 2) . 's';
         $timeMs = $time * 1000;
         $statusText = $oldStatus == 'DOWN' ? 'DOWN' : 'WARNING';
+        $shortRec = $this->getShortRecommendation($timeMs);
 
         $message = "✅ SERVICE NORMAL KEMBALI!\n";
         $message .= "═══════════════════════\n";
@@ -1497,12 +1599,12 @@ class ServiceMonitorService
         $message .= "Target: " . $service->target . "\n";
         $message .= "Status: 🟢 UP (sebelumnya " . $statusText . ")\n";
         $message .= "Waktu: " . $formattedTime . " (" . number_format($timeMs, 0) . "ms)\n";
+        $message .= "═══════════════════════\n";
 
-        if ($timeMs > 2000) {
-            $message .= "📌 " . $this->getShortRecommendation($timeMs) . "\n";
+        if ($timeMs > 3000) {
+            $message .= "📌 " . $shortRec . "\n";
         }
 
-        $message .= "═══════════════════════\n";
         $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB";
 
         foreach ($contacts as $contact) {
@@ -1510,6 +1612,10 @@ class ServiceMonitorService
             Log::info($result ? "✅ WA RESTORED ke: {$contact->phone} - {$service->name}" : "❌ Gagal WA RESTORED ke: {$contact->phone}");
         }
     }
+
+    // ============================================================
+    // ⚠️ KIRIM WHATSAPP (DOWN / WARNING)
+    // ============================================================
 
     private function sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action)
     {
@@ -1520,6 +1626,7 @@ class ServiceMonitorService
 
         $formattedTime = number_format($time, 2) . 's';
         $timeMs = $time * 1000;
+        $shortRec = $this->getShortRecommendation($timeMs);
 
         if ($status == 'DOWN') {
             $judul = "🔴 SERVICE DOWN!";
@@ -1545,10 +1652,13 @@ class ServiceMonitorService
         $message .= "Status: " . $statusIcon . " " . $statusText . "\n";
         $message .= "Kode: " . $code . "\n";
         $message .= "Waktu: " . $formattedTime . " (" . number_format($timeMs, 0) . "ms)\n";
+
+        if ($timeMs > 3000) {
+            $message .= "📌 " . $shortRec . "\n";
+        }
+
         $message .= "═══════════════════════\n";
-        $message .= "📌 " . $shortReason . "\n";
         $message .= "🔧 " . $action . "\n";
-        $message .= "═══════════════════════\n";
         $message .= $urgency . "\n";
         $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB";
 
@@ -1557,6 +1667,10 @@ class ServiceMonitorService
             Log::info($result ? "✅ WA ke: {$contact->phone} - {$status}" : "❌ Gagal WA ke: {$contact->phone}");
         }
     }
+
+    // ============================================================
+    // 🔧 HELPER METHODS
+    // ============================================================
 
     private function normalizeUrl($url)
     {
