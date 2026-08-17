@@ -7,15 +7,25 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 
 class LoginController extends Controller
 {
+    /**
+     * Menampilkan halaman login
+     * 
+     * @return \Illuminate\View\View
+     */
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
+    /**
+     * Memproses login user
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -23,10 +33,14 @@ class LoginController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (Auth::attempt($credentials, $request->remember)) {
+        if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+            Log::info("✅ Login berhasil: {$request->username}");
+
             return redirect()->intended('/');
         }
+
+        Log::warning("⚠️ Login gagal: {$request->username}");
 
         return back()->withErrors([
             'username' => 'Username atau password salah.',
@@ -34,9 +48,9 @@ class LoginController extends Controller
     }
 
     /**
-     * ============================================================
-     *  📝 REGISTER - Tampilkan Form Register
-     *  ============================================================
+     * Menampilkan halaman registrasi
+     * 
+     * @return \Illuminate\View\View
      */
     public function showRegisterForm()
     {
@@ -44,14 +58,14 @@ class LoginController extends Controller
     }
 
     /**
-     * ============================================================
-     *  📝 REGISTER - Proses Registrasi
-     *  ============================================================
+     * Memproses registrasi user baru
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function register(Request $request)
     {
-        // Validasi input
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username',
             'email' => 'required|string|email|max:255|unique:users,email',
@@ -70,25 +84,17 @@ class LoginController extends Controller
             'password_confirmation.required' => 'Konfirmasi password wajib diisi.',
         ]);
 
-        if ($validator->fails()) {
-            return back()
-                ->withErrors($validator)
-                ->withInput($request->except('password', 'password_confirmation'));
-        }
-
         try {
-            // Buat user baru
             $user = User::create([
-                'name' => $request->name,
-                'username' => $request->username,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'role' => 'user', // Default role
+                'name' => $validated['name'],
+                'username' => $validated['username'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role' => 'user',
             ]);
 
             Log::info("✅ Registrasi berhasil: {$user->username}");
 
-            // Auto login setelah register
             Auth::login($user);
 
             return redirect()->intended('/')
@@ -96,18 +102,29 @@ class LoginController extends Controller
 
         } catch (\Exception $e) {
             Log::error("❌ Registrasi error: " . $e->getMessage());
-            
+
             return back()
                 ->withErrors(['error' => 'Terjadi kesalahan saat registrasi: ' . $e->getMessage()])
                 ->withInput($request->except('password', 'password_confirmation'));
         }
     }
 
+    /**
+     * Memproses logout user
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function logout(Request $request)
     {
+        $username = Auth::user()?->username ?? 'Unknown';
+        
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        Log::info("✅ Logout berhasil: {$username}");
+
         return redirect('/login');
     }
 }

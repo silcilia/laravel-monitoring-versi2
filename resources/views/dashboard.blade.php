@@ -2,7 +2,9 @@
 
 @section('content')
 <style>
-    /* ================= ROOT VARIABLES ================= */
+    /* ============================================================
+               ROOT VARIABLES
+               ============================================================ */
     :root {
         --primary: #0d3b66;
         --primary-dark: #082a4a;
@@ -25,7 +27,7 @@
         --gray-700: #334155;
         --gray-800: #1e293b;
         --gray-900: #0f172a;
-        
+
         --bg-dashboard: #ffffff;
         --bg-card: #ffffff;
         --text-dashboard: #1e293b;
@@ -59,7 +61,9 @@
         --purple-light: #2e1065;
     }
 
-    * { box-sizing: border-box; }
+    * {
+        box-sizing: border-box;
+    }
 
     .dashboard-container {
         padding: 24px;
@@ -72,7 +76,9 @@
         color: var(--text-dashboard);
     }
 
-    /* ================= HEADER ================= */
+    /* ============================================================
+               HEADER
+               ============================================================ */
     .dashboard-header {
         background: linear-gradient(135deg, #0d3b66 0%, #1a4d7a 50%, #2563eb 100%);
         border-radius: 20px;
@@ -87,7 +93,6 @@
         position: relative;
         overflow: hidden;
         box-shadow: 0 10px 40px rgba(13, 59, 102, 0.3);
-        transition: box-shadow 0.3s ease;
     }
 
     .dashboard-header::before {
@@ -135,7 +140,7 @@
     .dashboard-header h1 i {
         font-size: 28px;
         opacity: 0.9;
-        background: rgba(255,255,255,0.15);
+        background: rgba(255, 255, 255, 0.15);
         padding: 8px;
         border-radius: 12px;
     }
@@ -150,20 +155,22 @@
         font-weight: 400;
     }
 
-    .dashboard-header .subtitle i { font-size: 12px; }
+    .dashboard-header .subtitle i {
+        font-size: 12px;
+    }
 
     .status-legend {
         display: flex;
         gap: 16px;
         flex-wrap: wrap;
-        background: rgba(255,255,255,0.12);
+        background: rgba(255, 255, 255, 0.12);
         padding: 8px 20px;
         border-radius: 12px;
         backdrop-filter: blur(10px);
         flex-shrink: 0;
         position: relative;
         z-index: 1;
-        border: 1px solid rgba(255,255,255,0.08);
+        border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .status-legend span {
@@ -180,14 +187,22 @@
         height: 10px;
         border-radius: 50%;
         flex-shrink: 0;
-        box-shadow: 0 0 12px rgba(255,255,255,0.2);
+        box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
     }
 
-    .dot-up { background: #10b981; }
-    .dot-warning { background: #f59e0b; }
-    .dot-down { background: #ef4444; }
+    .dot-up {
+        background: #10b981;
+    }
+    .dot-warning {
+        background: #f59e0b;
+    }
+    .dot-down {
+        background: #ef4444;
+    }
 
-    /* ================= STATS GRID ================= */
+    /* ============================================================
+               STATS GRID
+               ============================================================ */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
@@ -242,18 +257,40 @@
         border-color: var(--gray-300);
     }
 
-    .stat-card:active { transform: scale(0.97); }
+    .stat-card:active {
+        transform: scale(0.97);
+    }
 
-    .stat-card.total::before { background: var(--primary); }
-    .stat-card.total::after { background: var(--primary); }
-    .stat-card.up::before { background: var(--success); }
-    .stat-card.up::after { background: var(--success); }
-    .stat-card.down::before { background: var(--danger); }
-    .stat-card.down::after { background: var(--danger); }
-    .stat-card.warning::before { background: var(--warning); }
-    .stat-card.warning::after { background: var(--warning); }
-    .stat-card.esp::before { background: var(--purple); }
-    .stat-card.esp::after { background: var(--purple); }
+    .stat-card.total::before {
+        background: var(--primary);
+    }
+    .stat-card.total::after {
+        background: var(--primary);
+    }
+    .stat-card.up::before {
+        background: var(--success);
+    }
+    .stat-card.up::after {
+        background: var(--success);
+    }
+    .stat-card.down::before {
+        background: var(--danger);
+    }
+    .stat-card.down::after {
+        background: var(--danger);
+    }
+    .stat-card.warning::before {
+        background: var(--warning);
+    }
+    .stat-card.warning::after {
+        background: var(--warning);
+    }
+    .stat-card.esp::before {
+        background: var(--purple);
+    }
+    .stat-card.esp::after {
+        background: var(--purple);
+    }
 
     .stat-header {
         display: flex;
@@ -282,11 +319,21 @@
         transform: scale(1.1) rotate(-5deg);
     }
 
-    .stat-card.total .stat-header i { color: var(--primary); }
-    .stat-card.up .stat-header i { color: var(--success); }
-    .stat-card.down .stat-header i { color: var(--danger); }
-    .stat-card.warning .stat-header i { color: var(--warning); }
-    .stat-card.esp .stat-header i { color: var(--purple); }
+    .stat-card.total .stat-header i {
+        color: var(--primary);
+    }
+    .stat-card.up .stat-header i {
+        color: var(--success);
+    }
+    .stat-card.down .stat-header i {
+        color: var(--danger);
+    }
+    .stat-card.warning .stat-header i {
+        color: var(--warning);
+    }
+    .stat-card.esp .stat-header i {
+        color: var(--purple);
+    }
 
     .stat-value {
         font-size: 2.4rem;
@@ -297,11 +344,21 @@
         transition: color 0.3s ease;
     }
 
-    .stat-card.total .stat-value { color: var(--primary); }
-    .stat-card.up .stat-value { color: var(--success); }
-    .stat-card.down .stat-value { color: var(--danger); }
-    .stat-card.warning .stat-value { color: var(--warning); }
-    .stat-card.esp .stat-value { color: var(--purple); }
+    .stat-card.total .stat-value {
+        color: var(--primary);
+    }
+    .stat-card.up .stat-value {
+        color: var(--success);
+    }
+    .stat-card.down .stat-value {
+        color: var(--danger);
+    }
+    .stat-card.warning .stat-value {
+        color: var(--warning);
+    }
+    .stat-card.esp .stat-value {
+        color: var(--purple);
+    }
 
     .stat-label {
         font-size: 12px;
@@ -320,30 +377,40 @@
         font-size: 10px;
         font-weight: 600;
         transition: all 0.3s ease;
-        background: rgba(0,0,0,0.06);
+        background: rgba(0, 0, 0, 0.06);
         color: var(--gray-500);
     }
 
     [data-theme="dark"] .stat-clickable {
-        background: rgba(255,255,255,0.06);
+        background: rgba(255, 255, 255, 0.06);
         color: var(--gray-400);
     }
 
     .stat-card:hover .stat-clickable {
-        background: rgba(0,0,0,0.1);
+        background: rgba(0, 0, 0, 0.1);
         transform: translateX(2px);
     }
 
     [data-theme="dark"] .stat-card:hover .stat-clickable {
-        background: rgba(255,255,255,0.12);
+        background: rgba(255, 255, 255, 0.12);
     }
 
-    .stat-clickable i { font-size: 11px; }
+    .stat-clickable i {
+        font-size: 11px;
+    }
 
-    .stat-card.total .stat-clickable { color: var(--primary); }
-    .stat-card.up .stat-clickable { color: var(--success); }
-    .stat-card.warning .stat-clickable { color: var(--warning); }
-    .stat-card.down .stat-clickable { color: var(--danger); }
+    .stat-card.total .stat-clickable {
+        color: var(--primary);
+    }
+    .stat-card.up .stat-clickable {
+        color: var(--success);
+    }
+    .stat-card.warning .stat-clickable {
+        color: var(--warning);
+    }
+    .stat-card.down .stat-clickable {
+        color: var(--danger);
+    }
 
     .stat-card .ripple {
         position: absolute;
@@ -359,10 +426,15 @@
     }
 
     @keyframes ripple-animation {
-        to { transform: scale(4); opacity: 0; }
+        to {
+            transform: scale(4);
+            opacity: 0;
+        }
     }
 
-    /* ================= UPTIME CARD ================= */
+    /* ============================================================
+               UPTIME CARD
+               ============================================================ */
     .uptime-card {
         background: var(--bg-card);
         border-radius: 16px;
@@ -494,7 +566,7 @@
         background: var(--gray-200);
         border-radius: 20px;
         overflow: hidden;
-        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
         transition: background 0.3s ease;
     }
 
@@ -505,19 +577,19 @@
         position: relative;
     }
 
-    .uptime-right .bar-fill.green { 
-        background: linear-gradient(90deg, #10b981, #059669); 
+    .uptime-right .bar-fill.green {
+        background: linear-gradient(90deg, #10b981, #059669);
         box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
     }
-    .uptime-right .bar-fill.yellow { 
-        background: linear-gradient(90deg, #f59e0b, #d97706); 
+    .uptime-right .bar-fill.yellow {
+        background: linear-gradient(90deg, #f59e0b, #d97706);
         box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
     }
-    .uptime-right .bar-fill.red { 
-        background: linear-gradient(90deg, #ef4444, #dc2626); 
+    .uptime-right .bar-fill.red {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
         box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
     }
-    .uptime-right .bar-fill.gray { 
+    .uptime-right .bar-fill.gray {
         background: linear-gradient(90deg, #cbd5e1, #94a3b8);
         animation: shimmer 2s infinite;
     }
@@ -533,12 +605,291 @@
     }
 
     @keyframes shimmer {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
+        0% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+        100% {
+            opacity: 1;
+        }
     }
 
-    /* ================= CHARTS GRID ================= */
+    /* ============================================================
+               SSL EXPIRY TABLE
+               ============================================================ */
+    .ssl-expiry-card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 22px 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 20px var(--shadow-dash);
+        border: 1px solid var(--border-dash);
+        transition: all 0.3s ease;
+        color: var(--text-dashboard);
+    }
+
+    .ssl-expiry-card:hover {
+        box-shadow: 0 8px 30px var(--shadow-hover-dash);
+    }
+
+    .ssl-expiry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .ssl-expiry-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-dashboard);
+    }
+
+    .ssl-expiry-header h3 i {
+        color: var(--primary);
+    }
+
+    .ssl-expiry-header .ssl-badge-count {
+        font-size: 12px;
+        color: var(--gray-500);
+        background: var(--gray-100);
+        padding: 4px 14px;
+        border-radius: 20px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .ssl-expiry-header .ssl-badge-count i {
+        font-size: 11px;
+    }
+
+    .ssl-expiry-table-wrap {
+        overflow-x: auto;
+    }
+
+    .ssl-expiry-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+
+    .ssl-expiry-table thead th {
+        text-align: left;
+        padding: 10px 14px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--gray-500);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid var(--border-dash);
+        background: var(--gray-50);
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+        transition: color 0.2s ease;
+    }
+
+    .ssl-expiry-table thead th:hover {
+        color: var(--primary);
+    }
+
+    .ssl-expiry-table thead th .sort-icon {
+        font-size: 9px;
+        color: var(--gray-400);
+        margin-left: 4px;
+    }
+
+    .ssl-expiry-table tbody td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border-dash);
+        color: var(--text-dashboard);
+        vertical-align: middle;
+    }
+
+    .ssl-expiry-table tbody tr {
+        transition: background 0.2s ease;
+    }
+
+    .ssl-expiry-table tbody tr:hover {
+        background: var(--gray-50);
+    }
+
+    [data-theme="dark"] .ssl-expiry-table tbody tr:hover {
+        background: var(--gray-700);
+    }
+
+    .ssl-expiry-table .service-name-cell {
+        font-weight: 600;
+        color: var(--text-dashboard);
+    }
+
+    .ssl-expiry-table .service-target-cell {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        color: var(--gray-500);
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ssl-expiry-table .ssl-status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 12px;
+        border-radius: 16px;
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid;
+        transition: all 0.3s ease;
+    }
+
+    .ssl-expiry-table .ssl-status-badge .ssl-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .ssl-expiry-table .ssl-status-badge.valid {
+        background: var(--success-light);
+        color: var(--success);
+        border-color: #6ee7b7;
+    }
+    .ssl-expiry-table .ssl-status-badge.valid .ssl-dot {
+        background: var(--success);
+    }
+
+    .ssl-expiry-table .ssl-status-badge.warning {
+        background: var(--warning-light);
+        color: var(--warning);
+        border-color: #fcd34d;
+    }
+    .ssl-expiry-table .ssl-status-badge.warning .ssl-dot {
+        background: var(--warning);
+    }
+
+    .ssl-expiry-table .ssl-status-badge.critical {
+        background: #ffedd5;
+        color: #9a3412;
+        border-color: #fdba74;
+    }
+    .ssl-expiry-table .ssl-status-badge.critical .ssl-dot {
+        background: #ea580c;
+    }
+
+    .ssl-expiry-table .ssl-status-badge.expired {
+        background: var(--danger-light);
+        color: var(--danger);
+        border-color: #fca5a5;
+        animation: pulse-red 2s infinite;
+    }
+    .ssl-expiry-table .ssl-status-badge.expired .ssl-dot {
+        background: var(--danger);
+    }
+
+    .ssl-expiry-table .ssl-status-badge.na {
+        background: var(--gray-100);
+        color: var(--gray-500);
+        border-color: var(--border-dash);
+    }
+    .ssl-expiry-table .ssl-status-badge.na .ssl-dot {
+        background: var(--gray-400);
+    }
+
+    @keyframes pulse-red {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.7;
+        }
+    }
+
+    .ssl-expiry-table .days-remaining {
+        font-weight: 700;
+        font-size: 14px;
+    }
+
+    .ssl-expiry-table .days-remaining.good {
+        color: var(--success);
+    }
+    .ssl-expiry-table .days-remaining.medium {
+        color: var(--warning);
+    }
+    .ssl-expiry-table .days-remaining.critical {
+        color: #ea580c;
+    }
+    .ssl-expiry-table .days-remaining.danger {
+        color: var(--danger);
+    }
+
+    .ssl-empty {
+        text-align: center;
+        padding: 30px 20px;
+        color: var(--gray-400);
+    }
+
+    .ssl-empty i {
+        font-size: 36px;
+        margin-bottom: 10px;
+        opacity: 0.4;
+    }
+
+    .ssl-empty h4 {
+        color: var(--gray-600);
+        margin: 0 0 4px 0;
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .ssl-empty p {
+        margin: 0;
+        font-size: 13px;
+    }
+
+    .ssl-show-all {
+        text-align: center;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-dash);
+    }
+
+    .ssl-show-all a {
+        color: var(--primary);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        transition: color 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .ssl-show-all a:hover {
+        color: #2563eb;
+        text-decoration: underline;
+    }
+
+    .ssl-show-all a i {
+        font-size: 12px;
+    }
+
+    /* ============================================================
+               CHARTS GRID
+               ============================================================ */
     .charts-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -598,7 +949,9 @@
         transition: all 0.3s ease;
     }
 
-    .chart-card .chart-badge i { font-size: 11px; }
+    .chart-card .chart-badge i {
+        font-size: 11px;
+    }
 
     .chart-container {
         position: relative;
@@ -636,71 +989,9 @@
         color: var(--gray-400);
     }
 
-    /* ================= DONUT CHART RESPONSIVE ================= */
-    .chart-container .chart-empty {
-        padding: 20px;
-    }
-
-    .chart-container .chart-empty i {
-        font-size: 32px;
-        margin-bottom: 8px;
-    }
-
-    @media (max-width: 768px) {
-        .chart-container {
-            flex-direction: column !important;
-            gap: 16px !important;
-            align-items: center !important;
-        }
-        
-        .chart-container > div:first-child {
-            width: 160px !important;
-            height: 160px !important;
-        }
-        
-        .chart-container > div:first-child div {
-            font-size: 12px !important;
-        }
-        
-        .chart-container > div:first-child div div:first-child {
-            font-size: 20px !important;
-        }
-        
-        .chart-container > div:last-child {
-            min-width: 100% !important;
-            align-items: center !important;
-        }
-        
-        .chart-container > div:last-child > div {
-            width: 100%;
-            max-width: 250px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .chart-container > div:first-child {
-            width: 140px !important;
-            height: 140px !important;
-        }
-        
-        .chart-container > div:first-child div div:first-child {
-            font-size: 16px !important;
-        }
-        
-        .chart-container > div:first-child div div:last-child {
-            font-size: 20px !important;
-        }
-        
-        .chart-container > div:last-child > div {
-            font-size: 12px !important;
-        }
-        
-        .chart-container > div:last-child span {
-            font-size: 12px !important;
-        }
-    }
-
-    /* ================= MODAL SERVICE ================= */
+    /* ============================================================
+               MODAL
+               ============================================================ */
     .modal-overlay {
         display: none;
         position: fixed;
@@ -716,7 +1007,9 @@
         animation: fadeIn 0.3s ease;
     }
 
-    .modal-overlay.active { display: flex; }
+    .modal-overlay.active {
+        display: flex;
+    }
 
     .modal-content {
         background: var(--bg-card);
@@ -759,10 +1052,18 @@
         border-radius: 50%;
     }
 
-    .modal-header h2 .status-dot.up { background: var(--success); }
-    .modal-header h2 .status-dot.warning { background: var(--warning); }
-    .modal-header h2 .status-dot.down { background: var(--danger); }
-    .modal-header h2 .status-dot.total { background: var(--primary); }
+    .modal-header h2 .status-dot.up {
+        background: var(--success);
+    }
+    .modal-header h2 .status-dot.warning {
+        background: var(--warning);
+    }
+    .modal-header h2 .status-dot.down {
+        background: var(--danger);
+    }
+    .modal-header h2 .status-dot.total {
+        background: var(--primary);
+    }
 
     .modal-close {
         background: none;
@@ -842,14 +1143,30 @@
         flex-shrink: 0;
     }
 
-    .modal-body .service-item .service-icon.color-1 { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
-    .modal-body .service-item .service-icon.color-2 { background: linear-gradient(135deg, #10b981, #34d399); }
-    .modal-body .service-item .service-icon.color-3 { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
-    .modal-body .service-item .service-icon.color-4 { background: linear-gradient(135deg, #ef4444, #f87171); }
-    .modal-body .service-item .service-icon.color-5 { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
-    .modal-body .service-item .service-icon.color-6 { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
-    .modal-body .service-item .service-icon.color-7 { background: linear-gradient(135deg, #ec4899, #f472b6); }
-    .modal-body .service-item .service-icon.color-8 { background: linear-gradient(135deg, #14b8a6, #2dd4bf); }
+    .modal-body .service-item .service-icon.color-1 {
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    }
+    .modal-body .service-item .service-icon.color-2 {
+        background: linear-gradient(135deg, #10b981, #34d399);
+    }
+    .modal-body .service-item .service-icon.color-3 {
+        background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    }
+    .modal-body .service-item .service-icon.color-4 {
+        background: linear-gradient(135deg, #ef4444, #f87171);
+    }
+    .modal-body .service-item .service-icon.color-5 {
+        background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    }
+    .modal-body .service-item .service-icon.color-6 {
+        background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    }
+    .modal-body .service-item .service-icon.color-7 {
+        background: linear-gradient(135deg, #ec4899, #f472b6);
+    }
+    .modal-body .service-item .service-icon.color-8 {
+        background: linear-gradient(135deg, #14b8a6, #2dd4bf);
+    }
 
     .modal-body .service-item .service-info {
         flex: 1;
@@ -919,9 +1236,16 @@
         font-size: 13px;
     }
 
+    /* ============================================================
+               ANIMATIONS
+               ============================================================ */
     @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
     }
 
     @keyframes slideUp {
@@ -936,22 +1260,53 @@
     }
 
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes blink {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.3;
+        }
     }
 
     .stat-card {
         animation: fadeInUp 0.5s ease forwards;
     }
 
-    .stat-card:nth-child(1) { animation-delay: 0.05s; }
-    .stat-card:nth-child(2) { animation-delay: 0.10s; }
-    .stat-card:nth-child(3) { animation-delay: 0.15s; }
-    .stat-card:nth-child(4) { animation-delay: 0.20s; }
-    .stat-card:nth-child(5) { animation-delay: 0.25s; }
+    .stat-card:nth-child(1) {
+        animation-delay: 0.05s;
+    }
+    .stat-card:nth-child(2) {
+        animation-delay: 0.10s;
+    }
+    .stat-card:nth-child(3) {
+        animation-delay: 0.15s;
+    }
+    .stat-card:nth-child(4) {
+        animation-delay: 0.20s;
+    }
+    .stat-card:nth-child(5) {
+        animation-delay: 0.25s;
+    }
 
     .uptime-card {
         animation: fadeInUp 0.5s ease 0.30s forwards;
+        opacity: 0;
+    }
+
+    .ssl-expiry-card {
+        animation: fadeInUp 0.5s ease 0.32s forwards;
         opacity: 0;
     }
 
@@ -960,9 +1315,16 @@
         opacity: 0;
     }
 
-    .chart-card:nth-child(1) { animation-delay: 0.35s; }
-    .chart-card:nth-child(2) { animation-delay: 0.40s; }
+    .chart-card:nth-child(1) {
+        animation-delay: 0.35s;
+    }
+    .chart-card:nth-child(2) {
+        animation-delay: 0.40s;
+    }
 
+    /* ============================================================
+               AUTO REFRESH TIMER
+               ============================================================ */
     .auto-refresh-timer {
         position: fixed;
         bottom: 20px;
@@ -990,8 +1352,13 @@
         border-color: rgba(255, 255, 255, 0.05);
     }
 
-    .auto-refresh-timer .icon { font-size: 14px; }
-    .auto-refresh-timer .label { opacity: 0.7; font-size: 10px; }
+    .auto-refresh-timer .icon {
+        font-size: 14px;
+    }
+    .auto-refresh-timer .label {
+        opacity: 0.7;
+        font-size: 10px;
+    }
     .auto-refresh-timer .countdown {
         font-weight: 700;
         font-size: 14px;
@@ -999,22 +1366,18 @@
         text-align: center;
         color: #6ee7b7;
     }
-    .auto-refresh-timer .countdown.warning { color: #fcd34d; }
+    .auto-refresh-timer .countdown.warning {
+        color: #fcd34d;
+    }
     .auto-refresh-timer .countdown.danger {
         color: #fca5a5;
         animation: blink 0.5s infinite;
-    }
-
-    @keyframes blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.3; }
     }
 
     [data-theme="dark"] canvas {
         filter: brightness(0.9) contrast(1.1);
     }
 
-    /* Status badge untuk ESP */
     .status-badge {
         display: inline-block;
         padding: 2px 10px;
@@ -1023,69 +1386,234 @@
         font-weight: 600;
     }
 
+    /* ============================================================
+               RESPONSIVE
+               ============================================================ */
     @media (max-width: 1024px) {
-        .stats-grid { grid-template-columns: repeat(3, 1fr); }
-        .charts-grid { grid-template-columns: 1fr; }
-        .uptime-card { flex-direction: column; align-items: stretch; }
-        .uptime-right { max-width: 100%; flex-wrap: wrap; }
+        .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+        .uptime-card {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .uptime-right {
+            max-width: 100%;
+            flex-wrap: wrap;
+        }
     }
 
     @media (max-width: 768px) {
-        .dashboard-container { padding: 16px; }
+        .dashboard-container {
+            padding: 16px;
+        }
         .dashboard-header {
             flex-direction: column;
             align-items: stretch;
             padding: 20px 24px;
             border-radius: 16px;
         }
-        .dashboard-header h1 { font-size: 1.2rem; }
-        .status-legend { justify-content: center; padding: 6px 14px; }
-        .status-legend span { font-size: 10px; }
-        .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-        .stat-card { padding: 16px 18px; }
-        .stat-value { font-size: 1.8rem; }
-        .uptime-card { padding: 20px 24px; }
-        .uptime-left .uptime-icon { width: 44px; height: 44px; font-size: 20px; }
-        .uptime-right .uptime-value { font-size: 2.2rem; }
-        .charts-grid { grid-template-columns: 1fr; gap: 16px; }
-        .chart-container { height: 200px; }
-        .chart-card { padding: 16px 18px; }
-        .chart-card .chart-header h3 { font-size: 14px; }
-        .modal-content { width: 95%; max-height: 90vh; }
-        .modal-header h2 { font-size: 16px; }
-        .modal-body .service-item { padding: 10px 12px; flex-wrap: wrap; }
-        .modal-body .service-item .service-status { font-size: 11px; padding: 2px 10px; }
-        .stat-clickable { font-size: 9px; padding: 3px 10px; }
+        .dashboard-header h1 {
+            font-size: 1.2rem;
+        }
+        .status-legend {
+            justify-content: center;
+            padding: 6px 14px;
+        }
+        .status-legend span {
+            font-size: 10px;
+        }
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        .stat-card {
+            padding: 16px 18px;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+        }
+        .uptime-card {
+            padding: 20px 24px;
+        }
+        .uptime-left .uptime-icon {
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+        }
+        .uptime-right .uptime-value {
+            font-size: 2.2rem;
+        }
+        .charts-grid {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        .chart-container {
+            height: 200px;
+        }
+        .chart-card {
+            padding: 16px 18px;
+        }
+        .chart-card .chart-header h3 {
+            font-size: 14px;
+        }
+        .ssl-expiry-card {
+            padding: 16px 18px;
+        }
+        .modal-content {
+            width: 95%;
+            max-height: 90vh;
+        }
+        .modal-header h2 {
+            font-size: 16px;
+        }
+        .modal-body .service-item {
+            padding: 10px 12px;
+            flex-wrap: wrap;
+        }
+        .modal-body .service-item .service-status {
+            font-size: 11px;
+            padding: 2px 10px;
+        }
+        .stat-clickable {
+            font-size: 9px;
+            padding: 3px 10px;
+        }
         .auto-refresh-timer {
             bottom: 10px;
             right: 10px;
             padding: 6px 12px;
             font-size: 10px;
         }
-        .auto-refresh-timer .countdown { font-size: 12px; min-width: 30px; }
+        .auto-refresh-timer .countdown {
+            font-size: 12px;
+            min-width: 30px;
+        }
+        .ssl-expiry-table-wrap {
+            margin: 0 -8px;
+        }
+        .ssl-expiry-table thead th,
+        .ssl-expiry-table tbody td {
+            padding: 8px 10px;
+            font-size: 11px;
+        }
+        .ssl-expiry-table .service-target-cell {
+            max-width: 100px;
+        }
+        .ssl-expiry-table .days-remaining {
+            font-size: 12px;
+        }
+        .ssl-expiry-table .ssl-status-badge {
+            font-size: 9px;
+            padding: 2px 8px;
+        }
+        .ssl-expiry-header h3 {
+            font-size: 14px;
+        }
+        .ssl-expiry-header .ssl-badge-count {
+            font-size: 10px;
+            padding: 3px 10px;
+        }
+        .chart-container .chart-empty i {
+            font-size: 32px;
+        }
     }
 
     @media (max-width: 480px) {
-        .stats-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-        .stat-card { padding: 12px 14px; border-radius: 12px; }
-        .stat-value { font-size: 1.4rem; }
-        .stat-header h3 { font-size: 10px; }
-        .stat-header i { font-size: 16px; }
-        .uptime-card { padding: 16px 18px; }
-        .uptime-left { flex-wrap: wrap; }
-        .uptime-right .uptime-value { font-size: 1.8rem; }
-        .dashboard-header { padding: 16px 18px; }
-        .dashboard-header h1 { font-size: 1rem; }
-        .chart-card .chart-badge { font-size: 10px; padding: 3px 10px; }
-        .modal-header { padding: 14px 16px; }
-        .modal-body { padding: 14px 16px; }
-        .modal-header h2 { font-size: 14px; }
-        .stat-clickable { font-size: 8px; padding: 2px 8px; margin-top: 6px; }
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .stat-card {
+            padding: 12px 14px;
+            border-radius: 12px;
+        }
+        .stat-value {
+            font-size: 1.4rem;
+        }
+        .stat-header h3 {
+            font-size: 10px;
+        }
+        .stat-header i {
+            font-size: 16px;
+        }
+        .uptime-card {
+            padding: 16px 18px;
+        }
+        .uptime-left {
+            flex-wrap: wrap;
+        }
+        .uptime-right .uptime-value {
+            font-size: 1.8rem;
+        }
+        .dashboard-header {
+            padding: 16px 18px;
+        }
+        .dashboard-header h1 {
+            font-size: 1rem;
+        }
+        .chart-card .chart-badge {
+            font-size: 10px;
+            padding: 3px 10px;
+        }
+        .ssl-expiry-card {
+            padding: 12px 14px;
+        }
+        .ssl-expiry-table-wrap {
+            margin: 0 -12px;
+        }
+        .ssl-expiry-table thead th,
+        .ssl-expiry-table tbody td {
+            padding: 6px 8px;
+            font-size: 10px;
+        }
+        .ssl-expiry-table .service-target-cell {
+            max-width: 60px;
+        }
+        .ssl-expiry-table .days-remaining {
+            font-size: 11px;
+        }
+        .ssl-expiry-table .ssl-status-badge {
+            font-size: 8px;
+            padding: 1px 6px;
+            gap: 3px;
+        }
+        .ssl-expiry-table .ssl-status-badge .ssl-dot {
+            width: 4px;
+            height: 4px;
+        }
+        .ssl-expiry-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .modal-header {
+            padding: 14px 16px;
+        }
+        .modal-body {
+            padding: 14px 16px;
+        }
+        .modal-header h2 {
+            font-size: 14px;
+        }
+        .stat-clickable {
+            font-size: 8px;
+            padding: 2px 8px;
+            margin-top: 6px;
+        }
+        .chart-container .chart-empty i {
+            font-size: 28px;
+        }
     }
 </style>
 
 <div class="dashboard-container">
-    <!-- ================= HEADER ================= -->
+
+    <!-- ============================================================
+    HEADER
+    ============================================================ -->
     <div class="dashboard-header">
         <div class="header-left">
             <h1>
@@ -1104,7 +1632,9 @@
         </div>
     </div>
 
-    <!-- ================= STATS GRID ================= -->
+    <!-- ============================================================
+    STATS GRID
+    ============================================================ -->
     @php
         $total = $total ?? 0;
         $up = $up ?? 0;
@@ -1115,18 +1645,10 @@
         $lastSmokeValue = $lastSmokeValue ?? 0;
         $lastSmokeStatus = $lastSmokeStatus ?? 'NORMAL';
         $lastSeenAt = $lastSeenAt ?? null;
-        
-        // Hitung persentase untuk donut
-        $upPercent = $total > 0 ? round(($up / $total) * 100, 1) : 0;
-        $downPercent = $total > 0 ? round(($down / $total) * 100, 1) : 0;
-        $warningPercent = $total > 0 ? round(($warning / $total) * 100, 1) : 0;
         $hasData = $total > 0;
-        
-        // ESP Status
         $isOnline = ($onlineCount ?? 0) > 0;
         $espDisplayStatus = $isOnline ? 'ONLINE' : 'OFFLINE';
-        
-        // Status badge class untuk smoke
+
         $smokeStatusClass = strtolower($lastSmokeStatus);
         $smokeBgColor = '#d1fae5';
         $smokeTextColor = '#065f46';
@@ -1140,6 +1662,8 @@
     @endphp
 
     <div class="stats-grid">
+
+        <!-- Total Service -->
         <div class="stat-card total" onclick="showModal('all', 'Semua Service', 'total')">
             <div class="stat-header">
                 <h3>Total Service</h3>
@@ -1152,6 +1676,7 @@
             </div>
         </div>
 
+        <!-- Running -->
         <div class="stat-card up" onclick="showModal('up', 'Service Running', 'up')">
             <div class="stat-header">
                 <h3>Running</h3>
@@ -1164,6 +1689,7 @@
             </div>
         </div>
 
+        <!-- Warning -->
         <div class="stat-card warning" onclick="showModal('warning', 'Service Warning', 'warning')">
             <div class="stat-header">
                 <h3>Warning</h3>
@@ -1176,6 +1702,7 @@
             </div>
         </div>
 
+        <!-- Down -->
         <div class="stat-card down" onclick="showModal('down', 'Service Down', 'down')">
             <div class="stat-header">
                 <h3>Down</h3>
@@ -1188,14 +1715,14 @@
             </div>
         </div>
 
-        <!-- ================= 🔥 ESP STATUS ================= -->
+        <!-- ESP Status -->
         <div class="stat-card esp" id="espCard">
             <div class="stat-header">
                 <h3>ESP Status</h3>
                 <i class="fas fa-microchip"></i>
             </div>
             <div class="stat-value" id="espStatusDisplay" style="font-size: 1.6rem; display: flex; align-items: center; gap: 8px;">
-                <span id="espDot" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; 
+                <span id="espDot" style="display: inline-block; width: 12px; height: 12px; border-radius: 50%;
                     @if($espDisplayStatus == 'ONLINE') background: #10b981; box-shadow: 0 0 20px rgba(16,185,129,0.4);
                     @else background: #ef4444; box-shadow: 0 0 20px rgba(239,68,68,0.4);
                     @endif
@@ -1218,7 +1745,9 @@
         </div>
     </div>
 
-    <!-- ================= UPTIME CARD ================= -->
+    <!-- ============================================================
+    UPTIME CARD
+    ============================================================ -->
     @php
         $uptime = $hasData ? (($up) / $total) * 100 : 0;
         $uptimeClass = $hasData ? ($uptime >= 90 ? 'green' : ($uptime >= 70 ? 'yellow' : 'red')) : 'gray';
@@ -1234,7 +1763,7 @@
             <div class="uptime-info">
                 <h3>Uptime Rate</h3>
                 <p>
-                    Status: 
+                    Status:
                     <span class="uptime-status {{ $statusClass }}">
                         <i class="fas {{ $statusIcon }}"></i>
                         {{ $statusText }}
@@ -1266,27 +1795,129 @@
         </div>
     </div>
 
-    <!-- ================= CHARTS GRID ================= -->
+    <!-- ============================================================
+    SSL EXPIRY TABLE - MAX 10 DATA
+    ============================================================ -->
+    @php
+        // Ambil semua service dengan SSL, urutkan dari yang paling mendekati expired
+        $allSslServices = $services->filter(function($service) {
+            return $service->ssl_status && $service->ssl_status !== 'N/A' && $service->ssl_status !== null;
+        })->sortBy('ssl_days_remaining');
+
+        // Ambil hanya 10 data teratas yang paling mendekati expired
+        $sslServices = $allSslServices->take(10);
+        $hasSSLData = $sslServices->count() > 0;
+        $totalSSLCount = $allSslServices->count();
+        $showMoreLink = $totalSSLCount > 10;
+    @endphp
+
+    <div class="ssl-expiry-card">
+        <div class="ssl-expiry-header">
+            <h3>
+                <i class="fas fa-lock"></i>
+                SSL Certificate Expiry
+                <span style="font-size: 12px; font-weight: 400; color: var(--gray-500); margin-left: 4px;">
+                    ({{ $sslServices->count() }} dari {{ $totalSSLCount }} service)
+                </span>
+            </h3>
+        </div>
+
+        @if($hasSSLData)
+            <div class="ssl-expiry-table-wrap">
+                <table class="ssl-expiry-table" id="sslExpiryTable">
+                    <thead>
+                        <tr>
+                            <th onclick="sortSSLTable(0)" style="cursor: pointer;">
+                                Service <span class="sort-icon">⇅</span>
+                            </th>
+                            <th onclick="sortSSLTable(1)" style="cursor: pointer;">
+                                Target <span class="sort-icon">⇅</span>
+                            </th>
+                            <th onclick="sortSSLTable(2)" style="cursor: pointer;">
+                                Status SSL <span class="sort-icon">⇅</span>
+                            </th>
+                            <th onclick="sortSSLTable(3)" style="cursor: pointer;" class="active-asc">
+                                Sisa Hari <span class="sort-icon">⇅</span>
+                            </th>
+                            <th onclick="sortSSLTable(4)" style="cursor: pointer;">
+                                Expired <span class="sort-icon">⇅</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="sslTableBody">
+                        @foreach($sslServices as $service)
+                            @php
+                                $days = $service->ssl_days_remaining ?? 0;
+                                $status = $service->ssl_status ?? 'NA';
+                                $statusClass = strtolower($status);
+                                $daysClass = $days > 30 ? 'good' : ($days > 7 ? 'medium' : ($days > 0 ? 'critical' : 'danger'));
+                                $expiryDate = $service->ssl_expiry_date ? \Carbon\Carbon::parse($service->ssl_expiry_date)->format('d/m/Y') : '-';
+                                $displayDays = $days > 0 ? $days . ' hari' : ($days == 0 ? 'Hari ini' : '⚠️ EXPIRED');
+                                $icon = $status === 'VALID' ? '🟢' : ($status === 'WARNING' ? '🟡' : ($status === 'CRITICAL' ? '🔴' : '🔴'));
+                            @endphp
+                            <tr data-days="{{ $days }}" data-status="{{ $status }}">
+                                <td><span class="service-name-cell">{{ $service->name }}</span></td>
+                                <td>
+                                    <span class="service-target-cell" title="{{ $service->target }}">{{ $service->target }}</span>
+                                </td>
+                                <td>
+                                    <span class="ssl-status-badge {{ $statusClass }}">
+                                        <span class="ssl-dot"></span>
+                                        {{ $icon }} {{ $status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="days-remaining {{ $daysClass }}">
+                                        {{ $displayDays }}
+                                    </span>
+                                </td>
+                                <td style="font-size: 12px; color: var(--gray-500);">
+                                    {{ $expiryDate }}
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            @if($showMoreLink)
+                <div class="ssl-show-all">
+                    <a href="{{ route('services') }}?sort=ssl_days_remaining&direction=asc">
+                        <i class="fas fa-arrow-right"></i>
+                        Lihat semua {{ $totalSSLCount }} SSL certificate
+                    </a>
+                </div>
+            @endif
+        @else
+            <div class="ssl-empty">
+                <i class="fas fa-lock"></i>
+                <h4>Belum Ada Data SSL</h4>
+                <p>Service dengan SSL akan muncul di sini setelah di-check</p>
+            </div>
+        @endif
+    </div>
+
+    <!-- ============================================================
+    CHARTS GRID
+    ============================================================ -->
     <div class="charts-grid">
-        <!-- ================= 🔥 CHART SERVICE - DONUT 7 HARI (SEMUA PERUBAHAN) ================= -->
+
+        <!-- Donut Chart - 7 Hari -->
         <div class="chart-card">
             <div class="chart-header">
                 <h3><i class="fas fa-chart-pie"></i> Status 7 Hari Terakhir</h3>
                 <span class="chart-badge">
-                    <i class="far fa-clock"></i> 
+                    <i class="far fa-clock"></i>
                     {{ \Carbon\Carbon::now()->subDays(6)->format('d/m/Y') }} - {{ \Carbon\Carbon::now()->format('d/m/Y') }}
                 </span>
             </div>
             <div class="chart-container" style="display: flex; align-items: center; justify-content: center; gap: 30px; flex-wrap: wrap; height: auto; min-height: 250px;">
                 @php
-                    // Data dari controller untuk donut chart 7 hari
                     $totalUp7 = $totalUp ?? 0;
                     $totalWarning7 = $totalWarning ?? 0;
                     $totalDown7 = $totalDown ?? 0;
                     $totalChanges7 = $totalChanges ?? 0;
                     $hasData7 = $totalChanges7 > 0;
-                    
-                    // Hitung persentase
                     $upPercent7 = $hasData7 ? round(($totalUp7 / $totalChanges7) * 100, 1) : 0;
                     $warningPercent7 = $hasData7 ? round(($totalWarning7 / $totalChanges7) * 100, 1) : 0;
                     $downPercent7 = $hasData7 ? round(($totalDown7 / $totalChanges7) * 100, 1) : 0;
@@ -1301,8 +1932,7 @@
                             <div style="font-size: 9px; color: var(--gray-400);">Perubahan</div>
                         </div>
                     </div>
-                    
-                    <!-- LEGEND -->
+
                     <div style="display: flex; flex-direction: column; gap: 10px; min-width: 160px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="display: inline-block; width: 14px; height: 14px; border-radius: 4px; background: #10b981;"></span>
@@ -1322,8 +1952,6 @@
                             <span style="margin-left: auto; font-size: 13px; font-weight: 700; color: #ef4444;">{{ $downPercent7 }}%</span>
                             <span style="font-size: 11px; color: var(--gray-400);">({{ $totalDown7 }})</span>
                         </div>
-                        
-                        <!-- TOTAL PERSENTASE -->
                         <div style="margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border-dash); display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-400);">
                             <span>Total: 100%</span>
                             <span>{{ $totalChanges7 }} perubahan</span>
@@ -1342,7 +1970,7 @@
             </div>
         </div>
 
-        <!-- ================= CHART SMOKE DETECTOR ================= -->
+        <!-- Smoke Chart -->
         <div class="chart-card">
             <div class="chart-header">
                 <h3><i class="fas fa-fire-extinguisher"></i> Grafik Smoke Detector</h3>
@@ -1353,8 +1981,6 @@
                     $smokeLabels = $smokeLabels ?? [];
                     $smokeData = $smokeData ?? [];
                     $hasSmokeData = count($smokeLabels) > 0 && count($smokeData) > 0;
-                    
-                    // Filter data yang null untuk ditampilkan di tooltip
                     $hasValidSmokeData = false;
                     foreach ($smokeData as $value) {
                         if ($value !== null && $value > 0) {
@@ -1378,14 +2004,18 @@
     </div>
 </div>
 
-<!-- ================= AUTO REFRESH TIMER ================= -->
+<!-- ============================================================
+AUTO REFRESH TIMER
+============================================================ -->
 <div class="auto-refresh-timer" id="autoRefreshTimer">
     <span class="icon">🔄</span>
     <span class="label">Refresh</span>
     <span class="countdown" id="countdownTimer">0:30</span>
 </div>
 
-<!-- ================= MODAL SERVICE ================= -->
+<!-- ============================================================
+MODAL
+============================================================ -->
 <div class="modal-overlay" id="serviceModal" onclick="if(event.target === this) closeModal()">
     <div class="modal-content">
         <div class="modal-header">
@@ -1396,221 +2026,25 @@
             </h2>
             <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
-        <div class="modal-body" id="modalBody">
-            <!-- Content akan diisi oleh JavaScript -->
-        </div>
+        <div class="modal-body" id="modalBody"></div>
     </div>
 </div>
 
-<!-- Font Awesome CDN -->
+<!-- ============================================================
+SCRIPTS
+============================================================ -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // ====================== 🔥 SERVICE DONUT CHART (7 HARI - SEMUA PERUBAHAN) ======================
-        @if(isset($totalChanges) && $totalChanges > 0)
-        {
-            const ctxDonut7 = document.getElementById('serviceDonutChart7');
-            if (ctxDonut7) {
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                
-                // Ambil data dari PHP
-                const up = {{ $upPercent7 }};
-                const warning = {{ $warningPercent7 }};
-                const down = {{ $downPercent7 }};
-                const totalUp = {{ $totalUp7 }};
-                const totalWarning = {{ $totalWarning7 }};
-                const totalDown = {{ $totalDown7 }};
-                
-                new Chart(ctxDonut7, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['UP', 'WARNING', 'DOWN'],
-                        datasets: [{
-                            data: [up, warning, down],
-                            backgroundColor: [
-                                '#10b981',  // UP - Hijau
-                                '#f59e0b',  // WARNING - Kuning
-                                '#ef4444'   // DOWN - Merah
-                            ],
-                            borderColor: isDark ? '#1e293b' : '#ffffff',
-                            borderWidth: 3,
-                            hoverOffset: 8,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '65%',
-                        plugins: {
-                            legend: {
-                                display: false,
-                            },
-                            tooltip: {
-                                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(15, 23, 42, 0.92)',
-                                titleFont: { size: 12, weight: '600' },
-                                bodyFont: { size: 12 },
-                                padding: 10,
-                                cornerRadius: 8,
-                                callbacks: {
-                                    label: function(context) {
-                                        const value = context.parsed;
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = total > 0 ? (value / total) * 100 : 0;
-                                        return context.label + ': ' + percentage.toFixed(1) + '%';
-                                    },
-                                    afterLabel: function(context) {
-                                        const dataIndex = context.dataIndex;
-                                        const counts = [totalUp, totalWarning, totalDown];
-                                        return 'Total: ' + counts[dataIndex] + ' perubahan';
-                                    }
-                                }
-                            }
-                        },
-                        animation: {
-                            animateRotate: true,
-                            duration: 1000,
-                        }
-                    }
-                });
-            }
-        }
-        @endif
-
-        // ====================== SMOKE CHART ======================
-        @if(isset($smokeLabels) && isset($smokeData) && count($smokeLabels) > 0 && count($smokeData) > 0)
-        {
-            const ctx2 = document.getElementById('smokeChart');
-            if (ctx2) {
-                const isMobile = window.innerWidth < 576;
-                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                const textColor = isDark ? '#94a3b8' : '#64748b';
-                const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
-                
-                // Ambil data dari PHP dan filter null
-                const labels = @json($smokeLabels);
-                const rawData = @json($smokeData);
-                
-                // Proses data: null tetap null untuk ditampilkan di chart
-                const chartData = rawData.map(val => val === null ? null : val);
-                
-                new Chart(ctx2, {
-                    type: 'bar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Nilai Asap (ppm)',
-                            data: chartData,
-                            backgroundColor: function(context) {
-                                const value = context.raw;
-                                if (value === null) return 'transparent';
-                                return isDark ? 'rgba(239, 68, 68, 0.4)' : 'rgba(239, 68, 68, 0.6)';
-                            },
-                            borderColor: function(context) {
-                                const value = context.raw;
-                                if (value === null) return 'transparent';
-                                return '#ef4444';
-                            },
-                            borderWidth: function(context) {
-                                const value = context.raw;
-                                if (value === null) return 0;
-                                return 1.5;
-                            },
-                            borderRadius: 6,
-                            maxBarThickness: 50,
-                            spanGaps: false,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' : 'rgba(15, 23, 42, 0.92)',
-                                titleFont: { size: 12, weight: '600' },
-                                bodyFont: { size: 12 },
-                                padding: 10,
-                                cornerRadius: 8,
-                                callbacks: {
-                                    label: function(context) {
-                                        const value = context.raw;
-                                        if (value === null) {
-                                            return '📭 Tidak ada data';
-                                        }
-                                        return '🔥 ' + value + ' ppm';
-                                    },
-                                    title: function(context) {
-                                        return context[0].label;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: isMobile ? 'Nilai (ppm)' : 'Nilai Asap (ppm)',
-                                    font: { size: isMobile ? 9 : 11, weight: '500' },
-                                    color: textColor
-                                },
-                                grid: {
-                                    color: gridColor,
-                                    drawBorder: false,
-                                    drawTicks: false,
-                                },
-                                ticks: {
-                                    font: { size: isMobile ? 8 : 10 },
-                                    color: textColor,
-                                    maxTicksLimit: isMobile ? 5 : 8,
-                                }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: {
-                                    font: { size: isMobile ? 8 : 10 },
-                                    color: textColor,
-                                    maxTicksLimit: 7,
-                                }
-                            }
-                        },
-                        interaction: { intersect: false, mode: 'index' }
-                    }
-                });
-            }
-        }
-        @endif
-
-        // ====================== DARK MODE WATCHER FOR CHARTS ======================
-        function updateChartsForTheme() {
-            window.dispatchEvent(new Event('resize'));
-        }
-
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.attributeName === 'data-theme') {
-                    setTimeout(updateChartsForTheme, 300);
-                }
-            });
-        });
-
-        observer.observe(document.documentElement, { attributes: true });
-
-        let resizeTimer;
-        window.addEventListener('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(function() {}, 250);
-        });
-    });
-</script>
 
 <script>
-    // ====================== DATA SERVICES ======================
+    // ============================================================
+    // DATA SERVICES
+    // ============================================================
     const allServices = @json($services ?? []);
 
-    // ====================== SERVICE MODAL ======================
+    // ============================================================
+    // SERVICE MODAL
+    // ============================================================
     function showModal(status, title, dotClass) {
         const modal = document.getElementById('serviceModal');
         const modalTitle = document.getElementById('modalTitleText');
@@ -1625,7 +2059,7 @@
         if (status === 'all') {
             filteredServices = allServices;
         } else {
-            filteredServices = allServices.filter(s => 
+            filteredServices = allServices.filter(s =>
                 s.last_status && s.last_status.toLowerCase() === status
             );
         }
@@ -1634,34 +2068,34 @@
 
         if (filteredServices.length === 0) {
             modalBody.innerHTML = `
-                <div class="empty-services">
-                    <i class="fas fa-inbox"></i>
-                    <h4>Tidak Ada Service</h4>
-                    <p>Belum ada service dengan status ${status.toUpperCase()}</p>
-                </div>
-            `;
+                    <div class="empty-services">
+                        <i class="fas fa-inbox"></i>
+                        <h4>Tidak Ada Service</h4>
+                        <p>Belum ada service dengan status ${status.toUpperCase()}</p>
+                    </div>
+                `;
         } else {
             let html = '';
             const colors = ['color-1', 'color-2', 'color-3', 'color-4', 'color-5', 'color-6', 'color-7', 'color-8'];
-            
+
             filteredServices.forEach((service, index) => {
                 const colorClass = colors[index % colors.length];
                 const initials = (service.name || '??').substring(0, 2).toUpperCase();
                 const statusClass = (service.last_status || 'unknown').toLowerCase();
                 const statusLabel = service.last_status || 'UNKNOWN';
-                
+
                 html += `
-                    <div class="service-item">
-                        <div class="service-icon ${colorClass}">${initials}</div>
-                        <div class="service-info">
-                            <span class="service-name">${service.name || 'Unnamed'}</span>
-                            <span class="service-detail">${service.target || '-'}</span>
+                        <div class="service-item">
+                            <div class="service-icon ${colorClass}">${initials}</div>
+                            <div class="service-info">
+                                <span class="service-name">${service.name || 'Unnamed'}</span>
+                                <span class="service-detail">${service.target || '-'}</span>
+                            </div>
+                            <span class="service-status ${statusClass}">${statusLabel}</span>
                         </div>
-                        <span class="service-status ${statusClass}">${statusLabel}</span>
-                    </div>
-                `;
+                    `;
             });
-            
+
             modalBody.innerHTML = html;
         }
 
@@ -1675,14 +2109,16 @@
         document.body.style.overflow = '';
     }
 
-    // ====================== KEYBOARD SHORTCUTS ======================
+    // ============================================================
+    // KEYBOARD SHORTCUTS
+    // ============================================================
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeModal();
-        }
+        if (e.key === 'Escape') closeModal();
     });
 
-    // ====================== RIPPLE EFFECT ======================
+    // ============================================================
+    // RIPPLE EFFECT
+    // ============================================================
     document.querySelectorAll('.stat-card').forEach(card => {
         card.addEventListener('click', function(e) {
             const ripple = document.createElement('span');
@@ -1690,40 +2126,38 @@
             const rect = this.getBoundingClientRect();
             const size = Math.max(rect.width, rect.height);
             ripple.style.width = ripple.style.height = size + 'px';
-            ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
-            ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+            ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+            ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
             this.appendChild(ripple);
             setTimeout(() => ripple.remove(), 600);
         });
     });
 
-    // ====================== AUTO REFRESH TIMER ======================
+    // ============================================================
+    // AUTO REFRESH TIMER
+    // ============================================================
     const REFRESH_INTERVAL = 30;
     let countdownSeconds = REFRESH_INTERVAL;
     let countdownElement = document.getElementById('countdownTimer');
 
     function updateCountdown() {
         countdownSeconds--;
-        
         if (countdownElement) {
             const secs = countdownSeconds.toString().padStart(2, '0');
             countdownElement.textContent = '0:' + secs;
-            
             countdownElement.className = 'countdown';
-            if (countdownSeconds < 5) {
-                countdownElement.classList.add('danger');
-            } else if (countdownSeconds < 10) {
-                countdownElement.classList.add('warning');
-            }
+            if (countdownSeconds < 5) countdownElement.classList.add('danger');
+            else if (countdownSeconds < 10) countdownElement.classList.add('warning');
         }
-        
         if (countdownSeconds <= 0) {
             countdownSeconds = REFRESH_INTERVAL;
             location.reload();
         }
     }
 
-    // ====================== 🔥 FETCH ESP STATUS REAL-TIME ======================
+    // ============================================================
+    // FETCH ESP STATUS
+    // ============================================================
     function fetchEspStatus() {
         fetch('/api/smoke/status')
             .then(response => response.json())
@@ -1731,38 +2165,29 @@
                 if (data.success) {
                     const esp = data.data;
                     const isOnline = esp.device_status === 'ONLINE';
-                    
-                    // Update dot
+
                     const dot = document.getElementById('espDot');
                     if (dot) {
                         dot.style.background = isOnline ? '#10b981' : '#ef4444';
-                        dot.style.boxShadow = isOnline ? '0 0 20px rgba(16,185,129,0.4)' : '0 0 20px rgba(239,68,68,0.4)';
+                        dot.style.boxShadow = isOnline ? '0 0 20px rgba(16,185,129,0.4)' :
+                            '0 0 20px rgba(239,68,68,0.4)';
                     }
-                    
-                    // Update status text
+
                     const statusText = document.getElementById('espStatusText');
-                    if (statusText) {
-                        statusText.textContent = esp.device_status;
-                    }
-                    
-                    // Update last seen
+                    if (statusText) statusText.textContent = esp.device_status;
+
                     const lastSeen = document.getElementById('espLastSeen');
                     if (lastSeen) {
-                        if (isOnline && esp.last_seen_human) {
-                            lastSeen.textContent = '✅ Terakhir: ' + esp.last_seen_human;
-                        } else {
-                            lastSeen.textContent = '❌ Tidak ada data (offline)';
-                        }
+                        lastSeen.textContent = isOnline && esp.last_seen_human ?
+                            '✅ Terakhir: ' + esp.last_seen_human :
+                            '❌ Tidak ada data (offline)';
                     }
-                    
-                    // Update nilai asap
+
                     const smokeValue = document.getElementById('espSmokeValue');
                     if (smokeValue) {
-                        const value = esp.adc || esp.smoke_value || esp.ppm || 0;
-                        smokeValue.textContent = value;
+                        smokeValue.textContent = esp.adc || esp.smoke_value || esp.ppm || 0;
                     }
-                    
-                    // Update smoke status
+
                     const statusBadge = document.getElementById('espSmokeStatus');
                     if (statusBadge) {
                         const status = esp.status || 'NORMAL';
@@ -1784,15 +2209,252 @@
             .catch(error => console.error('Error fetching ESP status:', error));
     }
 
-    // ====================== INIT ======================
+    // ============================================================
+    // SSL TABLE SORTING
+    // ============================================================
+    let sslSortColumn = 3;
+    let sslSortAsc = true;
+
+    function sortSSLTable(columnIndex) {
+        const tbody = document.getElementById('sslTableBody');
+        if (!tbody) return;
+
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        const headers = document.querySelectorAll('#sslExpiryTable thead th');
+        headers.forEach((th, index) => {
+            th.classList.remove('active-asc', 'active-desc');
+            if (index === columnIndex) {
+                if (sslSortColumn === columnIndex) {
+                    sslSortAsc = !sslSortAsc;
+                } else {
+                    sslSortAsc = true;
+                }
+                th.classList.add(sslSortAsc ? 'active-asc' : 'active-desc');
+            }
+        });
+        sslSortColumn = columnIndex;
+
+        rows.sort((a, b) => {
+            let aVal, bVal;
+            switch (columnIndex) {
+                case 0:
+                    aVal = a.querySelector('.service-name-cell')?.textContent?.trim() || '';
+                    bVal = b.querySelector('.service-name-cell')?.textContent?.trim() || '';
+                    break;
+                case 1:
+                    aVal = a.querySelector('.service-target-cell')?.textContent?.trim() || '';
+                    bVal = b.querySelector('.service-target-cell')?.textContent?.trim() || '';
+                    break;
+                case 2:
+                    const statusOrder = { 'VALID': 1, 'WARNING': 2, 'CRITICAL': 3, 'EXPIRED': 4 };
+                    aVal = statusOrder[a.dataset.status || 'NA'] || 5;
+                    bVal = statusOrder[b.dataset.status || 'NA'] || 5;
+                    break;
+                case 3:
+                    aVal = parseInt(a.dataset.days) || 0;
+                    bVal = parseInt(b.dataset.days) || 0;
+                    break;
+                case 4:
+                    aVal = a.querySelector('td:nth-child(5)')?.textContent?.trim() || '99/99/9999';
+                    bVal = b.querySelector('td:nth-child(5)')?.textContent?.trim() || '99/99/9999';
+                    const aParts = aVal.split('/');
+                    const bParts = bVal.split('/');
+                    if (aParts.length === 3 && bParts.length === 3) {
+                        const aDate = new Date(aParts[2], aParts[1] - 1, aParts[0]);
+                        const bDate = new Date(bParts[2], bParts[1] - 1, bParts[0]);
+                        aVal = aDate.getTime();
+                        bVal = bDate.getTime();
+                    }
+                    break;
+                default:
+                    aVal = 0;
+                    bVal = 0;
+            }
+            if (typeof aVal === 'string') {
+                return sslSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+            } else {
+                return sslSortAsc ? aVal - bVal : bVal - aVal;
+            }
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+    }
+
+    // ============================================================
+    // CHART.JS - DONUT CHART
+    // ============================================================
     document.addEventListener('DOMContentLoaded', function() {
-        // Start countdown
+        // Donut Chart
+        @if(isset($totalChanges) && $totalChanges > 0)
+            {
+                const ctxDonut7 = document.getElementById('serviceDonutChart7');
+                if (ctxDonut7) {
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    const up = {{ $upPercent7 }};
+                    const warning = {{ $warningPercent7 }};
+                    const down = {{ $downPercent7 }};
+                    const totalUp = {{ $totalUp7 }};
+                    const totalWarning = {{ $totalWarning7 }};
+                    const totalDown = {{ $totalDown7 }};
+
+                    new Chart(ctxDonut7, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['UP', 'WARNING', 'DOWN'],
+                            datasets: [{
+                                data: [up, warning, down],
+                                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                                borderColor: isDark ? '#1e293b' : '#ffffff',
+                                borderWidth: 3,
+                                hoverOffset: 8,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            cutout: '65%',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' :
+                                        'rgba(15, 23, 42, 0.92)',
+                                    titleFont: { size: 12, weight: '600' },
+                                    bodyFont: { size: 12 },
+                                    padding: 10,
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.parsed;
+                                            const total = context.dataset.data.reduce((a, b) => a +
+                                            b, 0);
+                                            const percentage = total > 0 ? (value / total) * 100 : 0;
+                                            return context.label + ': ' + percentage.toFixed(1) +
+                                            '%';
+                                        },
+                                        afterLabel: function(context) {
+                                            const dataIndex = context.dataIndex;
+                                            const counts = [totalUp, totalWarning, totalDown];
+                                            return 'Total: ' + counts[dataIndex] + ' perubahan';
+                                        }
+                                    }
+                                }
+                            },
+                            animation: { animateRotate: true, duration: 1000 }
+                        }
+                    });
+                }
+            }
+        @endif
+
+        // Smoke Chart
+        @if(isset($smokeLabels) && isset($smokeData) && count($smokeLabels) > 0 && count($smokeData) > 0)
+            {
+                const ctx2 = document.getElementById('smokeChart');
+                if (ctx2) {
+                    const isMobile = window.innerWidth < 576;
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    const textColor = isDark ? '#94a3b8' : '#64748b';
+                    const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
+                    const labels = @json($smokeLabels);
+                    const rawData = @json($smokeData);
+                    const chartData = rawData.map(val => val === null ? null : val);
+
+                    new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Nilai Asap (ppm)',
+                                data: chartData,
+                                backgroundColor: function(context) {
+                                    const value = context.raw;
+                                    if (value === null) return 'transparent';
+                                    return isDark ? 'rgba(239, 68, 68, 0.4)' :
+                                        'rgba(239, 68, 68, 0.6)';
+                                },
+                                borderColor: function(context) {
+                                    const value = context.raw;
+                                    if (value === null) return 'transparent';
+                                    return '#ef4444';
+                                },
+                                borderWidth: function(context) {
+                                    const value = context.raw;
+                                    if (value === null) return 0;
+                                    return 1.5;
+                                },
+                                borderRadius: 6,
+                                maxBarThickness: 50,
+                                spanGaps: false,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: isDark ? 'rgba(30, 41, 59, 0.95)' :
+                                        'rgba(15, 23, 42, 0.92)',
+                                    titleFont: { size: 12, weight: '600' },
+                                    bodyFont: { size: 12 },
+                                    padding: 10,
+                                    cornerRadius: 8,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.raw;
+                                            if (value === null) return '📭 Tidak ada data';
+                                            return '🔥 ' + value + ' ppm';
+                                        },
+                                        title: function(context) {
+                                            return context[0].label;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: isMobile ? 'Nilai (ppm)' : 'Nilai Asap (ppm)',
+                                        font: { size: isMobile ? 9 : 11, weight: '500' },
+                                        color: textColor
+                                    },
+                                    grid: {
+                                        color: gridColor,
+                                        drawBorder: false,
+                                        drawTicks: false,
+                                    },
+                                    ticks: {
+                                        font: { size: isMobile ? 8 : 10 },
+                                        color: textColor,
+                                        maxTicksLimit: isMobile ? 5 : 8,
+                                    }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: {
+                                        font: { size: isMobile ? 8 : 10 },
+                                        color: textColor,
+                                        maxTicksLimit: 7,
+                                    }
+                                }
+                            },
+                            interaction: { intersect: false, mode: 'index' }
+                        }
+                    });
+                }
+            }
+        @endif
+    });
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function() {
         setInterval(updateCountdown, 1000);
-        
-        // Fetch ESP status pertama kali
         setTimeout(fetchEspStatus, 1000);
-        
-        // Fetch ESP status setiap 5 detik
         setInterval(fetchEspStatus, 5000);
     });
 </script>

@@ -40,7 +40,7 @@ class ServiceController extends Controller
         $showArchived = $request->input('show_archived', false);
         
         // ✅ Validasi kolom yang boleh di-sort
-        $allowedSorts = ['no', 'name', 'target', 'status', 'uptime', 'last_check', 'created_at'];
+        $allowedSorts = ['no', 'name', 'target', 'status', 'uptime', 'last_check', 'created_at', 'ssl_status', 'ssl_days_remaining'];
         if (!in_array($sort, $allowedSorts)) {
             $sort = 'name';
         }
@@ -58,6 +58,11 @@ class ServiceController extends Controller
         $totalUp = Service::where('last_status', 'UP')->where('is_archived', 0)->count();
         $totalWarning = Service::where('last_status', 'WARNING')->where('is_archived', 0)->count();
         $totalDown = Service::where('last_status', 'DOWN')->where('is_archived', 0)->count();
+
+        // ============================================================
+        // 📊 SSL STATISTICS
+        // ============================================================
+        $sslStats = $this->getSSLStatistics();
 
         // ============================================================
         // 🔍 QUERY WITH SORTING & ARCHIVE FILTER
@@ -86,6 +91,20 @@ class ServiceController extends Controller
                 END " . $direction
             );
         })
+        ->when($sort === 'ssl_status', function($q) use ($direction) {
+            return $q->orderByRaw("
+                CASE ssl_status
+                    WHEN 'VALID' THEN 1
+                    WHEN 'WARNING' THEN 2
+                    WHEN 'CRITICAL' THEN 3
+                    WHEN 'EXPIRED' THEN 4
+                    ELSE 5
+                END " . $direction
+            );
+        })
+        ->when($sort === 'ssl_days_remaining', function($q) use ($direction) {
+            return $q->orderBy('ssl_days_remaining', $direction);
+        })
         ->when($sort === 'uptime', function($q) use ($direction) {
             return $q->orderBy('uptime', $direction);
         })
@@ -106,6 +125,9 @@ class ServiceController extends Controller
         
         foreach ($services as $service) {
             $service->uptime = $this->calculateUptime($service->id, 30);
+            
+            // 🔥 Tambahkan informasi SSL yang diformat
+            $service->ssl_info = $this->formatSSLInfoForDisplay($service);
         }
         
         return view('services', compact(
@@ -120,7 +142,8 @@ class ServiceController extends Controller
             'waInterval',
             'sort',
             'direction',
-            'showArchived'
+            'showArchived',
+            'sslStats'
         ));
     }
 
@@ -425,6 +448,10 @@ class ServiceController extends Controller
     {
         try {
             $service = Service::findOrFail($id);
+            
+            // 🔥 Tambahkan informasi SSL
+            $sslDetails = $this->getSSLDetails($service);
+            $sslFormatted = $this->formatSSLInfoForDisplay($service);
 
             if (request()->ajax()) {
                 return response()->json([
@@ -444,11 +471,12 @@ class ServiceController extends Controller
                             : null,
                         'created_at' => $service->created_at?->format('Y-m-d H:i:s'),
                         'updated_at' => $service->updated_at?->format('Y-m-d H:i:s'),
+                        'ssl' => $sslDetails,
                     ]
                 ]);
             }
 
-            return view('services-detail', compact('service'));
+            return view('services-detail', compact('service', 'sslDetails', 'sslFormatted'));
 
         } catch (\Exception $e) {
             if (request()->ajax()) {
@@ -682,6 +710,9 @@ class ServiceController extends Controller
                     ];
                 });
 
+            // 🔥 SSL Statistics
+            $sslStats = $this->getSSLStatistics();
+
             $response = [
                 'success' => true,
                 'data' => [
@@ -695,7 +726,8 @@ class ServiceController extends Controller
                         ? round(($totalUp / $totalServices) * 100, 2) 
                         : 0,
                     'services_by_type' => $servicesByType,
-                    'recent_issues' => $recentIssues
+                    'recent_issues' => $recentIssues,
+                    'ssl_stats' => $sslStats,
                 ]
             ];
 
@@ -711,7 +743,8 @@ class ServiceController extends Controller
                 'totalUnknown',
                 'totalArchived',
                 'servicesByType',
-                'recentIssues'
+                'recentIssues',
+                'sslStats'
             ));
 
         } catch (\Exception $e) {
@@ -762,7 +795,12 @@ class ServiceController extends Controller
                     'Terakhir Diperiksa',
                     'Dibuat Pada',
                     'Diupdate Pada',
-                    'Status Arsip'
+                    'Status Arsip',
+                    'SSL Status',
+                    'SSL Expiry Date',
+                    'SSL Days Remaining',
+                    'SSL Issuer',
+                    'SSL Subject',
                 ]);
 
                 foreach ($services as $service) {
@@ -779,7 +817,12 @@ class ServiceController extends Controller
                         $latestLog?->created_at?->format('Y-m-d H:i:s') ?? '-',
                         $service->created_at?->format('Y-m-d H:i:s'),
                         $service->updated_at?->format('Y-m-d H:i:s'),
-                        $service->is_archived ? 'DIARSIP' : 'AKTIF'
+                        $service->is_archived ? 'DIARSIP' : 'AKTIF',
+                        $service->ssl_status ?? '-',
+                        $service->ssl_expiry_date ? Carbon::parse($service->ssl_expiry_date)->format('Y-m-d') : '-',
+                        $service->ssl_days_remaining ?? '-',
+                        $service->ssl_issuer ?? '-',
+                        $service->ssl_subject ?? '-',
                     ]);
                 }
 
@@ -859,7 +902,12 @@ class ServiceController extends Controller
                     'status' => $service->last_status ?? 'UNKNOWN',
                     'health_score' => $healthScore,
                     'response_time' => $lastLog?->response_time,
-                    'last_checked' => $lastLog?->created_at?->diffForHumans()
+                    'last_checked' => $lastLog?->created_at?->diffForHumans(),
+                    'ssl_status' => $service->ssl_status ?? 'N/A',
+                    'ssl_days_remaining' => $service->ssl_days_remaining ?? '-',
+                    'ssl_expiry_date' => $service->ssl_expiry_date 
+                        ? Carbon::parse($service->ssl_expiry_date)->format('d-m-Y')
+                        : '-',
                 ]
             ]);
 
@@ -871,164 +919,311 @@ class ServiceController extends Controller
         }
     }
 
+    // ================================================================
+    // 🔥 SSL RELATED METHODS
+    // ================================================================
+
     /**
-     * Download PDF report for a specific service.
+     * 🔒 Get SSL details for a service
      */
-    public function downloadReport($id, Request $request)
+    public function getSSLDetails($service)
     {
-        try {
-            if (!class_exists('Barryvdh\DomPDF\Facade\Pdf') && !class_exists('Barryvdh\DomPDF\PDF')) {
-                throw new \Exception('DomPDF tidak terinstall. Jalankan: composer require barryvdh/laravel-dompdf');
-            }
-
-            $service = Service::findOrFail($id);
-            
-            $dateFrom = $request->get('date_from', now()->subDays(30)->format('Y-m-d'));
-            $dateTo = $request->get('date_to', now()->format('Y-m-d'));
-
-            // Ambil logs yang sudah difilter (hanya perubahan status)
-            $logs = ServiceLog::where('service_id', $id)
-                ->where('is_status_change', true)
-                ->whereDate('created_at', '>=', $dateFrom)
-                ->whereDate('created_at', '<=', $dateTo)
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            // Jika tidak ada log perubahan, ambil semua log (fallback)
-            if ($logs->isEmpty()) {
-                $logs = ServiceLog::where('service_id', $id)
-                    ->whereDate('created_at', '>=', $dateFrom)
-                    ->whereDate('created_at', '<=', $dateTo)
-                    ->orderBy('created_at', 'desc')
-                    ->limit(100)
-                    ->get();
-            }
-
-            $reportData = $this->generateReportData($service, $logs, $dateFrom, $dateTo);
-
-            return $this->exportPdfReport($reportData, $service);
-
-        } catch (\Exception $e) {
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal membuat laporan: ' . $e->getMessage()
-                ], 500);
-            }
-
-            return redirect()
-                ->back()
-                ->with('error', 'Gagal membuat laporan: ' . $e->getMessage());
+        if (!$service) {
+            return null;
         }
-    }
 
-    /**
-     * Generate report data for a service.
-     */
-    private function generateReportData($service, $logs, $dateFrom, $dateTo)
-    {
-        $totalChecks = $logs->count();
-        $upCount = $logs->where('status', 'UP')->count();
-        $warningCount = $logs->where('status', 'WARNING')->count();
-        $downCount = $logs->where('status', 'DOWN')->count();
-
-        $avgResponseTime = $logs->avg('response_time');
-        $maxResponseTime = $logs->max('response_time');
-        $minResponseTime = $logs->min('response_time');
-
-        // Hitung persentase
-        $uptimePercentage = $totalChecks > 0 ? round(($upCount / $totalChecks) * 100, 2) : 0;
-        $downPercentage = $totalChecks > 0 ? round(($downCount / $totalChecks) * 100, 2) : 0;
-        $warningPercentage = $totalChecks > 0 ? round(($warningCount / $totalChecks) * 100, 2) : 0;
-
-        // Log per tanggal untuk critical dates
-        $logsByDate = $logs->groupBy(function($log) {
-            return $log->created_at->format('Y-m-d');
-        });
-
-        $criticalDates = [];
-        $logsByDate->each(function($dateLogs, $date) use (&$criticalDates) {
-            $total = $dateLogs->count();
-            $up = $dateLogs->where('status', 'UP')->count();
-            $down = $dateLogs->where('status', 'DOWN')->count();
-            $warning = $dateLogs->where('status', 'WARNING')->count();
-            
-            if ($down > 0 || $warning > 0) {
-                $criticalDates[$date] = [
-                    'total_checks' => $total,
-                    'down_count' => $down,
-                    'warning_count' => $warning,
-                    'up_count' => $up,
-                    'uptime' => $total > 0 ? round(($up / $total) * 100, 2) : 0,
-                ];
-            }
-        });
-
-        // Ambil 5 critical dates terbaru
-        $criticalDates = array_slice($criticalDates, 0, 5, true);
-
-        // Format logs untuk ditampilkan di PDF (hanya 50 log terbaru)
-        $formattedLogs = $logs->take(50)->map(function($log) {
+        // Cek apakah service menggunakan HTTPS
+        $isHttps = str_starts_with($service->target, 'https://');
+        
+        if (!$isHttps && $service->type !== 'https') {
             return [
-                'date' => $log->created_at->format('d/m/Y H:i:s'),
-                'status' => $log->status ?? 'UNKNOWN',
-                'response_code' => $log->response_code ?? '-',
-                'response_time' => $log->response_time ? number_format($log->response_time, 3) : '-',
-                'message' => $log->message ?? '-',
+                'available' => false,
+                'message' => 'SSL tidak tersedia untuk service ini (bukan HTTPS)',
+                'status' => 'N/A',
+                'status_icon' => '🔓',
+                'status_label' => 'N/A',
             ];
-        });
+        }
 
         return [
-            'service' => [
-                'id' => $service->id,
-                'name' => $service->name,
-                'target' => $service->target,
-                'type' => $service->type,
-                'last_status' => $service->last_status ?? 'UNKNOWN',
-                'created_at' => $service->created_at?->format('d/m/Y H:i:s'),
-            ],
-            'period' => [
-                'date_from' => date('d/m/Y', strtotime($dateFrom)),
-                'date_to' => date('d/m/Y', strtotime($dateTo)),
-                'total_days' => (new \DateTime($dateTo))->diff(new \DateTime($dateFrom))->days + 1
-            ],
-            'statistics' => [
-                'total_checks' => $totalChecks,
-                'up_count' => $upCount,
-                'warning_count' => $warningCount,
-                'down_count' => $downCount,
-                'uptime_percentage' => $uptimePercentage,
-                'down_percentage' => $downPercentage,
-                'warning_percentage' => $warningPercentage,
-                'avg_response_time' => $avgResponseTime ? number_format($avgResponseTime, 3) : '0.000',
-                'max_response_time' => $maxResponseTime ? number_format($maxResponseTime, 3) : '0.000',
-                'min_response_time' => $minResponseTime ? number_format($minResponseTime, 3) : '0.000',
-            ],
-            'critical_dates' => $criticalDates,
-            'logs' => $formattedLogs,
+            'available' => true,
+            'status' => $service->ssl_status ?? 'UNKNOWN',
+            'status_icon' => $this->getSSLStatusIcon($service->ssl_status),
+            'status_label' => $this->getSSLStatusLabel($service->ssl_status),
+            'issuer' => $service->ssl_issuer ?? 'Unknown',
+            'subject' => $service->ssl_subject ?? 'Unknown',
+            'valid_from' => $service->ssl_valid_from ?? 'Unknown',
+            'valid_to' => $service->ssl_expiry_date 
+                ? Carbon::parse($service->ssl_expiry_date)->format('d-m-Y H:i:s')
+                : 'Unknown',
+            'days_remaining' => $service->ssl_days_remaining ?? 0,
+            'is_expired' => $service->ssl_is_expired ?? false,
+            'message' => $service->ssl_message ?? 'Belum ada informasi SSL',
+            'checked_at' => $service->ssl_checked_at 
+                ? Carbon::parse($service->ssl_checked_at)->format('d-m-Y H:i:s')
+                : 'Belum diperiksa',
         ];
     }
 
     /**
-     * Export report as PDF.
+     * 🎨 Get SSL status icon
      */
-    private function exportPdfReport($reportData, $service)
+    private function getSSLStatusIcon($status)
+    {
+        return match($status) {
+            'VALID' => '🟢',
+            'WARNING' => '🟡',
+            'CRITICAL' => '🔴',
+            'EXPIRED' => '🔴',
+            default => '❓',
+        };
+    }
+
+    /**
+     * 🏷️ Get SSL status label
+     */
+    private function getSSLStatusLabel($status)
+    {
+        return match($status) {
+            'VALID' => 'VALID - Aman',
+            'WARNING' => 'WARNING - Akan Expired',
+            'CRITICAL' => 'CRITICAL - Segera Perbarui!',
+            'EXPIRED' => 'EXPIRED - BERBAHAYA!',
+            default => 'UNKNOWN',
+        };
+    }
+
+    /**
+     * 📋 Format SSL info for display in views
+     */
+    private function formatSSLInfoForDisplay($service)
+    {
+        $details = $this->getSSLDetails($service);
+        
+        if (!$details || !$details['available']) {
+            return [
+                'html' => '<span class="badge badge-secondary">🔓 Non-HTTPS</span>',
+                'text' => 'Non-HTTPS',
+                'status' => 'N/A',
+                'days' => '-',
+                'expiry' => '-',
+                'tooltip' => 'Service ini tidak menggunakan HTTPS',
+            ];
+        }
+
+        $days = $details['days_remaining'];
+        $status = $details['status'];
+        
+        // Tentukan warna badge
+        $badgeClass = match($status) {
+            'VALID' => 'success',
+            'WARNING' => 'warning',
+            'CRITICAL' => 'danger',
+            'EXPIRED' => 'danger',
+            default => 'secondary',
+        };
+
+        // Tentukan teks untuk days
+        $daysText = $days > 0 ? $days . ' hari' : ($days == 0 ? 'Hari ini' : 'EXPIRED!');
+
+        return [
+            'html' => '<span class="badge badge-' . $badgeClass . '" title="' . $details['status_label'] . ' - Exp: ' . $details['valid_to'] . '">' 
+                . $details['status_icon'] . ' ' . $details['status'] . ' (' . $daysText . ')</span>',
+            'text' => $details['status'] . ' (' . $daysText . ')',
+            'status' => $status,
+            'days' => $days,
+            'expiry' => $details['valid_to'],
+            'tooltip' => $details['status_label'] . ' - Expiry: ' . $details['valid_to'] . ' - Sisa: ' . $daysText,
+            'icon' => $details['status_icon'],
+            'badge_class' => $badgeClass,
+        ];
+    }
+
+    /**
+     * 📊 Get SSL statistics for dashboard
+     */
+    public function getSSLStatistics()
+    {
+        $services = Service::where('is_archived', 0)->get();
+        
+        $stats = [
+            'total' => $services->count(),
+            'https' => 0,
+            'non_https' => 0,
+            'valid' => 0,
+            'warning' => 0,
+            'critical' => 0,
+            'expired' => 0,
+            'unknown' => 0,
+            'expiring_soon' => 0, // 7 hari
+            'expiring_soon_list' => [],
+        ];
+
+        foreach ($services as $service) {
+            if (str_starts_with($service->target, 'https://') || $service->type === 'https') {
+                $stats['https']++;
+                
+                $status = $service->ssl_status ?? 'UNKNOWN';
+                
+                if ($status === 'VALID') {
+                    $stats['valid']++;
+                } elseif ($status === 'WARNING') {
+                    $stats['warning']++;
+                } elseif ($status === 'CRITICAL') {
+                    $stats['critical']++;
+                } elseif ($status === 'EXPIRED') {
+                    $stats['expired']++;
+                } else {
+                    $stats['unknown']++;
+                }
+
+                // Cek SSL yang akan expired dalam 7 hari
+                if ($service->ssl_days_remaining !== null && $service->ssl_days_remaining <= 7 && $service->ssl_days_remaining > 0) {
+                    $stats['expiring_soon']++;
+                    $stats['expiring_soon_list'][] = [
+                        'name' => $service->name,
+                        'days' => $service->ssl_days_remaining,
+                        'expiry' => $service->ssl_expiry_date 
+                            ? Carbon::parse($service->ssl_expiry_date)->format('d-m-Y')
+                            : 'Unknown',
+                    ];
+                }
+            } else {
+                $stats['non_https']++;
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * 🔄 Refresh SSL for a specific service
+     */
+    public function refreshSSL($id, ServiceMonitorService $monitor)
     {
         try {
-            $filename = 'laporan_' . str_replace([' ', '/', '\\', ':', '*', '?', '"', '<', '>', '|'], '_', $service->name) 
-                . '_' . str_replace('/', '-', $reportData['period']['date_from']) . '_to_' . str_replace('/', '-', $reportData['period']['date_to']) . '.pdf';
+            $service = Service::findOrFail($id);
             
-            if (!view()->exists('reports.service-pdf')) {
-                throw new \Exception('View reports.service-pdf tidak ditemukan. Buat file di resources/views/reports/service-pdf.blade.php');
+            // Get SSL info using the monitor service
+            $sslInfo = $monitor->getSSLInfo($service);
+            
+            if ($sslInfo) {
+                $service->update([
+                    'ssl_status' => $sslInfo['status'] ?? 'UNKNOWN',
+                    'ssl_expiry_date' => $sslInfo['valid_to'] ?? null,
+                    'ssl_days_remaining' => $sslInfo['days_remaining'] ?? null,
+                    'ssl_issuer' => $sslInfo['issuer'] ?? null,
+                    'ssl_subject' => $sslInfo['subject'] ?? null,
+                    'ssl_message' => $sslInfo['message'] ?? null,
+                    'ssl_is_expired' => $sslInfo['is_down'] ?? false,
+                    'ssl_checked_at' => now(),
+                ]);
+                
+                Log::info("🔄 SSL refreshed for service: {$service->name}");
+                
+                if (request()->ajax()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'SSL berhasil di-refresh',
+                        'data' => $this->getSSLDetails($service)
+                    ]);
+                }
+                
+                return redirect()->back()->with('success', 'SSL certificate berhasil di-refresh!');
+            } else {
+                if (request()->ajax()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Service ini bukan HTTPS atau SSL tidak tersedia'
+                    ], 400);
+                }
+                return redirect()->back()->with('warning', 'Service ini bukan HTTPS atau SSL tidak tersedia');
             }
-
-            $pdf = Pdf::loadView('reports.service-pdf', compact('reportData'));
-            $pdf->setPaper('A4', 'portrait');
             
-            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            Log::error("❌ Error refreshing SSL: " . $e->getMessage());
+            
+            if (request()->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal refresh SSL: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Gagal refresh SSL: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 🔄 Refresh all SSL certificates
+     */
+    public function refreshAllSSL(ServiceMonitorService $monitor)
+    {
+        try {
+            $services = Service::where('is_archived', 0)->get();
+            $updated = 0;
+            
+            foreach ($services as $service) {
+                if (str_starts_with($service->target, 'https://') || $service->type === 'https') {
+                    $sslInfo = $monitor->getSSLInfo($service);
+                    
+                    if ($sslInfo) {
+                        $service->update([
+                            'ssl_status' => $sslInfo['status'] ?? 'UNKNOWN',
+                            'ssl_expiry_date' => $sslInfo['valid_to'] ?? null,
+                            'ssl_days_remaining' => $sslInfo['days_remaining'] ?? null,
+                            'ssl_issuer' => $sslInfo['issuer'] ?? null,
+                            'ssl_subject' => $sslInfo['subject'] ?? null,
+                            'ssl_message' => $sslInfo['message'] ?? null,
+                            'ssl_is_expired' => $sslInfo['is_down'] ?? false,
+                            'ssl_checked_at' => now(),
+                        ]);
+                        $updated++;
+                    }
+                }
+            }
+            
+            Log::info("🔄 All SSL certificates refreshed: {$updated} services updated");
+            
+            return redirect()->back()->with('success', "Berhasil refresh SSL untuk {$updated} service!");
+            
+        } catch (\Exception $e) {
+            Log::error("❌ Error refreshing all SSL: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal refresh semua SSL: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 📊 Get SSL status for all services (AJAX)
+     */
+    public function getSSLStatus(Request $request)
+    {
+        try {
+            $services = Service::where('is_archived', 0)
+                ->select('id', 'name', 'target', 'type', 'ssl_status', 'ssl_days_remaining', 'ssl_expiry_date', 'ssl_issuer')
+                ->get()
+                ->map(function($service) {
+                    return [
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'target' => $service->target,
+                        'type' => $service->type,
+                        'ssl' => $this->getSSLDetails($service),
+                        'display' => $this->formatSSLInfoForDisplay($service),
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $services,
+                'statistics' => $this->getSSLStatistics(),
+            ]);
 
         } catch (\Exception $e) {
-            throw new \Exception('Gagal generate PDF: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil status SSL: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -1065,6 +1260,7 @@ class ServiceController extends Controller
             
             foreach ($services as $service) {
                 $service->uptime = $this->calculateUptime($service->id, 30);
+                $service->ssl_info = $this->formatSSLInfoForDisplay($service);
             }
             
             return response()->json([
@@ -1151,7 +1347,7 @@ class ServiceController extends Controller
     {
         try {
             $services = Service::where('is_archived', 0)
-                ->select('id', 'last_status', 'last_check_at')
+                ->select('id', 'last_status', 'last_check_at', 'ssl_status', 'ssl_days_remaining')
                 ->orderBy('name', 'asc')
                 ->get()
                 ->map(function($service) {
@@ -1162,7 +1358,9 @@ class ServiceController extends Controller
                             ? \Carbon\Carbon::parse($service->last_check_at)
                                 ->setTimezone('Asia/Jakarta')
                                 ->format('H:i:s') 
-                            : '-'
+                            : '-',
+                        'ssl_status' => $service->ssl_status ?? 'N/A',
+                        'ssl_days' => $service->ssl_days_remaining ?? '-',
                     ];
                 });
 
@@ -1179,8 +1377,212 @@ class ServiceController extends Controller
         }
     }
 
+        // ================================================================
+    // 🔥🔥🔥 DOWNLOAD SINGLE REPORT
     // ================================================================
-    // 🔥🔥🔥 DOWNLOAD MULTI REPORT (BARU)
+
+    /**
+     * 📥 DOWNLOAD SINGLE SERVICE REPORT (PDF)
+     * Route: GET /services/{id}/download-report
+     */
+    public function downloadReport(Request $request, $id)
+    {
+        try {
+            $service = Service::findOrFail($id);
+            
+            // Ambil parameter date_from dan date_to dari request
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $format = $request->input('format', 'pdf');
+            
+            // Query logs
+            $query = ServiceLog::where('service_id', $id);
+            
+            if ($dateFrom) {
+                $query->whereDate('created_at', '>=', $dateFrom);
+            }
+            
+            if ($dateTo) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            }
+            
+            $logs = $query->orderBy('created_at', 'desc')->get();
+            
+            // ============================================================
+            // HITUNG STATISTIK
+            // ============================================================
+            $totalChecks = $logs->count();
+            $upCount = $logs->where('status', 'UP')->count();
+            $downCount = $logs->where('status', 'DOWN')->count();
+            $warningCount = $logs->where('status', 'WARNING')->count();
+            
+            $uptime = $totalChecks > 0 ? round(($upCount / $totalChecks) * 100, 2) : 0;
+            $downPct = $totalChecks > 0 ? round(($downCount / $totalChecks) * 100, 2) : 0;
+            $warningPct = $totalChecks > 0 ? round(($warningCount / $totalChecks) * 100, 2) : 0;
+            
+            // Average Response Time
+            $avgResponseTime = $logs->avg('response_time');
+            $avgResponseTime = $avgResponseTime ? number_format($avgResponseTime, 2) : 0;
+            
+            // ============================================================
+            // TANGGAL KRITIS (Critical Dates)
+            // ============================================================
+            $criticalDates = [];
+            $groupedByDate = $logs->groupBy(function($log) {
+                return $log->created_at->setTimezone('Asia/Jakarta')->format('Y-m-d');
+            });
+            
+            foreach ($groupedByDate as $date => $dayLogs) {
+                $dayUp = $dayLogs->where('status', 'UP')->count();
+                $dayDown = $dayLogs->where('status', 'DOWN')->count();
+                $dayWarning = $dayLogs->where('status', 'WARNING')->count();
+                $dayTotal = $dayLogs->count();
+                $dayUptime = $dayTotal > 0 ? round(($dayUp / $dayTotal) * 100, 2) : 0;
+                
+                // Hanya tampilkan jika ada DOWN atau WARNING
+                if ($dayDown > 0 || $dayWarning > 0) {
+                    $criticalDates[$date] = [
+                        'date' => $date,
+                        'uptime' => $dayUptime,
+                        'down_count' => $dayDown,
+                        'warning_count' => $dayWarning,
+                        'total_checks' => $dayTotal,
+                    ];
+                }
+            }
+            
+            // Urutkan dari tanggal terbaru
+            krsort($criticalDates);
+            
+            // ============================================================
+            // FORMAT LOGS UNTUK VIEW
+            // ============================================================
+            $formattedLogs = $logs->take(100)->map(function($log) {
+                return [
+                    'date' => $log->created_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s'),
+                    'status' => $log->status ?? 'UNKNOWN',
+                    'response_code' => $log->response_code ?? '-',
+                    'response_time' => $log->response_time ? number_format($log->response_time, 2) : '-',
+                    'message' => $log->message ?? '-',
+                ];
+            });
+            
+            // ============================================================
+            // BUILD REPORT DATA
+            // ============================================================
+            $reportData = [
+                'service' => [
+                    'id' => $service->id,
+                    'name' => $service->name,
+                    'target' => $service->target,
+                    'type' => $service->type ?? 'http',
+                    'last_status' => $service->last_status ?? 'UNKNOWN',
+                    'created_at' => $service->created_at ? $service->created_at->setTimezone('Asia/Jakarta')->format('d/m/Y H:i:s') : 'N/A',
+                ],
+                'period' => [
+                    'date_from' => $dateFrom ? Carbon::parse($dateFrom)->format('d/m/Y') : 'Semua',
+                    'date_to' => $dateTo ? Carbon::parse($dateTo)->format('d/m/Y') : 'Sekarang',
+                    'total_days' => $dateFrom && $dateTo ? Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo)) + 1 : '-',
+                ],
+                'statistics' => [
+                    'total_checks' => $totalChecks,
+                    'up_count' => $upCount,
+                    'down_count' => $downCount,
+                    'warning_count' => $warningCount,
+                    'uptime_percentage' => $uptime,
+                    'down_percentage' => $downPct,
+                    'warning_percentage' => $warningPct,
+                    'avg_response_time' => $avgResponseTime,
+                ],
+                'critical_dates' => $criticalDates,
+                'logs' => $formattedLogs,
+            ];
+            
+            // ============================================================
+            // GENERATE PDF
+            // ============================================================
+            if (!class_exists('Barryvdh\DomPDF\Facade\Pdf')) {
+                throw new \Exception('DomPDF tidak terinstall. Jalankan: composer require barryvdh/laravel-dompdf');
+            }
+            
+            $pdf = Pdf::loadView('reports.service-pdf', compact('reportData'));
+            $pdf->setPaper('A4', 'portrait');
+            
+            $filename = 'laporan_' . str_replace(' ', '_', $service->name) . '_' . date('Y-m-d') . '.pdf';
+            return $pdf->download($filename);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Error download report: ' . $e->getMessage());
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal download laporan: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Gagal download laporan: ' . $e->getMessage());
+        }
+    }
+    // ================================================================
+    // 🔄 UPDATE WA INTERVAL
+    // ================================================================
+
+    /**
+     * 🔄 UPDATE WA INTERVAL FOR SERVICE
+     * Route: POST /services/{id}/wa-interval
+     */
+    public function updateWaInterval(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'wa_interval' => 'required|integer|min:0|max:1440',
+            ]);
+            
+            $service = Service::findOrFail($id);
+            $service->update([
+                'wa_interval_minutes' => $request->wa_interval,
+            ]);
+            
+            Log::info("📝 WA Interval updated for {$service->name}: {$request->wa_interval} minutes");
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Interval WA berhasil diupdate',
+                    'data' => [
+                        'wa_interval' => $service->wa_interval_minutes,
+                    ]
+                ]);
+            }
+            
+            return redirect()->back()->with('success', 'Interval WA berhasil diupdate!');
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            return redirect()->back()->withErrors($e->errors());
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Error update WA interval: ' . $e->getMessage());
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal update interval: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Gagal update interval: ' . $e->getMessage());
+        }
+    }
+
+    // ================================================================
+    // 🔥🔥🔥 DOWNLOAD MULTI REPORT
     // ================================================================
 
     /**
@@ -1246,6 +1648,8 @@ class ServiceController extends Controller
 
                 $reportData[] = [
                     'service' => $service,
+                    'ssl_info' => $this->getSSLDetails($service),
+                    'ssl_display' => $this->formatSSLInfoForDisplay($service),
                     'logs' => $logs,
                     'stats' => [
                         'total' => $totalLogs,
@@ -1334,6 +1738,7 @@ class ServiceController extends Controller
                 $service = $data['service'];
                 $stats = $data['stats'];
                 $period = $data['period'];
+                $sslInfo = $data['ssl_info'] ?? null;
 
                 // Header per service
                 fputcsv($file, [
@@ -1348,6 +1753,22 @@ class ServiceController extends Controller
                     'Status Terakhir: ' . ($service->last_status ?? 'UNKNOWN'),
                     'Uptime: ' . $stats['uptime'] . '%',
                 ]);
+
+                // Informasi SSL
+                if ($sslInfo && $sslInfo['available']) {
+                    fputcsv($file, [
+                        'SSL Status: ' . $sslInfo['status_label'] ?? 'N/A',
+                        'SSL Issuer: ' . ($sslInfo['issuer'] ?? '-'),
+                        'SSL Subject: ' . ($sslInfo['subject'] ?? '-'),
+                        'SSL Expiry: ' . ($sslInfo['valid_to'] ?? '-'),
+                        'SSL Days Remaining: ' . ($sslInfo['days_remaining'] ?? '-') . ' hari',
+                    ]);
+                } else {
+                    fputcsv($file, [
+                        'SSL Status: Non-HTTPS / Tidak tersedia',
+                    ]);
+                }
+
                 fputcsv($file, [
                     'Periode: ' . $period['start'] . ' - ' . $period['end'],
                     'Total Hari: ' . $period['days'] . ' hari',

@@ -62,16 +62,13 @@ Route::middleware('auth')->group(function () {
     Route::put('/services/{id}', [ServiceController::class, 'update'])->name('services.update');
     Route::delete('/services/{id}', [ServiceController::class, 'destroy'])->name('services.destroy');
 
-    // 🔥🔥🔥 ROUTE ARCHIVE & RESTORE (DITAMBAHKAN)
+    //  ROUTE ARCHIVE & RESTORE 
     Route::post('/services/{id}/archive', [ServiceController::class, 'archive'])->name('services.archive');
     Route::post('/services/{id}/restore', [ServiceController::class, 'restore'])->name('services.restore');
     Route::delete('/services/{id}/permanent', [ServiceController::class, 'destroyPermanent'])->name('services.destroy-permanent');
 
     // Search
     Route::get('/services/search', [ServiceController::class, 'search'])->name('services.search');
-    
-    // 🔥 HAPUS route ini jika tidak ada method checkAll di ServiceController
-    // Route::post('/services/check-all', [ServiceController::class, 'checkAll'])->name('services.check-all');
 
     // Detail & Laporan
     Route::get('/services/{id}/detail', [ServiceController::class, 'detail'])->name('services.detail');
@@ -108,7 +105,6 @@ Route::middleware('auth')->group(function () {
     // SMOKE DETECTOR - Monitoring ESP32 (Web)
     // ==========================================================
     Route::get('/smoke-detector', [SmokeController::class, 'index'])->name('smoke');
-    //Route::get('/smoke-detector/export', [SmokeController::class, 'export'])->name('smoke.export');
 
     // ==========================================================
     // SMOKE DETECTOR - API Receive (Untuk ESP32, Tanpa Auth)

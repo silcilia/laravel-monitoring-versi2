@@ -16,18 +16,13 @@ class ServiceMonitorService
 {
     private $networkAlertSent = false;
 
-    // 🔥 KONSTANTA TIMEOUT
-    private const TIMEOUT_FAST = 5;      // 5 detik - langsung DOWN
-    private const TIMEOUT_SLOW = 10;     // 10 detik - pakai consecutive
-
-    // 🔥 KONSTANTA SSL
-    private const SSL_WARNING_DAYS = 30;     // Peringatan ssl 30 hari
-    private const SSL_CRITICAL_DAYS = 7;     // peringatan ssl 7 hari
+    private const TIMEOUT_FAST = 5;
+    private const TIMEOUT_SLOW = 10;
+    private const SSL_WARNING_DAYS = 30;
+    private const SSL_CRITICAL_DAYS = 7;
 
     /**
-     * ============================================================
-     * 🔍 CHECK SINGLE SERVICE
-     * ============================================================
+     * Check single service
      */
     public function check(Service $service)
     {
@@ -37,33 +32,177 @@ class ServiceMonitorService
         return $this->checkHttp($service);
     }
 
-    // ============================================================
-    // 📊 PAGESPEED STATUS DETERMINATION
-    // ============================================================
+    /**
+     * Get SSL information for a service
+     */
+    public function getSSLInfo(Service $service)
+    {
+        $url = $this->normalizeUrl($service->target);
+        $parsedUrl = parse_url($url);
+
+        if (($parsedUrl['scheme'] ?? '') !== 'https') {
+            return null;
+        }
+
+        $host = $parsedUrl['host'] ?? '';
+        $port = $parsedUrl['port'] ?? 443;
+
+        if (empty($host)) {
+            return null;
+        }
+
+        return $this->checkSSL($service, $host, $port);
+    }
 
     /**
-     * Tentukan status berdasarkan PageSpeed thresholds
-     * 
-     * @param string $metric Nama metrik (response_time, lcp, dll)
-     * @param float $value Nilai metrik
-     * @return string 'UP' | 'WARNING' | 'DOWN'
+     * Get SSL details for display
      */
+    public function getSSLDetails(Service $service)
+    {
+        $sslInfo = $this->getSSLInfo($service);
+
+        if (!$sslInfo) {
+            return [
+                'available' => false,
+                'message' => 'SSL tidak tersedia untuk service ini (bukan HTTPS)',
+                'status' => 'N/A'
+            ];
+        }
+
+        $statusMap = [
+            'EXPIRED' => ['icon' => '🔴', 'label' => 'EXPIRED'],
+            'CRITICAL' => ['icon' => '🔴', 'label' => 'CRITICAL'],
+            'WARNING' => ['icon' => '🟡', 'label' => 'WARNING'],
+            'VALID' => ['icon' => '🟢', 'label' => 'VALID']
+        ];
+
+        $status = $sslInfo['status'] ?? 'UNKNOWN';
+        $statusData = $statusMap[$status] ?? ['icon' => '❓', 'label' => 'UNKNOWN'];
+
+        return [
+            'available' => true,
+            'status' => $status,
+            'status_icon' => $statusData['icon'],
+            'status_label' => $statusData['label'],
+            'subject' => $sslInfo['subject'] ?? 'Unknown',
+            'issuer' => $sslInfo['issuer'] ?? 'Unknown',
+            'organization' => $sslInfo['organization'] ?? '',
+            'valid_from' => $sslInfo['valid_from'] ?? 'Unknown',
+            'valid_to' => $sslInfo['valid_to'] ?? 'Unknown',
+            'days_remaining' => $sslInfo['days_remaining'] ?? 0,
+            'is_down' => $sslInfo['is_down'] ?? false,
+            'message' => $sslInfo['message'] ?? 'Tidak ada informasi',
+            'action' => $sslInfo['action'] ?? 'Periksa SSL certificate',
+        ];
+    }
+
+    /**
+     * Format SSL info for display
+     */
+    public function formatSSLInfo(Service $service)
+    {
+        $details = $this->getSSLDetails($service);
+
+        if (!$details['available']) {
+            return "🔓 SSL: Tidak tersedia (non-HTTPS)";
+        }
+
+        $output = "";
+        $output .= "🔒 SSL INFORMATION\n";
+        $output .= "Status  : " . $details['status_icon'] . " " . $details['status_label'] . "\n";
+        $output .= "Issuer  : " . $details['issuer'] . "\n";
+        $output .= "Subject : " . $details['subject'] . "\n";
+
+        if (!empty($details['organization'])) {
+            $output .= "Org     : " . $details['organization'] . "\n";
+        }
+
+        $output .= "Valid   : " . $details['valid_from'] . " → " . $details['valid_to'] . "\n";
+        $output .= "Sisa    : " . $details['days_remaining'] . " hari\n";
+
+        if ($details['is_down']) {
+            $output .= "⚠️ SSL EXPIRED! Service DOWN!\n";
+        } elseif ($details['days_remaining'] <= 7) {
+            $output .= "⚠️ SSL akan expired dalam " . $details['days_remaining'] . " hari!\n";
+        }
+
+        return $output;
+    }
+
+    /**
+     * Send SSL status report via WhatsApp
+     */
+    public function sendSSLReport($phone = null)
+    {
+        if ($phone) {
+            $contacts = Contact::where('phone', $phone)->where('is_active', true)->get();
+        } else {
+            $contacts = Contact::where('is_active', true)->get();
+        }
+
+        if ($contacts->isEmpty()) {
+            Log::warning('Tidak ada kontak aktif untuk SSL Report');
+            return false;
+        }
+
+        $services = Service::where('type', 'http')->get();
+
+        $message = "📋 LAPORAN SSL\n";
+        $message .= "═══════════════════════\n";
+
+        $valid = 0;
+        $warning = 0;
+        $critical = 0;
+        $expired = 0;
+
+        foreach ($services as $service) {
+            $ssl = $this->getSSLDetails($service);
+            $status = $ssl['available'] ? $ssl['status'] : 'N/A';
+
+            if ($status === 'VALID') $valid++;
+            elseif ($status === 'WARNING') $warning++;
+            elseif ($status === 'CRITICAL') $critical++;
+            elseif ($status === 'EXPIRED') $expired++;
+
+            $days = $ssl['available'] ? $ssl['days_remaining'] : '-';
+            $icon = $ssl['available'] ? $ssl['status_icon'] : '🔓';
+            $message .= $icon . " " . $service->name . " : " . $status . " (" . $days . " hr)\n";
+        }
+
+        $message .= "═══════════════════════\n";
+        $message .= "✅ Valid: " . $valid . " | ⚠️ Warning: " . $warning . "\n";
+        $message .= "🔴 Critical: " . $critical . " | 🔴 Expired: " . $expired . "\n";
+        $message .= "═══════════════════════\n";
+        $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB";
+
+        $success = false;
+        foreach ($contacts as $contact) {
+            $result = FonnteService::send($contact->phone, $message);
+            if ($result) $success = true;
+            Log::info($result ? "✅ SSL Report WA ke: {$contact->phone}" : "❌ Gagal SSL Report WA ke: {$contact->phone}");
+        }
+
+        return $success;
+    }
+
+    // ============================================================
+    // PAGESPEED STATUS
+    // ============================================================
+
     private function determineStatusByPageSpeed(string $metric, float $value): string
     {
         $thresholds = config('pagespeed.thresholds', []);
-        
-        // Cari threshold untuk metrik
+
         $metricThreshold = $thresholds[$metric] ?? $thresholds['response_time'] ?? null;
-        
+
         if (!$metricThreshold) {
-            // Fallback ke response_time jika metrik tidak ditemukan
             $metricThreshold = [
                 'good' => 2000,
                 'warning' => 4000,
                 'down' => 8000,
             ];
         }
-        
+
         if ($value <= $metricThreshold['good']) {
             return 'UP';
         } elseif ($value <= $metricThreshold['warning']) {
@@ -73,298 +212,97 @@ class ServiceMonitorService
         }
     }
 
-    /**
-     * Dapatkan rekomendasi berdasarkan response time
-     */
-    private function getRecommendationsByTime($timeMs): array
+    private function getShortRecommendation($timeMs): string
     {
-        if ($timeMs <= 2000) {
-            return [
-                '✅ Service dalam kondisi optimal',
-                '💡 Pertahankan performa dengan monitoring rutin',
-            ];
-        } elseif ($timeMs <= 2500) {
-            return [
-                '📌 Pertimbangkan caching (Redis/Memcached)',
-                '📌 Optimasi query database yang sering dipanggil',
-                '📌 Aktifkan kompresi Gzip/Brotli',
-            ];
-        } elseif ($timeMs <= 3000) {
-            return [
-                '⚠️ Implementasi Full Page Cache',
-                '⚠️ Optimasi gambar (lazy loading, WebP)',
-                '⚠️ Minifikasi CSS/JS',
-                '⚠️ Periksa external API calls',
-            ];
-        } elseif ($timeMs <= 4000) {
-            return [
-                '🚨 Upgrade spesifikasi server (RAM/CPU)',
-                '🚨 Implementasi load balancer jika traffic tinggi',
-                '🚨 Refactoring kode aplikasi',
-                '🚨 Optimasi koneksi database (connection pool)',
-                '🚨 Gunakan CDN untuk konten statis',
-            ];
-        } elseif ($timeMs <= 6000) {
-            return [
-                '🚨 Periksa status server (CPU/Memory/Disk)',
-                '🚨 Cek log error untuk indikasi masalah',
-                '🚨 Restart service jika diperlukan',
-                '🚨 Scale up resource segera',
-                '🚨 Hubungi tim infrastruktur',
-            ];
-        } else {
-            return [
-                '🚨 TINDAKAN DARURAT! Service tidak responsif',
-                '🚨 Periksa server dan jaringan segera',
-                '🚨 Cek log error dan sistem monitoring',
-                '🚨 Restart server/service',
-                '🚨 Hubungi tim on-call',
-            ];
-        }
+        if ($timeMs <= 2000) return '✅ Performa optimal';
+        if ($timeMs <= 2500) return '📌 Cukup cepat, pertimbangkan caching';
+        if ($timeMs <= 3000) return '⚠️ Mulai lambat, optimasi gambar & cache';
+        if ($timeMs <= 4000) return '🚨 Sangat lambat, upgrade server';
+        if ($timeMs <= 6000) return '🔴 KRITIS! Cek server & scale up';
+        return '🔴 DARURAT! Service tidak responsif!';
     }
 
-    /**
-     * Analisis response dengan PageSpeed standar (DIPERBAIKI - LEBIH INFORMATIF)
-     */
     private function analyzeResponseWithPageSpeed($code, $time): array
     {
-        // Konversi ke milidetik untuk threshold PageSpeed
         $timeMs = $time * 1000;
-        
-        // Gunakan threshold response_time dari PageSpeed
         $status = $this->determineStatusByPageSpeed('response_time', $timeMs);
-        
-        // Cek base status dari kode HTTP
         $baseStatus = $this->analyzeResponse($code, $time);
-        
-        // Jika base status DOWN, tetap DOWN (prioritas lebih tinggi)
+
         if ($baseStatus['status'] === 'DOWN') {
             return $baseStatus;
         }
-        
-        // Format response time
+
         $formattedTime = number_format($time, 2) . 's';
-        $formattedTimeMs = number_format($timeMs, 0) . 'ms';
-        $diffMs = $timeMs - 2000;
-        
-        // ============================================================
-        // TENTUKAN KATEGORI DAN REKOMENDASI
-        // ============================================================
-        
-        if ($timeMs <= 2000) {
-            $category = '⚡ SANGAT CEPAT';
-            $impact = '✅ Pengalaman pengguna optimal. Service berjalan sangat baik.';
-            $recommendations = [
-                '✅ Pertahankan performa ini',
-                '💡 Lakukan monitoring rutin untuk deteksi dini',
-            ];
-        } elseif ($timeMs <= 2500) {
-            $category = '🟡 CUKUP CEPAT';
-            $impact = '🟡 Masih OK, tapi mulai mendekati batas. Perhatikan trend ke depannya.';
-            $recommendations = [
-                '📌 Pertimbangkan caching (Redis/Memcached)',
-                '📌 Optimasi query database yang sering dipanggil',
-                '📌 Aktifkan kompresi Gzip/Brotli',
-            ];
-        } elseif ($timeMs <= 3000) {
-            $category = '🟡 LAMBAT';
-            $impact = '🟡 Pengguna mulai merasakan lambat. Risiko bounce rate meningkat 15-20%.';
-            $recommendations = [
-                '⚠️ Implementasi Full Page Cache',
-                '⚠️ Optimasi gambar (lazy loading, WebP)',
-                '⚠️ Minifikasi CSS/JS',
-                '⚠️ Periksa external API calls',
-            ];
-        } elseif ($timeMs <= 4000) {
-            $category = '🟠 SANGAT LAMBAT';
-            $impact = '🟠 Pengalaman pengguna buruk. Bounce rate meningkat 30-40%. Konversi menurun.';
-            $recommendations = [
-                '🚨 Upgrade spesifikasi server (RAM/CPU)',
-                '🚨 Implementasi load balancer jika traffic tinggi',
-                '🚨 Refactoring kode aplikasi',
-                '🚨 Optimasi koneksi database (connection pool)',
-                '🚨 Gunakan CDN untuk konten statis',
-            ];
-        } elseif ($timeMs <= 6000) {
-            $category = '🔴 KRITIS';
-            $impact = '🔴 Service hampir tidak bisa diakses. Dampak bisnis signifikan.';
-            $recommendations = [
-                '🚨 Periksa status server (CPU/Memory/Disk)',
-                '🚨 Cek log error untuk indikasi masalah',
-                '🚨 Restart service jika diperlukan',
-                '🚨 Scale up resource segera',
-                '🚨 Hubungi tim infrastruktur',
-            ];
-        } else {
-            $category = '🔴 SANGAT KRITIS';
-            $impact = '🔴 Service DOWN! Pengguna tidak bisa mengakses sama sekali.';
-            $recommendations = [
-                '🚨 TINDAKAN DARURAT! Service tidak responsif',
-                '🚨 Periksa server dan jaringan segera',
-                '🚨 Cek log error dan sistem monitoring',
-                '🚨 Restart server/service',
-                '🚨 Hubungi tim on-call',
-            ];
-        }
-        
-        // ============================================================
-        // STATUS WARNING
-        // ============================================================
-        
+        $shortRec = $this->getShortRecommendation($timeMs);
+
         if ($status === 'WARNING') {
-            // 🔥 PESAN UTAMA TETAP ADA: "Response time 2.22s melewati threshold PageSpeed (good: ≤2s)"
-            $mainMessage = "Response time {$formattedTime} ({$formattedTimeMs}) melewati threshold PageSpeed (good: ≤2s)";
-            
-            // Tambahan informasi yang informatif
-            $detail = $mainMessage . "\n\n";
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "📊 DETAIL ANALISIS:\n";
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "⏱️  Response Time: {$formattedTime} ({$formattedTimeMs})\n";
-            $detail .= "📈  Kategori: {$category}\n";
-            $detail .= "🎯  Threshold: ≤ 2 detik (standar PageSpeed)\n";
-            $detail .= "📊  Selisih: +" . number_format($diffMs, 0) . "ms (melewati batas)\n";
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "💥  Dampak:\n";
-            $detail .= "{$impact}\n";
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "🔧  Rekomendasi Optimasi:\n";
-            foreach ($recommendations as $rec) {
-                $detail .= "• {$rec}\n";
-            }
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "📌  Status: WARNING - Perlu perbaikan performa";
-            
             return [
                 'status' => 'WARNING',
                 'reason' => 'PAGESPEED_SLOW',
-                'detail' => $detail,
-                'action' => "Optimasi performa server: " . implode("; ", $recommendations),
+                'detail' => "Response {$formattedTime} melewati threshold",
+                'action' => $shortRec,
                 'metrics' => [
                     'response_time_ms' => $timeMs,
                     'response_time_sec' => $time,
-                    'category' => $category,
-                    'impact' => $impact,
-                    'diff_ms' => $diffMs,
                 ]
             ];
         }
-        
-        // ============================================================
-        // STATUS DOWN
-        // ============================================================
-        
+
         if ($status === 'DOWN') {
-            $mainMessage = "🚨 RESPONSE TIME TERLALU LAMBAT! {$formattedTime} ({$formattedTimeMs}) - SERVICE DOWN!";
-            
-            $detail = $mainMessage . "\n\n";
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "📊 DETAIL ANALISIS:\n";
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "⏱️  Response Time: {$formattedTime} ({$formattedTimeMs})\n";
-            $detail .= "📈  Kategori: {$category}\n";
-            $detail .= "🎯  Threshold: ≤ 2 detik (standar PageSpeed)\n";
-            $detail .= "📊  Selisih: +" . number_format($diffMs, 0) . "ms (sangat melewati batas)\n";
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "💥  Dampak Bisnis:\n";
-            $detail .= "{$impact}\n";
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "🔧  TINDAKAN DARURAT:\n";
-            foreach ($recommendations as $rec) {
-                $detail .= "• {$rec}\n";
-            }
-            $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-            $detail .= "🚨  Status: DOWN - Segera perbaiki!";
-            
             return [
                 'status' => 'DOWN',
                 'reason' => 'PAGESPEED_DOWN',
-                'detail' => $detail,
-                'action' => "Segera perbaiki server! " . implode("; ", $recommendations),
+                'detail' => "Response {$formattedTime} - SERVICE DOWN!",
+                'action' => '🔴 DARURAT! ' . $shortRec,
                 'metrics' => [
                     'response_time_ms' => $timeMs,
                     'response_time_sec' => $time,
-                    'category' => $category,
-                    'impact' => $impact,
-                    'diff_ms' => $diffMs,
                 ]
             ];
         }
-        
-        // ============================================================
-        // STATUS UP
-        // ============================================================
-        
-        $mainMessage = "✅ Response time {$formattedTime} ({$formattedTimeMs}) dalam batas aman (good: ≤2s)";
-        
-        $detail = $mainMessage . "\n\n";
-        $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        $detail .= "📊 DETAIL ANALISIS:\n";
-        $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        $detail .= "⏱️  Response Time: {$formattedTime} ({$formattedTimeMs})\n";
-        $detail .= "📈  Kategori: {$category}\n";
-        $detail .= "🎯  Threshold: ≤ 2 detik (standar PageSpeed)\n";
-        $detail .= "📊  Selisih: -" . number_format(abs($diffMs), 0) . "ms (dalam batas aman)\n";
-        $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        $detail .= "💚  Dampak:\n";
-        $detail .= "{$impact}\n";
-        $detail .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n";
-        $detail .= "✅  Status: UP - Service berjalan dengan baik";
-        
+
         return [
             'status' => 'UP',
             'reason' => 'PAGESPEED_GOOD',
-            'detail' => $detail,
-            'action' => 'Service dalam kondisi baik. Pertahankan performa.',
+            'detail' => "Response {$formattedTime} dalam batas aman",
+            'action' => '✅ Service dalam kondisi baik',
             'metrics' => [
                 'response_time_ms' => $timeMs,
                 'response_time_sec' => $time,
-                'category' => $category,
-                'impact' => $impact,
-                'diff_ms' => $diffMs,
             ]
         ];
     }
 
-    /**
-     * ============================================================
-     * 🌐 CHECK NETWORK CONNECTION
-     * ============================================================
-     */
+    // ============================================================
+    // NETWORK CHECK
+    // ============================================================
+
     public function checkNetworkConnection()
     {
         $cacheKey = 'network_connection_status';
         $cached = Cache::get($cacheKey);
-        
+
         if ($cached !== null) {
-            Log::info('🌐 [CACHE] Internet: ' . ($cached ? 'ONLINE' : 'OFFLINE'));
             return $cached;
         }
 
-        Log::info('🔍 [CHECK] Starting internet connection check...');
+        $httpTargets = ['https://www.google.com', 'https://www.cloudflare.com'];
 
-        $httpTargets = [
-            'https://www.google.com',
-            'https://www.cloudflare.com',
-        ];
-        
         foreach ($httpTargets as $target) {
             try {
                 $response = Http::timeout(5)->get($target);
                 if ($response->successful()) {
-                    Log::info("✅ [HTTP] SUCCESS: {$target}");
                     Cache::put($cacheKey, true, 60);
                     return true;
                 }
             } catch (\Exception $e) {
-                Log::info("❌ [HTTP] FAILED: {$target}");
+                // Skip
             }
         }
 
         $pingTargets = ['8.8.8.8', '1.1.1.1'];
         foreach ($pingTargets as $target) {
             if ($this->pingHost($target)) {
-                Log::info("✅ [PING] SUCCESS: {$target}");
                 Cache::put($cacheKey, true, 60);
                 return true;
             }
@@ -373,64 +311,46 @@ class ServiceMonitorService
         $dnsTargets = ['google.com', 'cloudflare.com'];
         foreach ($dnsTargets as $target) {
             if (checkdnsrr($target, 'A')) {
-                Log::info("✅ [DNS] SUCCESS: {$target}");
                 Cache::put($cacheKey, true, 60);
                 return true;
             }
         }
 
-        Log::info('❌ [CHECK] ALL METHODS FAILED - Internet DOWN');
         Cache::put($cacheKey, false, 60);
         return false;
     }
 
-    /**
-     * 🔥🔥🔥 PING HOST - DIPERBAIKI UNTUK WINDOWS
-     */
     private function pingHost($host)
     {
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        
+
         if ($isWindows) {
-            // 🔥 PAKAI FULL PATH PING DI WINDOWS
             $pingPath = 'C:\\Windows\\System32\\ping.exe';
-            
-            // Cek apakah file exists
             if (!file_exists($pingPath)) {
-                // Fallback: coba cari di PATH
                 $pingPath = 'ping';
-                Log::warning("⚠️ ping.exe tidak ditemukan di C:\\Windows\\System32\\, menggunakan 'ping' dari PATH");
             }
-            
             $command = $pingPath . " -n 1 -w 3000 " . escapeshellarg($host) . " 2>&1";
         } else {
             $command = "ping -c 1 -W 3 " . escapeshellarg($host) . " 2>&1";
         }
-        
+
         exec($command, $output, $resultCode);
         return $resultCode === 0;
     }
 
-    /**
-     * ============================================================
-     * 🔍 CHECK SSL CERTIFICATE
-     * ============================================================
-     */
+    // ============================================================
+    // SSL CHECK
+    // ============================================================
+
     private function checkSSL($service, $host, $port = 443)
     {
-        Log::info("🔍 Checking SSL certificate for {$host}:{$port}");
-
         try {
-            // 🔥 CEK APAKAH OPENSSL TERSEDIA DI WINDOWS
             $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
             $opensslCmd = 'openssl';
-            
+
             if ($isWindows) {
-                // Cek apakah openssl ada di PATH
                 $checkOpenssl = shell_exec('where openssl 2>nul');
                 if (empty($checkOpenssl)) {
-                    Log::warning("⚠️ OpenSSL tidak ditemukan di Windows, skip SSL check untuk {$host}");
-                    // Fallback ke PHP stream
                     return $this->checkSSLviaStream($service, $host, $port);
                 }
             }
@@ -443,19 +363,19 @@ class ServiceMonitorService
                 $port,
                 $opensslCmd
             );
-            
+
             $output = shell_exec($command);
-            
+
             if (!empty($output)) {
                 preg_match('/notBefore=(.*)/', $output, $beforeMatch);
                 preg_match('/notAfter=(.*)/', $output, $afterMatch);
-                
+
                 if (!empty($afterMatch[1])) {
                     $validFrom = Carbon::parse(trim($beforeMatch[1]));
                     $validTo = Carbon::parse(trim($afterMatch[1]));
                     $now = Carbon::now('Asia/Jakarta');
                     $daysRemaining = (int)ceil($now->diffInDays($validTo, false));
-                
+
                     $subjectCommand = sprintf(
                         'echo | %s s_client -servername %s -connect %s:%d 2>/dev/null | %s x509 -noout -subject 2>/dev/null',
                         $opensslCmd,
@@ -465,7 +385,7 @@ class ServiceMonitorService
                         $opensslCmd
                     );
                     $subjectOutput = shell_exec($subjectCommand);
-                    
+
                     $issuerCommand = sprintf(
                         'echo | %s s_client -servername %s -connect %s:%d 2>/dev/null | %s x509 -noout -issuer 2>/dev/null',
                         $opensslCmd,
@@ -475,11 +395,11 @@ class ServiceMonitorService
                         $opensslCmd
                     );
                     $issuerOutput = shell_exec($issuerCommand);
-                    
+
                     $commonName = 'Unknown';
                     $issuerCN = 'Unknown';
                     $organization = '';
-                    
+
                     if (!empty($subjectOutput)) {
                         preg_match('/CN\s*=\s*([^,\/]+)/', $subjectOutput, $subjectMatch);
                         if (!empty($subjectMatch[1])) {
@@ -490,60 +410,43 @@ class ServiceMonitorService
                             $organization = trim($orgMatch[1]);
                         }
                     }
-                    
+
                     if (!empty($issuerOutput)) {
                         preg_match('/CN\s*=\s*([^,\/]+)/', $issuerOutput, $issuerMatch);
                         if (!empty($issuerMatch[1])) {
                             $issuerCN = trim($issuerMatch[1]);
                         }
                     }
-                    
-                    Log::info("📊 SSL Certificate {$host}:", [
-                        'subject' => $commonName,
-                        'issuer' => $issuerCN,
-                        'valid_from' => $validFrom->format('Y-m-d'),
-                        'valid_to' => $validTo->format('Y-m-d'),
-                        'days_remaining' => $daysRemaining
-                    ]);
-                    
+
                     return $this->processSSLResult($service, $host, $validFrom, $validTo, $daysRemaining, $commonName, $organization, $issuerCN);
                 }
             }
-            
-            // ALTERNATIF: PHP Stream dengan SNI
-            Log::info("⚠️ OpenSSL command failed, using PHP stream with SNI for {$host}");
+
             return $this->checkSSLviaStream($service, $host, $port);
-            
+
         } catch (\Exception $e) {
-            Log::error("❌ SSL Check error untuk {$host}:{$port} - " . $e->getMessage());
-            
-            // Fallback ke PHP stream
             try {
                 return $this->checkSSLviaStream($service, $host, $port);
             } catch (\Exception $e2) {
-                Log::error("❌ SSL Stream fallback juga gagal: " . $e2->getMessage());
                 return null;
             }
         }
     }
 
-    /**
-     * 🔥 CHECK SSL VIA PHP STREAM (FALLBACK)
-     */
     private function checkSSLviaStream($service, $host, $port = 443)
     {
         try {
             $context = stream_context_create([
                 'ssl' => [
                     'capture_peer_cert' => true,
-                    'SNI_enabled' => true,           
-                    'peer_name' => $host,            
+                    'SNI_enabled' => true,
+                    'peer_name' => $host,
                     'verify_peer' => false,
                     'verify_peer_name' => false,
                     'allow_self_signed' => true,
                 ]
             ]);
-            
+
             $client = stream_socket_client(
                 "ssl://{$host}:{$port}",
                 $errno,
@@ -552,84 +455,58 @@ class ServiceMonitorService
                 STREAM_CLIENT_CONNECT,
                 $context
             );
-            
+
             if (!$client) {
-                Log::warning("⚠️ Gagal connect SSL ke {$host}:{$port} - {$errstr}");
                 return null;
             }
-            
+
             $params = stream_context_get_params($client);
             $cert = $params['options']['ssl']['peer_certificate'] ?? null;
-            
+
             if (!$cert) {
                 fclose($client);
-                Log::warning("⚠️ Tidak ada SSL certificate untuk {$host}:{$port}");
                 return null;
             }
-            
+
             $certInfo = openssl_x509_parse($cert);
-            
+
             if (!$certInfo) {
                 fclose($client);
-                Log::warning("⚠️ Gagal parse SSL certificate untuk {$host}:{$port}");
                 return null;
             }
-            
+
             fclose($client);
-            
+
             $validFrom = Carbon::createFromTimestamp($certInfo['validFrom_time_t'], 'Asia/Jakarta');
             $validTo = Carbon::createFromTimestamp($certInfo['validTo_time_t'], 'Asia/Jakarta');
             $now = Carbon::now('Asia/Jakarta');
             $daysRemaining = (int)ceil($now->diffInDays($validTo, false));
-            
+
             $subject = $certInfo['subject'] ?? [];
             $issuer = $certInfo['issuer'] ?? [];
-            
+
             $commonName = $subject['CN'] ?? 'Unknown';
             $organization = $subject['O'] ?? '';
             $issuerCN = $issuer['CN'] ?? 'Unknown';
-            
-            Log::info("📊 SSL Certificate {$host} (via PHP Stream):", [
-                'subject' => $commonName,
-                'issuer' => $issuerCN,
-                'valid_from' => $validFrom->format('Y-m-d'),
-                'valid_to' => $validTo->format('Y-m-d'),
-                'days_remaining' => $daysRemaining
-            ]);
-            
+
             return $this->processSSLResult($service, $host, $validFrom, $validTo, $daysRemaining, $commonName, $organization, $issuerCN);
-            
+
         } catch (\Exception $e) {
-            Log::error("❌ SSL Stream error untuk {$host}:{$port} - " . $e->getMessage());
             return null;
         }
     }
 
-    /**
-     * ============================================================
-     * PROCESS SSL RESULT
-     * ============================================================
-     */
     private function processSSLResult($service, $host, $validFrom, $validTo, $daysRemaining, $commonName, $organization, $issuerCN)
     {
-        // 🔥 REFRESH DATA DARI DATABASE TERBARU
         $service->refresh();
-        
-        // SSL EXPIRED = DOWN!
+
         if ($daysRemaining <= 0) {
             $status = 'EXPIRED';
             $isDown = true;
-            $message = "🔴 SSL CERTIFICATE EXPIRED! Expired sejak {$validTo->format('d-m-Y')} - SERVICE DOWN!";
-            $action = '🚨 SEGERA PERBARUI SSL CERTIFICATE! Service tidak aman dan tidak bisa diakses!';
-            
+            $message = "🔴 SSL EXPIRED! Exp: {$validTo->format('d-m-Y')}";
+            $action = '🚨 SEGERA PERBARUI SSL!';
             $sendAlert = is_null($service->ssl_expired_sent_at);
-            
-            if ($sendAlert) {
-                Log::info("🚨 SSL EXPIRED: First time, will send WA");
-            } else {
-                Log::info("⏭️ SSL EXPIRED WA already sent at {$service->ssl_expired_sent_at}");
-            }
-            
+
             $this->saveSSLResult($service, [
                 'status' => $status,
                 'is_down' => $isDown,
@@ -642,7 +519,7 @@ class ServiceMonitorService
                 'action' => $action,
                 'send_alert' => $sendAlert
             ]);
-            
+
             return [
                 'valid' => true,
                 'status' => $status,
@@ -658,22 +535,14 @@ class ServiceMonitorService
                 'send_alert' => $sendAlert
             ];
         }
-        
-        // CRITICAL (7 hari)
+
         if ($daysRemaining <= self::SSL_CRITICAL_DAYS) {
             $status = 'CRITICAL';
             $isDown = false;
-            $message = "🔴 SSL akan expired dalam {$daysRemaining} hari! (Exp: {$validTo->format('d-m-Y')})";
-            $action = '⚠️ SEGERA perpanjang SSL certificate! Tinggal ' . $daysRemaining . ' hari lagi!';
-            
+            $message = "🔴 SSL expired dalam {$daysRemaining} hari! (Exp: {$validTo->format('d-m-Y')})";
+            $action = '⚠️ SEGERA perpanjang SSL!';
             $sendAlert = is_null($service->ssl_critical_sent_at);
-            
-            if ($sendAlert) {
-                Log::info("🔴 SSL CRITICAL: First time, will send WA ({$daysRemaining} days remaining)");
-            } else {
-                Log::info("⏭️ SSL CRITICAL WA already sent at {$service->ssl_critical_sent_at}");
-            }
-            
+
             $this->saveSSLResult($service, [
                 'status' => $status,
                 'is_down' => $isDown,
@@ -686,14 +555,13 @@ class ServiceMonitorService
                 'action' => $action,
                 'send_alert' => $sendAlert
             ]);
-            
+
             $service->update([
                 'last_status' => 'WARNING',
                 'last_message' => $message,
                 'last_check_at' => now(),
             ]);
-            Log::info("🟡 Service status changed to WARNING due to SSL CRITICAL: {$service->name}");
-            
+
             return [
                 'valid' => true,
                 'status' => $status,
@@ -709,22 +577,14 @@ class ServiceMonitorService
                 'send_alert' => $sendAlert
             ];
         }
-        
-        // WARNING (60 hari)
+
         if ($daysRemaining <= self::SSL_WARNING_DAYS) {
             $status = 'WARNING';
             $isDown = false;
-            $message = "🟡 SSL akan expired dalam {$daysRemaining} hari (Exp: {$validTo->format('d-m-Y')})";
-            $action = '📌 Rencanakan perpanjangan SSL certificate dalam ' . $daysRemaining . ' hari';
-            
+            $message = "🟡 SSL expired dalam {$daysRemaining} hari (Exp: {$validTo->format('d-m-Y')})";
+            $action = '📌 Rencanakan perpanjangan SSL';
             $sendAlert = is_null($service->ssl_warning_sent_at);
-            
-            if ($sendAlert) {
-                Log::info("🟡 SSL WARNING: First time, will send WA ({$daysRemaining} days remaining)");
-            } else {
-                Log::info("⏭️ SSL WARNING WA already sent at {$service->ssl_warning_sent_at}");
-            }
-            
+
             $this->saveSSLResult($service, [
                 'status' => $status,
                 'is_down' => $isDown,
@@ -737,14 +597,13 @@ class ServiceMonitorService
                 'action' => $action,
                 'send_alert' => $sendAlert
             ]);
-            
+
             $service->update([
                 'last_status' => 'WARNING',
                 'last_message' => $message,
                 'last_check_at' => now(),
             ]);
-            Log::info("🟡 Service status changed to WARNING due to SSL: {$service->name}");
-            
+
             return [
                 'valid' => true,
                 'status' => $status,
@@ -760,22 +619,20 @@ class ServiceMonitorService
                 'send_alert' => $sendAlert
             ];
         }
-        
-        // VALID (> 60 hari)
+
         $status = 'VALID';
         $isDown = false;
         $message = "✅ Certificate valid until {$validTo->format('d-m-Y')} (sisa {$daysRemaining} hari)";
         $action = 'Certificate dalam kondisi baik';
-        
+
         if ($service->ssl_status !== 'VALID') {
             $service->update([
                 'ssl_warning_sent_at' => null,
                 'ssl_critical_sent_at' => null,
                 'ssl_expired_sent_at' => null,
             ]);
-            Log::info("🔄 SSL timestamps reset for {$service->name} (certificate valid)");
         }
-        
+
         $this->saveSSLResult($service, [
             'status' => $status,
             'is_down' => $isDown,
@@ -788,16 +645,15 @@ class ServiceMonitorService
             'action' => $action,
             'send_alert' => false
         ]);
-        
+
         if ($service->last_status === 'WARNING') {
             $service->update([
                 'last_status' => 'UP',
                 'last_message' => 'Service normal, SSL valid',
                 'last_check_at' => now(),
             ]);
-            Log::info("🟢 Service status restored to UP: {$service->name}");
         }
-        
+
         return [
             'valid' => true,
             'status' => $status,
@@ -814,17 +670,10 @@ class ServiceMonitorService
         ];
     }
 
-    /**
-     * ============================================================
-     * 💾 SAVE SSL RESULT
-     * ============================================================
-     */
     private function saveSSLResult($service, $sslData)
     {
-        Log::info("💾 Save SSL Result for {$service->name}: " . $sslData['status']);
-        
         $oldSslStatus = $service->ssl_status;
-        
+
         $service->update([
             'ssl_status' => $sslData['status'],
             'ssl_expiry_date' => $sslData['valid_to'] ?? null,
@@ -835,25 +684,20 @@ class ServiceMonitorService
             'ssl_is_expired' => $sslData['is_down'] ?? false,
             'ssl_checked_at' => now(),
         ]);
-        
-        // 🔥 UPDATE SSL TIMESTAMP HANYA 1x PER STATUS
+
         if ($sslData['status'] === 'WARNING' && $sslData['send_alert'] === true) {
             $service->update(['ssl_warning_sent_at' => now()]);
-            Log::info("📝 SSL WARNING timestamp saved: {$service->name}");
         }
-        
+
         if ($sslData['status'] === 'CRITICAL' && $sslData['send_alert'] === true) {
             $service->update(['ssl_critical_sent_at' => now()]);
-            Log::info("📝 SSL CRITICAL timestamp saved: {$service->name}");
         }
-        
+
         if ($sslData['status'] === 'EXPIRED' && $sslData['send_alert'] === true) {
             $service->update(['ssl_expired_sent_at' => now()]);
-            Log::info("📝 SSL EXPIRED timestamp saved: {$service->name}");
         }
-        
-        // LOG HANYA JIKA STATUS SSL BERUBAH
-        if (in_array($sslData['status'], ['WARNING', 'CRITICAL', 'EXPIRED']) && 
+
+        if (in_array($sslData['status'], ['WARNING', 'CRITICAL', 'EXPIRED']) &&
             $oldSslStatus !== $sslData['status']) {
             ServiceLog::create([
                 'service_id' => $service->id,
@@ -866,62 +710,42 @@ class ServiceMonitorService
                 'is_status_change' => true,
                 'previous_status' => $service->last_status ?? 'UNKNOWN',
             ]);
-            Log::info("📝 SSL LOG BARU: {$service->name} SSL Status: {$oldSslStatus} → {$sslData['status']}");
         }
     }
 
-    /**
-     * ============================================================
-     * 📨 KIRIM WA SSL ALERT
-     * ============================================================
-     */
     private function sendSSLAlert($service, $sslResult)
     {
         $contacts = Contact::where('is_active', true)->get();
         if ($contacts->isEmpty()) {
-            Log::warning('Tidak ada kontak aktif untuk SSL Alert');
             return;
         }
 
-        $newline = "\n";
-        
         if ($sslResult['is_down']) {
-            $judul = "🔴🚨 SSL CERTIFICATE EXPIRED! SERVICE DOWN!";
+            $judul = "🔴 SSL EXPIRED!";
             $icon = "🔴";
-            $statusText = "DOWN - EXPIRED";
-            $urgency = "🚨 SEGERA PERBAIKI!";
+            $statusText = "EXPIRED";
+            $urgency = "🚨 SEGERA PERBAIKI SSL!";
         } elseif ($sslResult['status'] === 'CRITICAL') {
-            $judul = "🔴⚠️ SSL CERTIFICATE CRITICAL!";
+            $judul = "🔴 SSL CRITICAL!";
             $icon = "🔴";
-            $statusText = "CRITICAL - Segera Perbarui!";
-            $urgency = "⚠️ SEGERA PERPANJANG! Tinggal " . $sslResult['days_remaining'] . " hari lagi!";
+            $statusText = "CRITICAL";
+            $urgency = "⚠️ SEGERA PERPANJANG! (" . $sslResult['days_remaining'] . " hari)";
         } else {
-            $judul = "🟡 SSL CERTIFICATE WARNING";
+            $judul = "🟡 SSL WARNING";
             $icon = "🟡";
-            $statusText = "WARNING - Akan Expired";
+            $statusText = "WARNING";
             $urgency = "📌 Rencanakan perpanjangan SSL";
         }
 
-        $message = $judul . $newline . $newline;
-        $message .= "Nama    : " . $service->name . $newline;
-        $message .= "Domain  : " . $service->target . $newline;
-        $message .= $newline;
-        $message .= "Status  : " . $icon . " " . $statusText . $newline;
-        $message .= "Issuer  : " . ($sslResult['issuer'] ?? 'Unknown') . $newline;
-        $message .= "Subject : " . ($sslResult['subject'] ?? 'Unknown') . $newline;
-        $message .= $newline;
-        $message .= "Sisa Hari : " . $sslResult['days_remaining'] . " hari" . $newline;
-        $message .= "Valid From: " . ($sslResult['valid_from'] ?? 'Unknown') . $newline;
-        $message .= "Expired   : " . ($sslResult['valid_to'] ?? 'Unknown') . $newline;
-        $message .= $newline;
-        $message .= $urgency . $newline;
-        $message .= $newline;
-        $message .= "Detail:" . $newline;
-        $message .= $sslResult['message'] . $newline;
-        $message .= $newline;
-        $message .= "Tindakan:" . $newline;
-        $message .= $sslResult['action'] . $newline;
-        $message .= $newline;
+        $message = $judul . "\n";
+        $message .= "═══════════════════════\n";
+        $message .= "Nama: " . $service->name . "\n";
+        $message .= "Domain: " . $service->target . "\n";
+        $message .= "Status: " . $icon . " " . $statusText . "\n";
+        $message .= "Sisa: " . $sslResult['days_remaining'] . " hari\n";
+        $message .= "Expired: " . ($sslResult['valid_to'] ?? 'Unknown') . "\n";
+        $message .= "═══════════════════════\n";
+        $message .= $urgency . "\n";
         $message .= "🕐 " . now()->format('d-m-Y H:i:s') . " WIB";
 
         foreach ($contacts as $contact) {
@@ -930,11 +754,10 @@ class ServiceMonitorService
         }
     }
 
-    /**
-     * ============================================================
-     * 🔍 CHECK HTTP (DIMODIFIKASI DENGAN PAGESPEED)
-     * ============================================================
-     */
+    // ============================================================
+    // CHECK HTTP
+    // ============================================================
+
     private function checkHttp(Service $service)
     {
         $oldStatus = $service->last_status ?? 'UNKNOWN';
@@ -943,54 +766,39 @@ class ServiceMonitorService
         $start = microtime(true);
         $analysis = null;
 
-        // CEK SSL UNTUK HTTPS
         $url = $this->normalizeUrl($service->target);
         $sslResult = null;
         $parsedUrl = parse_url($url);
-        
+
         if ($parsedUrl && ($parsedUrl['scheme'] ?? '') === 'https') {
             $host = $parsedUrl['host'] ?? '';
             $port = $parsedUrl['port'] ?? 443;
-            
+
             if (!empty($host)) {
                 $sslResult = $this->checkSSL($service, $host, $port);
-                
-                // 🔥🔥🔥 SSL EXPIRED
+
                 if ($sslResult && $sslResult['is_down'] === true) {
-                    Log::info("🚨 SSL EXPIRED DETECTED! Setting service to DOWN");
-                    
                     $this->saveResult(
-                        $service, 
-                        $oldStatus, 
-                        'DOWN', 
-                        'SSL_EXPIRED', 
-                        0, 
+                        $service,
+                        $oldStatus,
+                        'DOWN',
+                        'SSL_EXPIRED',
+                        0,
                         'SSL_EXPIRED',
                         $sslResult['message'],
                         $sslResult['action']
                     );
-                    
-                    // 🔥 PAKAI LANGSUNG $sslResult['send_alert'] + INTERVAL
                     $this->handleSSLInterval($service, $sslResult);
-                    
                     return;
                 }
-                
-                // 🔥🔥🔥 SSL WARNING/CRITICAL - DENGAN INTERVAL!
+
                 if ($sslResult && ($sslResult['status'] === 'WARNING' || $sslResult['status'] === 'CRITICAL')) {
-                    Log::info("🟡 SSL " . $sslResult['status'] . " detected!");
-                    
-                    // UPDATE STATUS SERVICE JADI WARNING
                     $service->update([
                         'last_status' => 'WARNING',
                         'last_message' => $sslResult['message'],
                         'last_check_at' => now(),
                     ]);
-                    Log::info("✅ Service status updated to WARNING: {$service->name}");
-                    
-                    // 🔥🔥🔥 CEK SSL TIMESTAMP + INTERVAL
                     $this->handleSSLInterval($service, $sslResult);
-                    
                     return;
                 }
             }
@@ -1008,45 +816,39 @@ class ServiceMonitorService
             $time = round(microtime(true) - $start, 2);
             $code = $response->status();
 
-            Log::info("HTTP Response {$service->name}: code={$code}, time={$time}s");
-
             if (in_array($code, [301, 308])) {
                 $location = $response->header('Location');
-                Log::info("🔀 REDIRECT PERMANEN {$code} ke: {$location}");
-                
                 $redirectResult = $this->checkRedirectTarget($location, $service);
-                
+
                 if ($redirectResult['status'] === 'UP') {
                     $analysis = [
                         'status' => 'UP',
                         'reason' => 'REDIRECT_' . $code,
-                        'detail' => "Redirect permanen ke: {$location} - Target redirect UP",
+                        'detail' => "Redirect permanen ke: {$location}",
                         'action' => "Update URL endpoint ke: {$location}"
                     ];
                 } else {
                     $analysis = [
                         'status' => 'DOWN',
                         'reason' => 'REDIRECT_' . $code . '_FAILED',
-                        'detail' => "Redirect permanen ke: {$location} - Target redirect {$redirectResult['status']}",
-                        'action' => "Periksa target redirect: {$location} - {$redirectResult['message']}"
+                        'detail' => "Redirect ke: {$location} - Target {$redirectResult['status']}",
+                        'action' => "Periksa target redirect: {$location}"
                     ];
                 }
-                
-                $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time, 
-                                 $analysis['reason'], $analysis['detail'], $analysis['action']);
+
+                $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time,
+                    $analysis['reason'], $analysis['detail'], $analysis['action']);
                 return;
             }
 
-            // 🔥🔥🔥 MODIFIKASI: Gunakan PageSpeed untuk analisis
             $analysis = $this->analyzeResponseWithPageSpeed($code, $time);
-            
-            // Tambahan: cek konten error jika status UP
+
             if ($analysis['status'] === 'UP') {
                 $body = $response->body();
                 if (!empty($body)) {
                     $errorKeywords = ['fatal error', 'parse error', 'syntax error', 'exception', 'stack trace', 'database error'];
                     $bodyLower = strtolower($body);
-                    
+
                     foreach ($errorKeywords as $keyword) {
                         if (str_contains($bodyLower, $keyword)) {
                             $analysis = [
@@ -1059,8 +861,7 @@ class ServiceMonitorService
                         }
                     }
                 }
-                
-                // Cek response kosong
+
                 if (empty($body) || trim($body) === '') {
                     $analysis = [
                         'status' => 'WARNING',
@@ -1070,8 +871,6 @@ class ServiceMonitorService
                     ];
                 }
             }
-            
-            Log::info("Analysis {$service->name}: " . json_encode($analysis));
 
             if ($analysis['status'] === 'UP') {
                 $service->update(['consecutive_failures' => 0]);
@@ -1080,90 +879,58 @@ class ServiceMonitorService
         } catch (ConnectionException $e) {
             $time = round(microtime(true) - $start, 2);
             $code = 'TIMEOUT';
-            
-            Log::error("Connection timeout {$service->name}: " . $e->getMessage());
-            
+
             if ($time <= self::TIMEOUT_FAST) {
-                Log::info("⚡ TIMEOUT CEPAT ({$time}s) untuk {$service->name} - LANGSUNG DOWN");
                 $service->update(['consecutive_failures' => 0]);
-                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time, 
-                                 'CONNECTION_TIMEOUT_FAST', 
-                                 "Koneksi timeout cepat ({$time}s) - Server tidak merespon", 
-                                 'Server kemungkinan mati, periksa segera');
+                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time,
+                    'CONNECTION_TIMEOUT_FAST',
+                    "Koneksi timeout cepat ({$time}s)",
+                    'Server kemungkinan mati, periksa segera');
             } else {
-                Log::info(" TIMEOUT LAMBAT ({$time}s) untuk {$service->name} - pakai consecutive");
-                $this->handleTimeoutFailure($service, $oldStatus, $time, 
-                                           'CONNECTION_TIMEOUT_SLOW', 
-                                           "Koneksi timeout lambat ({$time}s) - Server lambat merespon", 
-                                           'Periksa performa server dan koneksi jaringan');
+                $this->handleTimeoutFailure($service, $oldStatus, $time,
+                    'CONNECTION_TIMEOUT_SLOW',
+                    "Koneksi timeout lambat ({$time}s)",
+                    'Periksa performa server dan koneksi jaringan');
             }
             return;
-            
+
         } catch (\Exception $e) {
             $time = 0;
             $code = 'ERROR';
             $analysis = $this->analyzeException($e->getMessage());
-            Log::error("HTTP Error {$service->name}: " . $e->getMessage());
-            
+
             $service->update(['consecutive_failures' => 0]);
-            $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time, 
-                             $analysis['reason'], $analysis['detail'], $analysis['action']);
+            $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time,
+                $analysis['reason'], $analysis['detail'], $analysis['action']);
             return;
         }
 
         if ($analysis !== null) {
-            $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time, 
-                             $analysis['reason'], $analysis['detail'], $analysis['action']);
+            $this->saveResult($service, $oldStatus, $analysis['status'], $code, $time,
+                $analysis['reason'], $analysis['detail'], $analysis['action']);
         }
     }
 
-    /**
-     * ============================================================
-     * 🔄 HANDLE SSL INTERVAL 
-     * ============================================================
-     */
     private function handleSSLInterval($service, $sslResult)
     {
         $interval = $service->wa_interval_minutes ?? 0;
         $status = $sslResult['status'];
-        
-        Log::info("🔍 SSL INTERVAL CHECK: {$service->name} | Interval: {$interval} menit | Status: {$status}");
-        
-        // CEK APAKAH WA PERLU DIKIRIM (TIMESTAMP SSL + INTERVAL)
+
         $shouldSendWa = false;
-        
+
         if ($sslResult['send_alert'] === true) {
             $lastIntervalCheck = $service->last_interval_checked_at;
             $lastIntervalStatus = $service->last_interval_status;
-            
+
             if ($interval == 0) {
-                // Interval 0 → langsung kirim
                 $shouldSendWa = true;
-                Log::info("📨 Interval 0, langsung kirim SSL WA");
             } elseif (empty($lastIntervalCheck) || $lastIntervalStatus !== $status) {
-                // Belum pernah check atau status berubah → kirim
                 $shouldSendWa = true;
-                Log::info("📨 SSL status baru/berubah ({$lastIntervalStatus} → {$status}), kirim WA");
-            } else {
-                $lastCheck = Carbon::parse($lastIntervalCheck);
-                $minutesSinceLastCheck = $lastCheck->diffInRealMinutes(now());
-                
-                if ($minutesSinceLastCheck >= $interval) {
-                    // Interval tercapai tapi status sama → TIDAK kirim
-                    Log::info("⏭️ Interval tercapai ({$minutesSinceLastCheck}/{$interval} menit) tapi SSL status sama, TIDAK kirim WA");
-                } else {
-                    Log::info("⏳ Interval belum tercapai ({$minutesSinceLastCheck}/{$interval} menit) - TIDAK KIRIM WA");
-                }
             }
-        } else {
-            Log::info("⏭️ SSL WA sudah pernah dikirim (timestamp SSL ada), skip");
         }
-        
-        // KIRIM ATAU TIDAK
+
         if ($shouldSendWa) {
             $this->sendSSLAlert($service, $sslResult);
-            Log::info("📨 SSL {$status} WA sent for {$service->name}");
-            
             $service->update([
                 'last_wa_sent_at' => now(),
                 'last_interval_status' => $status,
@@ -1172,7 +939,6 @@ class ServiceMonitorService
                 'interval_wa_sent_in_this_cycle' => 1,
             ]);
         } else {
-            //  interval tracking tanpa kirim WA
             $service->update([
                 'last_interval_status' => $status,
                 'last_interval_checked_at' => now(),
@@ -1180,38 +946,27 @@ class ServiceMonitorService
                 'interval_wa_sent_in_this_cycle' => 0,
             ]);
         }
-        
+
         $service->refresh();
-        Log::info("✅ Final SSL status: last_status={$service->last_status}, ssl_status={$service->ssl_status}");
     }
 
-    /**
-     * ============================================================
-     * 🔀 CEK TARGET REDIRECT
-     * ============================================================
-     */
     private function checkRedirectTarget($url, $service)
     {
         if (empty($url) || $url === '-' || $url === '') {
-            Log::warning("⚠️ Redirect target kosong untuk {$service->name}");
             return [
                 'status' => 'DOWN',
-                'message' => "Redirect target kosong (tidak ada Location header)"
+                'message' => "Redirect target kosong"
             ];
         }
 
         try {
-            Log::info("🔍 Cek target redirect: {$url}");
-            
             $response = Http::timeout(30)
                 ->connectTimeout(20)
                 ->withoutRedirecting()
                 ->get($url);
-            
+
             $code = $response->status();
-            
-            Log::info("📊 Target redirect response: code={$code}");
-            
+
             if ($code >= 200 && $code < 400) {
                 return [
                     'status' => 'UP',
@@ -1238,25 +993,24 @@ class ServiceMonitorService
                     'message' => "Target redirect unknown code {$code}"
                 ];
             }
-            
+
         } catch (ConnectionException $e) {
             return [
                 'status' => 'DOWN',
-                'message' => "Target redirect timeout: " . $e->getMessage()
+                'message' => "Target redirect timeout"
             ];
         } catch (\Exception $e) {
             return [
                 'status' => 'DOWN',
-                'message' => "Target redirect error: " . $e->getMessage()
+                'message' => "Target redirect error"
             ];
         }
     }
 
-    /**
-     * ============================================================
-     * 📡 CHECK PING - DIPERBAIKI UNTUK WINDOWS
-     * ============================================================
-     */
+    // ============================================================
+    // CHECK PING
+    // ============================================================
+
     private function checkPing(Service $service)
     {
         $oldStatus = $service->last_status ?? 'UNKNOWN';
@@ -1274,8 +1028,8 @@ class ServiceMonitorService
                 $time = round(microtime(true) - $start, 2);
                 $code = 'INVALID_PORT';
                 $service->update(['consecutive_failures' => 0]);
-                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time, 
-                                 'INVALID_PORT', "Port {$port} tidak valid", 'Periksa format port (1-65535)');
+                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time,
+                    'INVALID_PORT', "Port {$port} tidak valid", 'Periksa format port (1-65535)');
                 return;
             }
 
@@ -1286,13 +1040,13 @@ class ServiceMonitorService
                 fclose($connection);
                 $code = 'PORT_OPEN';
                 $service->update(['consecutive_failures' => 0]);
-                $this->saveResult($service, $oldStatus, 'UP', $code, $time, 
-                                 'PORT_OK', "Host {$host} merespon port {$port}", 'Port terbuka, service berjalan normal');
+                $this->saveResult($service, $oldStatus, 'UP', $code, $time,
+                    'PORT_OK', "Host {$host} merespon port {$port}", 'Port terbuka, service berjalan normal');
             } else {
                 $code = 'PORT_CLOSED';
                 $service->update(['consecutive_failures' => 0]);
-                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time, 
-                                 'PORT_CLOSED', "Port {$port} tidak merespon", 'Periksa firewall dan pastikan service berjalan di port tersebut');
+                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time,
+                    'PORT_CLOSED', "Port {$port} tidak merespon", 'Periksa firewall dan pastikan service berjalan');
             }
             return;
         }
@@ -1302,128 +1056,111 @@ class ServiceMonitorService
                 $time = round(microtime(true) - $start, 2);
                 $code = 'DNS_ERROR';
                 $service->update(['consecutive_failures' => 0]);
-                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time, 
-                                 'DNS_ERROR', "Hostname {$host} tidak dapat di-resolve", 'Periksa konfigurasi DNS server');
+                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time,
+                    'DNS_ERROR', "Hostname {$host} tidak dapat di-resolve", 'Periksa konfigurasi DNS server');
                 return;
             }
         }
 
-        // 🔥🔥🔥 PERBAIKAN UNTUK WINDOWS - PAKAI FULL PATH
         $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-        
+
         if ($isWindows) {
-            // 🔥 PAKAI FULL PATH PING DI WINDOWS
             $pingPath = 'C:\\Windows\\System32\\ping.exe';
-            
-            // Cek apakah file exists
             if (!file_exists($pingPath)) {
-                // Fallback: coba cari di PATH
                 $pingPath = 'ping';
-                Log::warning("⚠️ ping.exe tidak ditemukan di C:\\Windows\\System32\\, menggunakan 'ping' dari PATH");
             }
-            
             $command = $pingPath . " -n 2 -w 10000 " . escapeshellarg($host) . " 2>&1";
         } else {
             $command = "ping -c 2 -W 10 " . escapeshellarg($host) . " 2>&1";
         }
-        
+
         exec($command, $output, $resultCode);
         $outputString = implode("\n", $output);
         $time = round(microtime(true) - $start, 2);
-
-        Log::info("Ping result for {$host}:", [
-            'resultCode' => $resultCode,
-            'time' => $time . 's',
-            'output' => $outputString
-        ]);
 
         if (strpos($outputString, 'Destination host unreachable') !== false ||
             strpos($outputString, 'Host unreachable') !== false ||
             strpos($outputString, 'unreachable') !== false) {
             $code = 'UNREACHABLE';
             $service->update(['consecutive_failures' => 0]);
-            $this->saveResult($service, $oldStatus, 'DOWN', $code, $time, 
-                             'HOST_UNREACHABLE', 'Host tidak dapat dijangkau', 
-                             'Periksa koneksi jaringan, firewall, dan routing');
+            $this->saveResult($service, $oldStatus, 'DOWN', $code, $time,
+                'HOST_UNREACHABLE', 'Host tidak dapat dijangkau',
+                'Periksa koneksi jaringan, firewall, dan routing');
             return;
         }
 
         if (strpos($outputString, 'Request timed out') !== false ||
             strpos($outputString, 'timeout') !== false ||
             strpos($outputString, 'Timed out') !== false) {
-            
+
             preg_match('/(\d+)\s*received/i', $outputString, $receivedMatches);
             $received = isset($receivedMatches[1]) ? intval($receivedMatches[1]) : 0;
-            
+
             if ($received > 0) {
                 $code = 'PING_PARTIAL';
                 $service->update(['consecutive_failures' => 0]);
-                $this->saveResult($service, $oldStatus, 'WARNING', $code, $time, 
-                                 'PING_PARTIAL', "Ping timeout ({$received}/2 berhasil)", 
-                                 'Packet loss terdeteksi, periksa kualitas jaringan');
+                $this->saveResult($service, $oldStatus, 'WARNING', $code, $time,
+                    'PING_PARTIAL', "Ping timeout ({$received}/2 berhasil)",
+                    'Packet loss terdeteksi, periksa kualitas jaringan');
                 return;
             }
-            
+
             $code = 'TIMEOUT';
-            
+
             if ($time <= self::TIMEOUT_FAST) {
-                Log::info("⚡ PING TIMEOUT CEPAT ({$time}s) untuk {$host} - LANGSUNG DOWN");
                 $service->update(['consecutive_failures' => 0]);
-                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time, 
-                                 'PING_TIMEOUT_FAST', 
-                                 "Ping timeout cepat ({$time}s) - Host tidak merespon", 
-                                 'Server kemungkinan mati, periksa segera');
+                $this->saveResult($service, $oldStatus, 'DOWN', $code, $time,
+                    'PING_TIMEOUT_FAST',
+                    "Ping timeout cepat ({$time}s) - Host tidak merespon",
+                    'Server kemungkinan mati, periksa segera');
             } else {
-                Log::info("🐌 PING TIMEOUT LAMBAT ({$time}s) untuk {$host} - pakai consecutive");
-                $this->handleTimeoutFailure($service, $oldStatus, $time, 
-                                           'PING_TIMEOUT_SLOW', 
-                                           "Ping timeout lambat ({$time}s) - Host lambat merespon", 
-                                           'Periksa performa server dan koneksi jaringan');
+                $this->handleTimeoutFailure($service, $oldStatus, $time,
+                    'PING_TIMEOUT_SLOW',
+                    "Ping timeout lambat ({$time}s) - Host lambat merespon",
+                    'Periksa performa server dan koneksi jaringan');
             }
             return;
         }
 
         if ($resultCode === 0) {
             preg_match_all('/(?:time[=:]\s*)(\d+\.?\d*)\s*ms/i', $outputString, $matches);
-            
+
             $avgTime = 0;
             if (!empty($matches[1])) {
                 $times = array_map('floatval', $matches[1]);
                 $avgTime = round(array_sum($times) / count($times) / 1000, 3);
             }
-            
+
             $code = 'PING_OK';
-            
             $service->update(['consecutive_failures' => 0]);
-            
+
             if ($avgTime > 10) {
-                $this->saveResult($service, $oldStatus, 'WARNING', $code, 
-                                 $avgTime > 0 ? $avgTime : $time, 
-                                 'PING_OK_SLOW', 
-                                 "Host merespon tapi lambat (avg: {$avgTime}s)", 
-                                 'Response lambat, optimasi jaringan atau server');
+                $this->saveResult($service, $oldStatus, 'WARNING', $code,
+                    $avgTime > 0 ? $avgTime : $time,
+                    'PING_OK_SLOW',
+                    "Host merespon tapi lambat (avg: {$avgTime}s)",
+                    'Response lambat, optimasi jaringan atau server');
             } else {
-                $this->saveResult($service, $oldStatus, 'UP', $code, 
-                                 $avgTime > 0 ? $avgTime : $time, 
-                                 'PING_OK', 
-                                 "Host merespon ping (avg: {$avgTime}s)", 
-                                 'Service dalam kondisi baik');
+                $this->saveResult($service, $oldStatus, 'UP', $code,
+                    $avgTime > 0 ? $avgTime : $time,
+                    'PING_OK',
+                    "Host merespon ping (avg: {$avgTime}s)",
+                    'Service dalam kondisi baik');
             }
             return;
         }
 
         $code = 'PING_FAILED';
         $service->update(['consecutive_failures' => 0]);
-        $this->saveResult($service, $oldStatus, 'DOWN', $code, $time, 
-                         'PING_FAILED', 'Host tidak merespon ping', 
-                         'Periksa koneksi jaringan dan konfigurasi firewall');
+        $this->saveResult($service, $oldStatus, 'DOWN', $code, $time,
+            'PING_FAILED', 'Host tidak merespon ping',
+            'Periksa koneksi jaringan dan konfigurasi firewall');
     }
 
-    /**
-     * ============================================================
-     * HANDLE TIMEOUT FAILURE
-     * ============================================================
-     */
+    // ============================================================
+    // HELPERS
+    // ============================================================
+
     private function handleTimeoutFailure($service, $oldStatus, $time, $reason, $detail, $action)
     {
         $failures = ($service->consecutive_failures ?? 0) + 1;
@@ -1431,26 +1168,17 @@ class ServiceMonitorService
             'consecutive_failures' => $failures,
             'last_failure_at' => now()
         ]);
-        
-        Log::info("⏱️ TIMEOUT LAMBAT #{$failures} untuk {$service->name} (waktu: {$time}s)");
-        
+
         if ($failures >= 2) {
-            Log::info("🚨 TIMEOUT LAMBAT TERUS MENERUS! Kirim WA untuk {$service->name}");
             $this->saveResult($service, $oldStatus, 'DOWN', 'TIMEOUT_SLOW', $time, $reason, $detail, $action);
         } else {
-            Log::info("⏳ Timeout lambat pertama - DIABAIKAN, status tetap {$oldStatus}");
-            $this->handleIntervalLogic($service, $oldStatus, $oldStatus, 'TIMEOUT_SLOW_1', $time, 
-                                       $reason . ' (ke-1 - diabaikan)', 
-                                       $detail . ' - Timeout sesaat, diabaikan', 
-                                       'Timeout akan diabaikan sampai terjadi 2x berturut-turut', false);
+            $this->handleIntervalLogic($service, $oldStatus, $oldStatus, 'TIMEOUT_SLOW_1', $time,
+                $reason . ' (ke-1 - diabaikan)',
+                $detail . ' - Timeout sesaat, diabaikan',
+                'Timeout akan diabaikan sampai terjadi 2x berturut-turut', false);
         }
     }
 
-    /**
-     * ============================================================
-     * 📊 ANALISIS RESPONSE (TETAP)
-     * ============================================================
-     */
     private function analyzeResponse($code, $time)
     {
         if ($code >= 200 && $code < 300) {
@@ -1474,7 +1202,7 @@ class ServiceMonitorService
             return [
                 'status' => 'UP',
                 'reason' => 'REDIRECT_' . $code,
-                'detail' => "Redirect sementara - Pengguna masih bisa akses",
+                'detail' => "Redirect sementara",
                 'action' => 'Redirect sementara, tidak perlu tindakan'
             ];
         }
@@ -1484,11 +1212,11 @@ class ServiceMonitorService
                 return [
                     'status' => 'DOWN',
                     'reason' => 'HTTP_404',
-                    'detail' => '404 Not Found - Halaman tidak ditemukan',
+                    'detail' => '404 Not Found',
                     'action' => 'Periksa URL endpoint, kemungkinan sudah berubah'
                 ];
             }
-            
+
             $upCodes = [401, 403, 405, 429];
             if (in_array($code, $upCodes)) {
                 return [
@@ -1498,11 +1226,11 @@ class ServiceMonitorService
                     'action' => $this->getClientErrorAction($code)
                 ];
             }
-            
+
             return [
                 'status' => 'WARNING',
                 'reason' => 'HTTP_' . $code,
-                'detail' => "Client Error {$code} - Perlu perbaikan",
+                'detail' => "Client Error {$code}",
                 'action' => 'Periksa request yang dikirim ke server'
             ];
         }
@@ -1596,15 +1324,9 @@ class ServiceMonitorService
         ];
     }
 
-    /**
-     * ============================================================
-     * 💾 SAVE RESULT
-     * ============================================================
-     */
     private function saveResult($service, $oldStatus, $status, $code, $time, $reason, $detail, $action)
     {
         if ($code === 'TIMEOUT_SLOW_1') {
-            Log::info("⏭️ TIMEOUT_SLOW_1 - DIABAIKAN, status tetap {$oldStatus}");
             return;
         }
 
@@ -1614,7 +1336,7 @@ class ServiceMonitorService
 
         $statusChanged = ($oldStatus !== $status);
         $isFirstCheck = empty($oldStatus) || $oldStatus === 'UNKNOWN';
-        
+
         $service->update([
             'last_status' => $status,
             'last_code' => $code,
@@ -1635,13 +1357,11 @@ class ServiceMonitorService
                 'is_status_change' => $statusChanged,
                 'previous_status' => $oldStatus,
             ]);
-            
-            Log::info("📝 LOG BARU: {$service->name} {$oldStatus} → {$status}, Code: {$code}");
         } else {
             $lastLog = ServiceLog::where('service_id', $service->id)
                 ->orderBy('created_at', 'desc')
                 ->first();
-                
+
             if ($lastLog) {
                 $lastLog->update([
                     'response_time' => $time,
@@ -1650,32 +1370,21 @@ class ServiceMonitorService
                     'action' => $action,
                     'checked_at' => now(),
                 ]);
-                Log::info("🔄 LOG DIUPDATE: {$service->name} status tetap {$status}, Code: {$code}");
             }
         }
 
         $this->handleIntervalLogic($service, $oldStatus, $status, $code, $time, $reason, $detail, $action, $isFirstCheck);
     }
 
-    /**
-     * ============================================================
-     * 🔄 HANDLE INTERVAL LOGIC
-     * ============================================================
-     */
     private function handleIntervalLogic($service, $oldStatus, $status, $code, $time, $reason, $detail, $action, $isFirstCheck = false)
     {
         if ($code === 'TIMEOUT_SLOW_1') {
-            Log::info("⏭️ TIMEOUT_SLOW_1 - SKIP WA untuk {$service->name}");
             return;
         }
-        
-        $interval = $service->wa_interval_minutes ?? 0;
-        
-        Log::info("🔍 INTERVAL CHECK: {$service->name} | Interval: {$interval} menit | Status: {$status} | Old: {$oldStatus}");
 
-        // FIRST CHECK: DOWN/WARNING → LANGSUNG KIRIM
+        $interval = $service->wa_interval_minutes ?? 0;
+
         if ($isFirstCheck && ($status === 'DOWN' || $status === 'WARNING')) {
-            Log::info("🚨 FIRST CHECK: Service baru dengan status {$status} - LANGSUNG KIRIM WA");
             $this->sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action);
             $service->update([
                 'last_wa_sent_at' => now(),
@@ -1686,10 +1395,8 @@ class ServiceMonitorService
             ]);
             return;
         }
-        
-        // FIRST CHECK: UP → TIDAK KIRIM
+
         if ($isFirstCheck && $status === 'UP') {
-            Log::info("⏭️ FIRST CHECK: Service baru dengan status UP - TIDAK KIRIM WA");
             $service->update([
                 'last_interval_status' => $status,
                 'last_interval_checked_at' => now(),
@@ -1700,10 +1407,7 @@ class ServiceMonitorService
             return;
         }
 
-        // INTERVAL = 0 → KIRIM LANGSUNG
         if ($interval == 0) {
-            Log::info("⏭️ Interval 0 - Kirim WA langsung saat status berubah");
-            
             if ($oldStatus !== $status) {
                 if ($status === 'UP') {
                     $this->sendRestoredAlert($service, $oldStatus, $code, $time, $detail);
@@ -1711,9 +1415,8 @@ class ServiceMonitorService
                     $this->sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action);
                 }
                 $service->update(['last_wa_sent_at' => now()]);
-                Log::info("✅ WA terkirim (interval 0): {$service->name} {$oldStatus} → {$status}");
             }
-            
+
             $service->update([
                 'last_interval_status' => $status,
                 'last_interval_checked_at' => now(),
@@ -1723,13 +1426,11 @@ class ServiceMonitorService
             return;
         }
 
-        // INTERVAL > 0
         $lastIntervalCheck = $service->last_interval_checked_at;
         $lastIntervalStatus = $service->last_interval_status;
         $lastIntervalValue = $service->last_interval_value ?? 0;
-        
+
         if ($lastIntervalValue != $interval) {
-            Log::info("🔄 INTERVAL BERUBAH: {$lastIntervalValue} → {$interval} menit - RESET TIMER");
             $service->update([
                 'last_interval_checked_at' => now(),
                 'last_interval_value' => $interval,
@@ -1737,9 +1438,8 @@ class ServiceMonitorService
             ]);
             return;
         }
-        
+
         if (empty($lastIntervalCheck) || empty($lastIntervalStatus)) {
-            Log::info("🔄 INTERVAL INIT: {$service->name} | Status awal: {$status}");
             $service->update([
                 'last_interval_status' => $status,
                 'last_interval_checked_at' => now(),
@@ -1751,25 +1451,18 @@ class ServiceMonitorService
 
         $lastCheck = Carbon::parse($lastIntervalCheck);
         $minutesSinceLastCheck = $lastCheck->diffInRealMinutes(now());
-        
-        Log::info("⏱️ TIMER: {$minutesSinceLastCheck}/{$interval} menit | Status awal: {$lastIntervalStatus} | Status skrg: {$status}");
-        
+
         if ($minutesSinceLastCheck < $interval) {
-            Log::info("⏳ Interval belum tercapai ({$minutesSinceLastCheck}/{$interval} menit) - TIDAK KIRIM WA");
             return;
         }
 
-        Log::info("🎯 INTERVAL REACHED! {$service->name} | Awal: {$lastIntervalStatus} | Akhir: {$status}");
-        
         if ($status !== $lastIntervalStatus) {
-            Log::info("✅ STATUS BERUBAH: {$lastIntervalStatus} → {$status} (KIRIM WA)");
-            
             if ($status === 'UP') {
                 $this->sendRestoredAlert($service, $lastIntervalStatus, $code, $time, $detail);
             } else {
                 $this->sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action);
             }
-            
+
             $service->update([
                 'last_wa_sent_at' => now(),
                 'last_interval_status' => $status,
@@ -1777,87 +1470,40 @@ class ServiceMonitorService
                 'last_interval_value' => $interval,
                 'interval_wa_sent_in_this_cycle' => 1,
             ]);
-            Log::info("✅ WA terkirim: {$service->name} {$lastIntervalStatus} → {$status}");
         } else {
-            Log::info("⏭️ Status tetap {$status} - TIDAK KIRIM WA");
-            
             $service->update([
                 'last_interval_status' => $status,
                 'last_interval_checked_at' => now(),
                 'last_interval_value' => $interval,
                 'interval_wa_sent_in_this_cycle' => 0,
             ]);
-            Log::info("⏱️ Timer direset untuk interval berikutnya");
         }
     }
 
-    /**
-     * ============================================================
-     * 🟢 KIRIM WA SERVICE NORMAL KEMBALI (RESTORED)
-     * ============================================================
-     */
     private function sendRestoredAlert($service, $oldStatus, $code, $time, $detail)
     {
         $contacts = Contact::where('is_active', true)->get();
         if ($contacts->isEmpty()) {
-            Log::warning('Tidak ada kontak aktif untuk kirim WA restored alert');
             return;
         }
 
-        $newline = "\n";
-        $line = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-        
-        $formattedTime = number_format($time, 2) . ' detik';
+        $formattedTime = number_format($time, 2) . 's';
         $timeMs = $time * 1000;
-        $formattedTimeMs = number_format($timeMs, 0) . ' ms';
-        
         $statusText = $oldStatus == 'DOWN' ? 'DOWN' : 'WARNING';
 
-        $message = "🟢✅ SERVICE NORMAL KEMBALI - SELAMAT!" . $newline;
-        $message .= $line;
-        $message .= "📌 INFORMASI SERVICE" . $newline;
-        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-        $message .= "Nama    : " . $service->name . $newline;
-        $message .= "Target  : " . $service->target . $newline;
-        $message .= "Tipe    : " . strtoupper($service->type ?? 'HTTP') . $newline;
-        $message .= $line;
-        $message .= "📊 STATUS PEMULIHAN" . $newline;
-        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-        $message .= "Status  : 🟢 UP (sebelumnya " . $statusText . ")" . $newline;
-        $message .= "Kode    : " . $code . $newline;
-        $message .= "Waktu   : " . $formattedTime . " (" . $formattedTimeMs . ")" . $newline;
-        
-        if ($timeMs <= 2000) {
-            $message .= "Kategori: ⚡ Optimal (≤ 2 detik)" . $newline;
-        } elseif ($timeMs <= 3000) {
-            $message .= "Kategori: 🟡 Cukup cepat (2-3 detik)" . $newline;
-        } elseif ($timeMs <= 4000) {
-            $message .= "Kategori: 🟠 Lambat (3-4 detik) - perlu optimasi" . $newline;
-        } else {
-            $message .= "Kategori: 🔴 Sangat lambat (>4 detik) - perlu perbaikan" . $newline;
-        }
-        
-        $message .= $line;
-        $message .= "✅ Kondisi Service" . $newline;
-        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-        $message .= "✅ Service telah kembali normal" . $newline;
-        $message .= "✅ Dapat diakses oleh pengguna" . $newline;
-        
-        // Tambahkan saran jika masih lambat
+        $message = "✅ SERVICE NORMAL KEMBALI!\n";
+        $message .= "═══════════════════════\n";
+        $message .= "Nama: " . $service->name . "\n";
+        $message .= "Target: " . $service->target . "\n";
+        $message .= "Status: 🟢 UP (sebelumnya " . $statusText . ")\n";
+        $message .= "Waktu: " . $formattedTime . " (" . number_format($timeMs, 0) . "ms)\n";
+
         if ($timeMs > 2000) {
-            $message .= $line;
-            $message .= "⚠️ SARAN PERBAIKAN" . $newline;
-            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-            $recs = $this->getRecommendationsByTime($timeMs);
-            foreach (array_slice($recs, 0, 3) as $rec) {
-                $message .= "• " . $rec . $newline;
-            }
+            $message .= "📌 " . $this->getShortRecommendation($timeMs) . "\n";
         }
-        
-        $message .= $line;
-        $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB" . $newline;
-        $message .= $line;
-        $message .= "📱 Service siap digunakan kembali!" . $newline;
+
+        $message .= "═══════════════════════\n";
+        $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB";
 
         foreach ($contacts as $contact) {
             $result = FonnteService::send($contact->phone, $message);
@@ -1865,139 +1511,53 @@ class ServiceMonitorService
         }
     }
 
-    /**
-     * ============================================================
-     * ⚠️ KIRIM WHATSAPP (DOWN / WARNING) - DIPERBAIKI LEBIH INFORMATIF
-     * ============================================================
-     */
     private function sendWhatsappAlert($service, $status, $code, $time, $reason, $detail, $action)
     {
         $contacts = Contact::where('is_active', true)->get();
         if ($contacts->isEmpty()) {
-            Log::warning('Tidak ada kontak aktif');
             return;
         }
 
-        $newline = "\n";
-        $line = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-
-        // Format response time
-        $formattedTime = number_format($time, 2) . ' detik';
+        $formattedTime = number_format($time, 2) . 's';
         $timeMs = $time * 1000;
-        $formattedTimeMs = number_format($timeMs, 0) . ' ms';
 
         if ($status == 'DOWN') {
-            $judul = "🔴🚨 SERVICE DOWN - SEGERA PERBAIKI!";
+            $judul = "🔴 SERVICE DOWN!";
             $statusIcon = "🔴";
             $statusText = "DOWN";
-            $urgency = "🚨 URGENT!";
+            $urgency = "🚨 SEGERA PERBAIKI!";
         } else {
-            $judul = "🟡⚠️ SERVICE WARNING - PERLU OPTIMASI!";
+            $judul = "🟡 SERVICE WARNING!";
             $statusIcon = "🟡";
             $statusText = "WARNING";
             $urgency = "⚠️ PERHATIAN!";
         }
 
-        // Build pesan yang informatif
-        $message = $judul . $newline;
-        $message .= $line;
-        $message .= "📌 INFORMASI SERVICE" . $newline;
-        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-        $message .= "Nama    : " . $service->name . $newline;
-        $message .= "Target  : " . $service->target . $newline;
-        $message .= "Tipe    : " . strtoupper($service->type ?? 'HTTP') . $newline;
-        $message .= $line;
-        $message .= "📊 STATUS MONITORING" . $newline;
-        $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-        $message .= "Status  : " . $statusIcon . " " . $statusText . $newline;
-        $message .= "Kode    : " . $code . $newline;
-        $message .= "Waktu   : " . $formattedTime . " (" . $formattedTimeMs . ")" . $newline;
-        $message .= "Threshold: ≤ 2 detik (standar PageSpeed)" . $newline;
-        
-        // Hitung selisih
-        if ($timeMs > 2000) {
-            $diff = $timeMs - 2000;
-            $message .= "Selisih : +" . number_format($diff, 0) . " ms (melewati batas)" . $newline;
-        } else {
-            $diff = 2000 - $timeMs;
-            $message .= "Selisih : -" . number_format($diff, 0) . " ms (dalam batas aman)" . $newline;
+        $shortReason = $detail;
+        if (strlen($shortReason) > 60) {
+            $shortReason = substr($shortReason, 0, 60) . '...';
         }
-        
-        $message .= $line;
-        
-        // Dampak
-        if ($status == 'DOWN') {
-            $message .= "💥 DAMPAK BISNIS" . $newline;
-            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-            $message .= "❌ Service tidak dapat diakses oleh pengguna" . $newline;
-            $message .= "❌ Potensi kehilangan pendapatan" . $newline;
-            $message .= "❌ Reputasi perusahaan terpengaruh" . $newline;
-            $message .= "❌ SEO dan peringkat Google menurun" . $newline;
-            $message .= $line;
-            $message .= "🔧 TINDAKAN DARURAT" . $newline;
-            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-        } else {
-            $message .= "💥 DAMPAK" . $newline;
-            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-            
-            if ($timeMs <= 2500) {
-                $message .= "🟡 Pengalaman pengguna mulai terganggu" . $newline;
-                $message .= "🟡 Risiko bounce rate meningkat 10-15%" . $newline;
-            } elseif ($timeMs <= 3000) {
-                $message .= "🟠 Pengguna mulai tidak sabar" . $newline;
-                $message .= "🟠 Risiko bounce rate meningkat 20-30%" . $newline;
-                $message .= "🟠 Konversi menurun 10-15%" . $newline;
-            } elseif ($timeMs <= 4000) {
-                $message .= "🔴 Pengalaman pengguna sangat buruk" . $newline;
-                $message .= "🔴 Risiko bounce rate meningkat 40-50%" . $newline;
-                $message .= "🔴 Konversi menurun 20-30%" . $newline;
-                $message .= "🔴 SEO terpengaruh signifikan" . $newline;
-            } else {
-                $message .= "🔴 SERVICE SANGAT LAMBAT!" . $newline;
-                $message .= "🔴 Risiko bounce rate meningkat >60%" . $newline;
-                $message .= "🔴 Konversi menurun >40%" . $newline;
-                $message .= "🔴 SEO sangat terpengaruh" . $newline;
-                $message .= "🔴 Hampir tidak bisa diakses" . $newline;
-            }
-            $message .= $line;
-            $message .= "🔧 REKOMENDASI OPTIMASI" . $newline;
-            $message .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" . $newline;
-        }
-        
-        // Tambahkan rekomendasi spesifik
-        $recommendations = $this->getRecommendationsByTime($timeMs);
-        foreach ($recommendations as $rec) {
-            $message .= "• " . $rec . $newline;
-        }
-        
-        $message .= $line;
-        
-        // Detail tambahan dari system (ambil bagian penting)
-        if (!empty($detail) && $detail != '-') {
-            // Ambil hanya kalimat pertama dari detail
-            $firstLine = strtok($detail, "\n");
-            if ($firstLine) {
-                $message .= "📝 " . $firstLine . $newline;
-            }
-        }
-        
-        $message .= $line;
-        $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB" . $newline;
-        $message .= $line;
-        $message .= "📱 " . $urgency . " Segera tindak lanjuti!" . $newline;
 
-        // Kirim ke semua kontak
+        $message = $judul . "\n";
+        $message .= "═══════════════════════\n";
+        $message .= "Nama: " . $service->name . "\n";
+        $message .= "Target: " . $service->target . "\n";
+        $message .= "Status: " . $statusIcon . " " . $statusText . "\n";
+        $message .= "Kode: " . $code . "\n";
+        $message .= "Waktu: " . $formattedTime . " (" . number_format($timeMs, 0) . "ms)\n";
+        $message .= "═══════════════════════\n";
+        $message .= "📌 " . $shortReason . "\n";
+        $message .= "🔧 " . $action . "\n";
+        $message .= "═══════════════════════\n";
+        $message .= $urgency . "\n";
+        $message .= "🕐 " . now()->setTimezone('Asia/Jakarta')->format('d-m-Y H:i:s') . " WIB";
+
         foreach ($contacts as $contact) {
             $result = FonnteService::send($contact->phone, $message);
             Log::info($result ? "✅ WA ke: {$contact->phone} - {$status}" : "❌ Gagal WA ke: {$contact->phone}");
         }
     }
 
-    /**
-     * ============================================================
-     * 🔧 HELPER METHODS
-     * ============================================================
-     */
     private function normalizeUrl($url)
     {
         if (!str_starts_with($url, 'http://') && !str_starts_with($url, 'https://')) {
@@ -2009,11 +1569,9 @@ class ServiceMonitorService
     private function handleNetworkStatus($isNetworkConnected)
     {
         if (!$isNetworkConnected && !$this->networkAlertSent) {
-            Log::info('🌐 Network: DISCONNECTED');
             $this->networkAlertSent = true;
         }
         if ($isNetworkConnected && $this->networkAlertSent) {
-            Log::info('🌐 Network: RESTORED');
             $this->networkAlertSent = false;
         }
     }

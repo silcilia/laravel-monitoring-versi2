@@ -256,7 +256,6 @@
         height: 18px;
     }
 
-    /* 🔥 TOMBOL DOWNLOAD MULTI */
     .btn-download-multi {
         background: linear-gradient(135deg, #059669, #10b981);
         color: white;
@@ -345,6 +344,69 @@
     }
     .status-badge.archived .status-dot {
         background: #9ca3af;
+    }
+
+    /* SSL Badge Colors */
+    .status-badge.ssl-valid {
+        background: #d1fae5;
+        color: #065f46;
+        border-color: #6ee7b7;
+    }
+    .status-badge.ssl-valid .status-dot {
+        background: #059669;
+    }
+    .status-badge.ssl-warning {
+        background: #fef3c7;
+        color: #92400e;
+        border-color: #fcd34d;
+    }
+    .status-badge.ssl-warning .status-dot {
+        background: #d97706;
+    }
+    .status-badge.ssl-critical {
+        background: #ffedd5;
+        color: #9a3412;
+        border-color: #fdba74;
+    }
+    .status-badge.ssl-critical .status-dot {
+        background: #ea580c;
+    }
+    .status-badge.ssl-expired {
+        background: #fee2e2;
+        color: #991b1b;
+        border-color: #fca5a5;
+    }
+    .status-badge.ssl-expired .status-dot {
+        background: #dc2626;
+    }
+    .status-badge.ssl-na {
+        background: var(--bg-hover-service);
+        color: var(--text-muted-service);
+        border-color: var(--border-service);
+    }
+    .status-badge.ssl-na .status-dot {
+        background: var(--text-muted-service);
+    }
+
+    [data-theme="dark"] .status-badge.ssl-valid {
+        background: #064e3b;
+        color: #6ee7b7;
+        border-color: #059669;
+    }
+    [data-theme="dark"] .status-badge.ssl-warning {
+        background: #78350f;
+        color: #fcd34d;
+        border-color: #d97706;
+    }
+    [data-theme="dark"] .status-badge.ssl-critical {
+        background: #431407;
+        color: #fdba74;
+        border-color: #ea580c;
+    }
+    [data-theme="dark"] .status-badge.ssl-expired {
+        background: #7f1d1d;
+        color: #fca5a5;
+        border-color: #dc2626;
     }
 
     [data-theme="dark"] .status-badge.archived {
@@ -834,6 +896,7 @@
     .table-container table {
         width: 100%;
         border-collapse: collapse;
+        min-width: 900px;
     }
 
     .table-container thead th {
@@ -959,21 +1022,6 @@
         color: #475569 !important;
     }
 
-    @media (max-width: 768px) {
-        .sortable-header {
-            padding-right: 18px !important;
-            font-size: 10px !important;
-        }
-        .sortable-header .sort-icon {
-            font-size: 7px;
-            right: 2px;
-        }
-        .sortable-header .sort-icon .arrow-up,
-        .sortable-header .sort-icon .arrow-down {
-            font-size: 6px;
-        }
-    }
-
     /* ================= SERVICE INFO ================= */
     .service-info {
         display: flex;
@@ -1090,6 +1138,77 @@
     }
     .status-badge.unknown .status-dot {
         background: var(--text-muted-service);
+    }
+
+    /* SSL Badge */
+    .ssl-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 16px;
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid;
+        transition: all 0.3s ease;
+        cursor: help;
+    }
+    .ssl-badge .ssl-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .ssl-badge.ssl-valid {
+        background: #d1fae5;
+        color: #065f46;
+        border-color: #6ee7b7;
+    }
+    .ssl-badge.ssl-valid .ssl-dot { background: #059669; }
+    .ssl-badge.ssl-warning {
+        background: #fef3c7;
+        color: #92400e;
+        border-color: #fcd34d;
+    }
+    .ssl-badge.ssl-warning .ssl-dot { background: #d97706; }
+    .ssl-badge.ssl-critical {
+        background: #ffedd5;
+        color: #9a3412;
+        border-color: #fdba74;
+    }
+    .ssl-badge.ssl-critical .ssl-dot { background: #ea580c; }
+    .ssl-badge.ssl-expired {
+        background: #fee2e2;
+        color: #991b1b;
+        border-color: #fca5a5;
+    }
+    .ssl-badge.ssl-expired .ssl-dot { background: #dc2626; }
+    .ssl-badge.ssl-na {
+        background: var(--bg-hover-service);
+        color: var(--text-muted-service);
+        border-color: var(--border-service);
+    }
+    .ssl-badge.ssl-na .ssl-dot { background: var(--text-muted-service); }
+
+    [data-theme="dark"] .ssl-badge.ssl-valid {
+        background: #064e3b;
+        color: #6ee7b7;
+        border-color: #059669;
+    }
+    [data-theme="dark"] .ssl-badge.ssl-warning {
+        background: #78350f;
+        color: #fcd34d;
+        border-color: #d97706;
+    }
+    [data-theme="dark"] .ssl-badge.ssl-critical {
+        background: #431407;
+        color: #fdba74;
+        border-color: #ea580c;
+    }
+    [data-theme="dark"] .ssl-badge.ssl-expired {
+        background: #7f1d1d;
+        color: #fca5a5;
+        border-color: #dc2626;
     }
 
     .service-no {
@@ -1629,7 +1748,7 @@
     .detail-item .detail-value .response-time.slow { color: #dc2626; }
     .detail-item .detail-value .response-time.medium { color: #d97706; }
 
-    /* 🔥🔥🔥 DETAIL MESSAGE - DIPERBAIKI */
+    /* 🔥 DETAIL MESSAGE */
     .detail-message-wrapper {
         background: var(--bg-detail-service);
         border-radius: 10px;
@@ -1719,6 +1838,90 @@
     }
     [data-theme="dark"] .detail-message-wrapper .detail-message .msg-label {
         color: var(--text-muted-service);
+    }
+
+    /* ================= SSL DETAIL ================= */
+    .ssl-detail-box {
+        grid-column: 1 / -1;
+        background: var(--bg-detail-alt-service);
+        border: 1px solid var(--border-service);
+        border-radius: 10px;
+        padding: 14px 16px;
+        transition: all 0.3s ease;
+    }
+
+    .ssl-detail-box .ssl-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 6px;
+    }
+
+    .ssl-detail-box .ssl-grid .ssl-item {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ssl-detail-box .ssl-grid .ssl-item .ssl-label {
+        font-size: 11px;
+        color: var(--text-muted-service);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .ssl-detail-box .ssl-grid .ssl-item .ssl-value {
+        font-weight: 600;
+        margin-top: 2px;
+        font-size: 14px;
+        color: var(--text-service);
+    }
+
+    .ssl-detail-box .ssl-progress {
+        margin-top: 8px;
+    }
+
+    .ssl-detail-box .ssl-progress .ssl-progress-label {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--text-secondary-service);
+    }
+
+    .ssl-detail-box .ssl-alert {
+        margin-top: 8px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .ssl-detail-box .ssl-alert.danger {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .ssl-detail-box .ssl-alert.warning {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .ssl-detail-box .ssl-alert.info {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    [data-theme="dark"] .ssl-detail-box .ssl-alert.danger {
+        background: #7f1d1d;
+        color: #fca5a5;
+    }
+    [data-theme="dark"] .ssl-detail-box .ssl-alert.warning {
+        background: #78350f;
+        color: #fcd34d;
+    }
+    [data-theme="dark"] .ssl-detail-box .ssl-alert.info {
+        background: #78350f;
+        color: #fcd34d;
     }
 
     .detail-timestamp {
@@ -1910,7 +2113,7 @@
         cursor: pointer;
     }
     [data-theme="dark"] .modal-body select.form-control {
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cfill fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
     }
 
     .modal-body .error-message {
@@ -2100,7 +2303,7 @@
         color: #0f172a;
     }
 
-    /* ================= 🔥 MULTI DOWNLOAD MODAL ================= */
+    /* ================= MULTI DOWNLOAD ================= */
     .multi-download-body {
         max-height: 65vh;
         overflow-y: auto;
@@ -2236,6 +2439,7 @@
     @media (max-width: 1024px) {
         .stats-bar { grid-template-columns: repeat(3, 1fr); }
         .detail-grid { grid-template-columns: 1fr; }
+        .ssl-detail-box .ssl-grid { grid-template-columns: 1fr; }
         .search-wrapper { max-width: 100%; }
         .service-list-item { flex-wrap: wrap; }
     }
@@ -2262,6 +2466,7 @@
         .btn-submit-modal, .btn-cancel-modal, .btn-download-modal { justify-content: center; }
         .toast-container { top: 16px; right: 16px; max-width: calc(100% - 32px); }
         .detail-grid { grid-template-columns: 1fr; }
+        .ssl-detail-box .ssl-grid { grid-template-columns: 1fr; }
         .action-buttons { flex-wrap: wrap; }
         .download-date-range { flex-direction: column; }
         .download-date-range .date-group { min-width: 100%; }
@@ -2355,6 +2560,7 @@
         .modal-body { padding: 14px; }
         .status-badge { font-size: 9px; padding: 3px 10px; gap: 5px; }
         .status-badge .status-dot { width: 6px; height: 6px; }
+        .ssl-badge { font-size: 9px; padding: 3px 8px; }
         .btn-action { font-size: 10px; padding: 4px 8px; }
         .btn-check { font-size: 10px; padding: 4px 8px; }
         .btn-archive, .btn-restore, .btn-delete-permanent { font-size: 10px; padding: 4px 8px; }
@@ -2412,7 +2618,11 @@
             'name' => $service->name,
             'target' => $service->target,
             'type' => $service->type ?? 'http',
-            'is_archived' => (bool) $service->is_archived
+            'is_archived' => (bool) $service->is_archived,
+            'ssl_status' => $service->ssl_status ?? null,
+            'ssl_days_remaining' => $service->ssl_days_remaining ?? null,
+            'ssl_expiry_date' => $service->ssl_expiry_date ? \Carbon\Carbon::parse($service->ssl_expiry_date)->format('d-m-Y') : null,
+            'ssl_issuer' => $service->ssl_issuer ?? null,
         ]) !!};
     @endforeach
 </script>
@@ -2597,6 +2807,14 @@
                                 <span class="arrow-down">▼</span>
                             </span>
                         </th>
+                        <!-- 🔥 SSL COLUMN -->
+                        <th style="width: 140px;" class="sortable-header" data-sort="ssl_status" onclick="sortTable('ssl_status')">
+                            SSL Status
+                            <span class="sort-icon">
+                                <span class="arrow-up">▲</span>
+                                <span class="arrow-down">▼</span>
+                            </span>
+                        </th>
                         <th style="width: 100px;" class="sortable-header" data-sort="uptime" onclick="sortTable('uptime')">
                             Uptime 30d
                             <span class="sort-icon">
@@ -2626,6 +2844,46 @@
                             $uptime = $service->uptime ?? 0;
                             $uptimeColor = $uptime >= 70 ? 'green' : ($uptime >= 50 ? 'yellow' : 'red');
                             $isArchived = $service->is_archived ?? 0;
+                            
+                            // 🔥 SSL Information
+                            $sslStatus = $service->ssl_status ?? 'N/A';
+                            $sslDays = $service->ssl_days_remaining ?? null;
+                            $sslExpiry = $service->ssl_expiry_date ? \Carbon\Carbon::parse($service->ssl_expiry_date)->format('d-m-Y') : null;
+                            
+                            // Determine SSL badge class
+                            $sslBadgeClass = 'ssl-na';
+                            $sslIcon = '🔓';
+                            $sslLabel = 'N/A';
+                            if ($isArchived) {
+                                $sslBadgeClass = 'ssl-na';
+                                $sslIcon = '📦';
+                                $sslLabel = 'ARSIP';
+                            } elseif ($sslStatus === 'VALID') {
+                                $sslBadgeClass = 'ssl-valid';
+                                $sslIcon = '🟢';
+                                $sslLabel = 'VALID';
+                            } elseif ($sslStatus === 'WARNING') {
+                                $sslBadgeClass = 'ssl-warning';
+                                $sslIcon = '🟡';
+                                $sslLabel = 'WARNING';
+                            } elseif ($sslStatus === 'CRITICAL') {
+                                $sslBadgeClass = 'ssl-critical';
+                                $sslIcon = '🔴';
+                                $sslLabel = 'CRITICAL';
+                            } elseif ($sslStatus === 'EXPIRED') {
+                                $sslBadgeClass = 'ssl-expired';
+                                $sslIcon = '🔴';
+                                $sslLabel = 'EXPIRED';
+                            } elseif ($sslStatus === 'N/A' || $sslStatus === null) {
+                                $sslBadgeClass = 'ssl-na';
+                                $sslIcon = '🔓';
+                                $sslLabel = 'N/A';
+                            }
+                            
+                            $daysText = $sslDays !== null && $sslDays > 0 ? $sslDays . ' hr' : ($sslDays === 0 ? 'Hr ini' : ($sslDays !== null && $sslDays < 0 ? '⚠️' : '-'));
+                            $tooltip = $sslStatus !== 'N/A' && $sslStatus !== null ? 
+                                $sslLabel . ' - Exp: ' . ($sslExpiry ?? '-') . ' - Sisa: ' . ($sslDays ?? '-') . ' hari' : 
+                                'SSL tidak tersedia (non-HTTPS)';
                         @endphp
                         <tr data-service-id="{{ $service->id }}" data-archived="{{ $isArchived }}" data-service-name="{{ $service->name }}" data-service-created="{{ $service->created_at }}">
                             <td><span class="service-no">{{ $no }}</span></td>
@@ -2659,6 +2917,30 @@
                                 @else
                                     <span class="status-badge unknown" id="status-{{ $service->id }}">
                                         <span class="status-dot"></span> UNKNOWN
+                                    </span>
+                                @endif
+                            </td>
+                            <!-- 🔥 SSL STATUS COLUMN -->
+                            <td>
+                                @if($isArchived)
+                                    <span class="ssl-badge ssl-na" title="Service diarsipkan">
+                                        <span class="ssl-dot"></span> 📦 ARSIP
+                                    </span>
+                                @else
+                                    <span class="ssl-badge {{ $sslBadgeClass }}" 
+                                          title="{{ $tooltip }}"
+                                          style="cursor: help;">
+                                        <span class="ssl-dot"></span>
+                                        {{ $sslIcon }} {{ $sslLabel }}
+                                        @if($sslDays !== null && $sslDays > 0)
+                                            <span style="font-weight: 400; opacity: 0.8; font-size: 10px;">
+                                                ({{ $daysText }})
+                                            </span>
+                                        @elseif($sslDays !== null && $sslDays <= 0 && $sslStatus !== 'N/A')
+                                            <span style="font-weight: 400; opacity: 0.8; font-size: 10px; color: #dc2626;">
+                                                ⚠️
+                                            </span>
+                                        @endif
                                     </span>
                                 @endif
                             </td>
@@ -2696,7 +2978,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7">
+                            <td colspan="8">
                                 <div class="empty-state">
                                     <span class="empty-icon">📭</span>
                                     <h3>
@@ -2884,7 +3166,7 @@
     </div>
 </div>
 
-<!-- ================= 🔥🔥🔥 MODAL DOWNLOAD MULTI SERVICE ================= -->
+<!-- ================= MODAL DOWNLOAD MULTI SERVICE ================= -->
 <div class="modal-overlay" id="multiDownloadModal" onclick="if(event.target === this) closeMultiDownloadModal()">
     <div class="modal-content" style="max-width: 850px;">
         <div class="modal-header">
@@ -2896,7 +3178,6 @@
         </div>
         <div class="modal-body multi-download-body" id="multiDownloadBody">
             
-            <!-- ================= PANDUAN ================= -->
             <div style="background: var(--bg-info-box-service); border: 1px solid var(--border-info-box-service); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--text-info-box-service);">
                 📌 <strong>Panduan:</strong>
                 <ul style="margin: 6px 0 0 18px; padding-left: 0;">
@@ -2907,7 +3188,6 @@
                 </ul>
             </div>
 
-            <!-- ================= TOMBOL AKSI CEPAT ================= -->
             <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
                 <button type="button" onclick="selectAllMulti(true)" class="btn-action" style="background: #4f46e5; color: white; padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;">
                     ✅ Pilih Semua
@@ -2923,7 +3203,6 @@
                 </button>
             </div>
 
-            <!-- ================= LIST SERVICE ================= -->
             <div class="form-group">
                 <label>
                     Pilih Service & Atur Periode
@@ -2999,7 +3278,6 @@
                 </div>
             </div>
 
-            <!-- ================= FORMAT LAPORAN ================= -->
             <div class="form-group">
                 <label>Format Laporan <span class="required">*</span></label>
                 <div class="format-group">
@@ -3018,7 +3296,6 @@
                 </div>
             </div>
 
-            <!-- ================= LOADING ================= -->
             <div id="multiDownloadLoading" style="display: none; text-align: center; padding: 20px;">
                 <span style="font-size: 24px; display: block; margin-bottom: 8px;">⏳</span>
                 <p style="color: var(--text-secondary-service);">Sedang memproses laporan...</p>
@@ -3134,6 +3411,29 @@
                     const bStatus = b.querySelector('.status-badge')?.textContent?.trim()?.toUpperCase() || 'UNKNOWN';
                     aNum = statusPriority[aStatus] || 4;
                     bNum = statusPriority[bStatus] || 4;
+                    return currentSortDirection === 'asc' ? aNum - bNum : bNum - aNum;
+                    
+                case 'ssl_status':
+                    const sslPriority = { 'VALID': 1, 'WARNING': 2, 'CRITICAL': 3, 'EXPIRED': 4, 'N/A': 5, 'ARSIP': 6 };
+                    const aSsl = a.querySelector('.ssl-badge')?.textContent?.trim()?.toUpperCase() || 'N/A';
+                    const bSsl = b.querySelector('.ssl-badge')?.textContent?.trim()?.toUpperCase() || 'N/A';
+                    // Extract main status
+                    let aSslKey = 'N/A';
+                    let bSslKey = 'N/A';
+                    if (aSsl.includes('VALID')) aSslKey = 'VALID';
+                    else if (aSsl.includes('WARNING')) aSslKey = 'WARNING';
+                    else if (aSsl.includes('CRITICAL')) aSslKey = 'CRITICAL';
+                    else if (aSsl.includes('EXPIRED')) aSslKey = 'EXPIRED';
+                    else if (aSsl.includes('ARSIP')) aSslKey = 'ARSIP';
+                    
+                    if (bSsl.includes('VALID')) bSslKey = 'VALID';
+                    else if (bSsl.includes('WARNING')) bSslKey = 'WARNING';
+                    else if (bSsl.includes('CRITICAL')) bSslKey = 'CRITICAL';
+                    else if (bSsl.includes('EXPIRED')) bSslKey = 'EXPIRED';
+                    else if (bSsl.includes('ARSIP')) bSslKey = 'ARSIP';
+                    
+                    aNum = sslPriority[aSslKey] || 5;
+                    bNum = sslPriority[bSslKey] || 5;
                     return currentSortDirection === 'asc' ? aNum - bNum : bNum - aNum;
                     
                 case 'uptime':
@@ -3530,7 +3830,7 @@
     let downloadServiceData = null;
     let multiFormat = 'pdf';
 
-    // ================= 🔥 MULTI DOWNLOAD FUNCTIONS =================
+    // ================= MULTI DOWNLOAD FUNCTIONS =================
     let selectedServices = new Set();
 
     function toggleCheckbox(element) {
@@ -3547,24 +3847,20 @@
         document.body.style.overflow = 'hidden';
         document.dispatchEvent(new Event('modalOpened'));
         
-        // Reset semua checkbox
         document.querySelectorAll('.multi-service-checkbox').forEach(cb => {
             cb.checked = false;
             cb.closest('.service-list-item').classList.remove('selected');
         });
         updateMultiSelection();
         
-        // Reset button
         document.getElementById('btnMultiDownload').disabled = true;
         document.getElementById('btnMultiDownload').textContent = '📥 Download Laporan';
         document.getElementById('multiDownloadLoading').style.display = 'none';
         
-        // Reset format ke PDF
         document.getElementById('formatPdfLabel').classList.add('active-format');
         document.getElementById('formatExcelLabel').classList.remove('active-format');
         multiFormat = 'pdf';
         
-        // Auto select active services
         setTimeout(() => {
             selectByStatusMulti('UP');
         }, 300);
@@ -3598,7 +3894,6 @@
     }
 
     function updateMultiSelection(event) {
-        // Jika event ada, update class selected pada parent
         if (event && event.target) {
             const item = event.target.closest('.service-list-item');
             if (item) {
@@ -3609,7 +3904,6 @@
             }
         }
 
-        // Hitung semua checkbox yang tercentang
         const checked = document.querySelectorAll('.multi-service-checkbox:checked');
         const count = checked.length;
         document.getElementById('multiSelectedCount').textContent = count;
@@ -3642,7 +3936,6 @@
             return;
         }
         
-        // Kumpulkan data per service
         const servicesData = [];
         checked.forEach(cb => {
             const item = cb.closest('.service-list-item');
@@ -3657,7 +3950,6 @@
             });
         });
 
-        // 🔥 TAMPILKAN MODAL KONFIRMASI CUSTOM
         const names = servicesData.map(s => s.name).join(', ');
         const formatLabel = multiFormat === 'pdf' ? 'PDF' : 'Excel (CSV)';
         
@@ -3668,7 +3960,6 @@
         });
         detailMessage += '\n📄 Format: ' + formatLabel + ' (1 file)';
 
-        // 🔥 GANTI CONFIRM BAWAAN BROWSER DENGAN CUSTOM MODAL
         showConfirmModal(
             'info',
             '📥 Download Laporan Service',
@@ -3677,7 +3968,6 @@
             '📥 Download',
             'btn-confirm',
             function() {
-                // Proses download
                 const btn = document.getElementById('btnMultiDownload');
                 const loading = document.getElementById('multiDownloadLoading');
                 const progress = document.getElementById('multiDownloadProgress');
@@ -3687,7 +3977,6 @@
                 loading.style.display = 'block';
                 progress.textContent = 'Memproses ' + servicesData.length + ' service...';
                 
-                // Kirim request ke server
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
                 formData.append('services', JSON.stringify(servicesData));
@@ -3809,7 +4098,7 @@
         if (services.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7">
+                    <td colspan="8">
                         <div class="empty-state">
                             <span class="empty-icon">🔍</span>
                             <h3>Service Tidak Ditemukan</h3>
@@ -3835,6 +4124,36 @@
             const uptimeColor = uptime >= 70 ? 'green' : (uptime >= 50 ? 'yellow' : 'red');
             const no = index + 1;
             const isArchived = service.is_archived || 0;
+            
+            // SSL Info
+            const sslStatus = service.ssl_status || 'N/A';
+            const sslDays = service.ssl_days_remaining || null;
+            const sslExpiry = service.ssl_expiry_date || null;
+            
+            let sslBadgeClass = 'ssl-na';
+            let sslIcon = '🔓';
+            let sslLabel = 'N/A';
+            if (isArchived) {
+                sslBadgeClass = 'ssl-na';
+                sslIcon = '📦';
+                sslLabel = 'ARSIP';
+            } else if (sslStatus === 'VALID') {
+                sslBadgeClass = 'ssl-valid';
+                sslIcon = '🟢';
+                sslLabel = 'VALID';
+            } else if (sslStatus === 'WARNING') {
+                sslBadgeClass = 'ssl-warning';
+                sslIcon = '🟡';
+                sslLabel = 'WARNING';
+            } else if (sslStatus === 'CRITICAL') {
+                sslBadgeClass = 'ssl-critical';
+                sslIcon = '🔴';
+                sslLabel = 'CRITICAL';
+            } else if (sslStatus === 'EXPIRED') {
+                sslBadgeClass = 'ssl-expired';
+                sslIcon = '🔴';
+                sslLabel = 'EXPIRED';
+            }
             
             let displayName = service.name;
             let displayTarget = service.target;
@@ -3864,6 +4183,15 @@
                         statusLabel == 'DOWN' ? `<span class="status-badge down" id="status-${service.id}"><span class="status-dot"></span> DOWN</span>` :
                         statusLabel == 'WARNING' ? `<span class="status-badge warning" id="status-${service.id}"><span class="status-dot"></span> WARNING</span>` :
                         `<span class="status-badge unknown" id="status-${service.id}"><span class="status-dot"></span> UNKNOWN</span>`}
+                    </td>
+                    <td>
+                        ${isArchived ? 
+                            `<span class="ssl-badge ssl-na" title="Service diarsipkan"><span class="ssl-dot"></span> 📦 ARSIP</span>` :
+                            `<span class="ssl-badge ${sslBadgeClass}" title="${sslLabel} - Exp: ${sslExpiry || '-'} - Sisa: ${sslDays || '-'} hari">
+                                <span class="ssl-dot"></span> ${sslIcon} ${sslLabel}
+                                ${sslDays !== null && sslDays > 0 ? `<span style="font-weight:400;opacity:0.8;font-size:10px;">(${sslDays} hr)</span>` : ''}
+                            </span>`
+                        }
                     </td>
                     <td>
                         ${isArchived ? 
@@ -4123,6 +4451,21 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                // Tambahkan SSL data dari servicesMap
+                if (servicesMap[id]) {
+                    data.data.ssl = {
+                        available: true,
+                        status: servicesMap[id].ssl_status || 'N/A',
+                        status_icon: servicesMap[id].ssl_status === 'VALID' ? '🟢' :
+                                     servicesMap[id].ssl_status === 'WARNING' ? '🟡' :
+                                     servicesMap[id].ssl_status === 'CRITICAL' ? '🔴' :
+                                     servicesMap[id].ssl_status === 'EXPIRED' ? '🔴' : '🔓',
+                        status_label: servicesMap[id].ssl_status || 'N/A',
+                        days_remaining: servicesMap[id].ssl_days_remaining,
+                        valid_to: servicesMap[id].ssl_expiry_date || '-',
+                        issuer: servicesMap[id].ssl_issuer || '-',
+                    };
+                }
                 renderDetail(data.data);
             } else {
                 document.getElementById('detailModalBody').innerHTML = `
@@ -4145,7 +4488,7 @@
         });
     }
 
-    // 🔥🔥🔥 RENDER DETAIL - DIPERBAIKI
+    // 🔥 RENDER DETAIL DENGAN SSL
     function renderDetail(service) {
         const body = document.getElementById('detailModalBody');
         document.getElementById('detailModalTitle').textContent = `📊 Detail Service: ${service.name}`;
@@ -4159,20 +4502,18 @@
         const timeClass = responseTime < 1 ? 'fast' : (responseTime < 3 ? 'medium' : 'slow');
         const codeClass = responseCode < 400 ? 'success' : (responseCode < 500 ? 'warning' : 'error');
         
-        // 🔥 FORMAT PESAN LEBIH RAPI
+        // Format Message
         let messageHtml = '';
         const rawMessage = service.last_message || '-';
         
         if (rawMessage === '-' || rawMessage === '') {
             messageHtml = '<span style="color: var(--text-muted-service);">Tidak ada pesan</span>';
         } else {
-            // Pisahkan berdasarkan baris
             const lines = rawMessage.split('\n');
             let isWarning = false;
             let isDanger = false;
             let isSuccess = false;
             
-            // Deteksi status dari pesan
             if (rawMessage.includes('WARNING') || rawMessage.includes('⚠️') || rawMessage.includes('PERLU OPTIMASI')) {
                 isWarning = true;
             }
@@ -4183,7 +4524,6 @@
                 isSuccess = true;
             }
             
-            // Bangun HTML dengan format rapi
             let lineClass = 'msg-line';
             if (isDanger) lineClass += ' danger';
             else if (isWarning) lineClass += ' warning';
@@ -4196,9 +4536,7 @@
                     return '<span class="msg-divider"></span>';
                 }
                 
-                // Format bold untuk label
                 let formattedLine = trimmed;
-                
                 const labelPatterns = ['Status:', 'Kategori:', 'Dampak:', 'Rekomendasi:', 'Tindakan:', 'Detail:', 'Response Time:', 'Threshold:', 'Selisih:', 'Kode:'];
                 labelPatterns.forEach(label => {
                     if (trimmed.startsWith(label)) {
@@ -4215,10 +4553,90 @@
             }).join('');
         }
 
-        // 🔥 CEK APAKAH PESAN MENGANDUNG PAGESPEED DETAIL
         const isPageSpeedMessage = rawMessage.includes('Response time') && rawMessage.includes('threshold PageSpeed');
         const isEmptyPage = rawMessage.includes('konten kosong') || rawMessage.includes('EMPTY_RESPONSE');
         const emptyClass = isEmptyPage ? 'empty-message' : '';
+
+        // ================= SSL INFORMATION =================
+        let sslHtml = '';
+        if (service.ssl) {
+            const ssl = service.ssl;
+            if (ssl.available && ssl.status !== 'N/A') {
+                const sslStatusClass = ssl.status === 'VALID' ? 'ssl-valid' : 
+                                       ssl.status === 'WARNING' ? 'ssl-warning' : 
+                                       ssl.status === 'CRITICAL' ? 'ssl-critical' : 
+                                       ssl.status === 'EXPIRED' ? 'ssl-expired' : 'ssl-na';
+                const days = ssl.days_remaining;
+                const daysColor = days > 30 ? '#059669' : (days > 7 ? '#d97706' : '#dc2626');
+                
+                sslHtml = `
+                    <div class="ssl-detail-box">
+                        <div class="detail-label">🔒 SSL Certificate</div>
+                        <div class="ssl-grid">
+                            <div class="ssl-item">
+                                <span class="ssl-label">Status</span>
+                                <div class="ssl-value">
+                                    <span class="ssl-badge ${sslStatusClass}" style="font-size: 12px; padding: 4px 14px;">
+                                        <span class="ssl-dot"></span>
+                                        ${ssl.status_icon || '🔓'} ${ssl.status_label || ssl.status}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="ssl-item">
+                                <span class="ssl-label">Sisa Hari</span>
+                                <div class="ssl-value" style="color: ${daysColor}; font-size: 18px;">
+                                    ${days !== null && days > 0 ? days + ' hari' : (days === 0 ? 'Hari ini' : (days !== null && days < 0 ? '⚠️ EXPIRED!' : '-'))}
+                                    ${days !== null && days > 0 && days <= 7 ? ' 🔴' : ''}
+                                    ${days !== null && days > 7 && days <= 30 ? ' 🟡' : ''}
+                                </div>
+                            </div>
+                            <div class="ssl-item">
+                                <span class="ssl-label">Expired</span>
+                                <div class="ssl-value" style="font-family: 'Courier New', monospace; font-size: 13px;">
+                                    ${ssl.valid_to || '-'}
+                                </div>
+                            </div>
+                            <div class="ssl-item">
+                                <span class="ssl-label">Issuer</span>
+                                <div class="ssl-value" style="font-size: 13px; word-break: break-word;">
+                                    ${ssl.issuer || '-'}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${days !== null && days > 0 ? `
+                        <div class="ssl-progress">
+                            <div class="ssl-progress-label">
+                                <span>Masa berlaku</span>
+                                <span>${days} / 365 hari</span>
+                            </div>
+                            <div class="uptime-bar" style="height: 6px; margin-top: 2px;">
+                                <div class="uptime-fill ${days > 30 ? 'green' : (days > 7 ? 'yellow' : 'red')}" 
+                                     style="width: ${Math.min(100, (days / 365) * 100)}%; height: 6px;">
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        ${days !== null && days <= 0 ? `
+                        <div class="ssl-alert danger">
+                            🚨 SSL CERTIFICATE EXPIRED! Segera perbarui!
+                        </div>
+                        ` : ''}
+                        ${days !== null && days <= 7 && days > 0 ? `
+                        <div class="ssl-alert warning">
+                            ⚠️ SSL akan expired dalam ${days} hari! Segera perpanjang!
+                        </div>
+                        ` : ''}
+                        ${days !== null && days <= 30 && days > 7 ? `
+                        <div class="ssl-alert info">
+                            📌 Rencanakan perpanjangan SSL dalam ${days} hari
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+        }
 
         body.innerHTML = `
             <div class="detail-grid">
@@ -4229,7 +4647,10 @@
                 <div class="detail-item"><div class="detail-label">Response Code</div><div class="detail-value"><span class="response-code ${codeClass}">${responseCode}</span></div></div>
                 <div class="detail-item"><div class="detail-label">Response Time</div><div class="detail-value"><span class="response-time ${timeClass}">${Number(responseTime).toFixed(2)} <span style="font-size: 12px; color: var(--text-muted-service);">s</span></span></div></div>
                 
-                <!-- 🔥🔥🔥 PESAN - DIPERBAIKI -->
+                <!-- SSL INFORMATION -->
+                ${sslHtml}
+                
+                <!-- MESSAGE -->
                 <div class="detail-message-wrapper">
                     <div class="detail-label">📝 Pesan</div>
                     <div class="detail-message ${emptyClass}">
